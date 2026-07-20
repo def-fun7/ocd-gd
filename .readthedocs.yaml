@@ -1,26 +1,15 @@
 version: 2
 
-# Build documentation in the following formats
-formats:
-  - htmlzip
-
-# Build documentation with Sphinx
 sphinx:
   configuration: docs/source/conf.py
 
-# Specify the Python environment to use
 build:
   os: ubuntu-24.04
   tools:
     python: "3.13"
-  apt_packages:
-    - build-essential
-    - gfortran
-    - libblas-dev
-    - liblapack-dev
 
-python:
-  install:
-    - requirements: docs/requirements.txt
-    - method: pip
-      path: .
+  # Use build jobs to explicitly tell the server how to install your package
+  jobs:
+    post_install:
+      # Install your local package using pip without fetching its dependencies
+      - pip install --no-deps .
