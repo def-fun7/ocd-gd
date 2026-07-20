@@ -2,7 +2,7 @@ version: 2
 
 # Build documentation in the following formats
 formats:
-  - html
+  - htmlzip
 
 # Build documentation with Sphinx
 sphinx:
