@@ -11,5 +11,5 @@ build:
   # Use build jobs to explicitly tell the server how to install your package
   jobs:
     post_install:
-      # Install your local package using pip without fetching its dependencies
+      - pip install -r docs/requirements.txt
       - pip install --no-deps .
