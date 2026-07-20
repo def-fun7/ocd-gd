@@ -1,0 +1,4 @@
+sphinx>=9.0.0
+myst-parser
+sphinx-napoleon
+numpy

@@ -1,7 +1,7 @@
 [project]
-name = "ocd-gp"
+name = "ocd-gd"
 version = "0.1.3"
-description = "Add your description here"
+description = "This is the main public repo for Orbital Chaos Detector package"
 readme = "README.md"
 authors = [
     { name = "def-fun7", email = "asad.mail@icloud.com" }
