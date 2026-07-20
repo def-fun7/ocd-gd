@@ -1,0 +1,44 @@
+# Direnv local configuration
+.envrc
+.direnv/
+
+# Nix build outputs and locks
+.nix-gc-roots/
+result
+result-*
+
+# Python local tracking & artifacts
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.ipynb_checkpoints/
+
+# Ignore local numerical data arrays
+data/raw/
+data/processed/
+
+# Ignore heavy output generation pools
+output/plots/diagnostics/
+output/tables/*.csv
+
+*.vscode
+*.code-workspace
+
+# ==========================================
+# Documentation & Sphinx Built Artifacts
+# ==========================================
+
+docs/build/
+docs/.doctrees/
+
+# If you ever auto-generate API documentation profiles:
+docs/reference/generated/
+
+.vercel/
+.vercel
+uv.lock
+
+.idea/
+.venv/

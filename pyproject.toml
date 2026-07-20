@@ -1,0 +1,33 @@
+[project]
+name = "ocd-gp"
+version = "0.1.3"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "def-fun7", email = "asad.mail@icloud.com" }
+]
+requires-python = ">=3.13"
+dependencies = [
+    "agama>=1.0.0",
+    "matplotlib>=3.11.0",
+    "numpy>=2.4.6",
+    "plotly>=6.9.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "sphinx>=8.0.0",
+    "sphinx-rtd-theme>=3.0.0",
+    "myst-parser>=4.0.0",
+]
+
+[build-system]
+requires = ["uv_build>=0.11.25,<0.12.0"]
+build-backend = "uv_build"
+
+[tool.uv.extra-build-dependencies]
+agama = ["numpy", "setuptools", "wheel", "scipy", "matplotlib"]
+
+[tool.uv.config-settings]
+"--build-option" = "--yes"
+
