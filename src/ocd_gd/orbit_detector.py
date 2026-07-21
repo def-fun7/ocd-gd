@@ -45,10 +45,11 @@ class OrbitChaosDetector:
         omega: float = 0.0,
         iter_time: float = 10.0,
         gali_threshold: float = 1e-16,
-        sali_threshold: float = 1e-8,
-        window_size: int = 10,
+        sali_threshold: float = 1e-2,
+        gali_window_size: int = 100,
+        sali_window_size: int = 10,
         accuracy: float = 1e-8,
-        max_num_steps: int = 100000000,
+        max_num_steps: int = 1e-8,
     ) -> None:
         """Initialize detector and automatically run orbit integrations.
 
@@ -64,9 +65,11 @@ class OrbitChaosDetector:
             Total time duration for orbit integrations.
         gali_threshold : float, default 1e-16
             Threshold limits to register chaos in GALI calculations.
-        sali_threshold : float, default 1e-8
+        sali_threshold : float, default 1e-2
             Threshold limits to register chaos in SALI calculations.
-        window_size : int, default 10
+        gali_window_size : int, default 100
+            The sliding window size required to confirm sustained convergence.
+        sali_window_size : int, default 10
             The sliding window size required to confirm sustained convergence.
         accuracy : float, default 1e-8
             Integration precision tracking for Agama.
@@ -82,7 +85,8 @@ class OrbitChaosDetector:
         self.iter_time: float = iter_time
         self.gali_threshold: float = gali_threshold
         self.sali_threshold: float = sali_threshold
-        self.window_size: int = window_size
+        self.gali_window_size: int = gali_window_size
+        self.sali_window_size: int = sali_window_size
         self.accuracy: float = accuracy
         self.max_num_steps: int = max_num_steps
 
@@ -110,10 +114,11 @@ class OrbitChaosDetector:
             time=self.iter_time,
             der=True,
             separateTime=True,
-            trajsize=1000,
+            trajsize=5000,
             lyapunov=True,
             accuracy=self.accuracy,
             maxNumSteps=self.max_num_steps,
+            dtype="float64",
         )
         self._time_arr, self._traj_arr, self._dev_arr, self._lyap = orbit
 
@@ -266,14 +271,14 @@ class OrbitChaosDetector:
                 self.gali_array,
                 self.timestamps,
                 threshold=g_thresh,
-                window_size=self.window_size * 10,
+                window_size=self.gali_window_size,
             )
             sali_check, sali_time = evaluate_chaos(
                 self.sali_array,
                 self.timestamps,
                 threshold=s_thresh,
                 separate=separate_sali,
-                window_size=self.window_size,
+                window_size=self.sali_window_size,
             )
 
             # Save to cache if it used the standard default settings

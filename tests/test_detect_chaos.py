@@ -7,6 +7,38 @@ import pytest
 from ocd_gd.orbit_detector import ChaosFullReport, ChaosSummary, OrbitChaosDetector
 
 
+class TestChaosDetection:
+    """Unit tests for chaos classification, caching, namedtuples, and indexing."""
+
+    def test_summary_output(self, chaos_detector):
+        detector, _ = chaos_detector
+        report = detector.detect_chaos(check_only=True)
+        assert isinstance(report, ChaosSummary)
+
+    def test_full_report_output(self, chaos_detector):
+        detector, _ = chaos_detector
+        report = detector.detect_chaos(check_only=False)
+        assert isinstance(report, ChaosFullReport)
+
+    def test_caching_default_runs(self, chaos_detector):
+        detector, mock_eval = chaos_detector
+        _ = detector.detect_chaos()
+        assert mock_eval.call_count == 2
+        _ = detector.detect_chaos()
+        assert mock_eval.call_count == 2  # Pulled from cache
+
+    def test_threshold_overrides_bypass_cache(self, chaos_detector):
+        detector, mock_eval = chaos_detector
+        _ = detector.detect_chaos()
+        _ = detector.detect_chaos(sali_override=1e-5)
+        assert mock_eval.call_count == 4  # Cache bypassed
+
+    def test_sliced_orbit_index(self, chaos_detector):
+        detector, _ = chaos_detector
+        summary = detector.detect_chaos(orbit_idx=1, check_only=True)
+        assert summary.gali_check == 0
+
+
 @pytest.fixture
 def chaos_detector():
     """Create a multi-orbit detector fixture with mocked integrations and evaluation functions."""
