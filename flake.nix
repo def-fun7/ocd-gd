@@ -69,6 +69,9 @@
           ps.sphinx
           ps.sphinx-rtd-theme
           ps.myst-parser
+
+          ps.pytest
+          ps.pytest-cov
         ]);
 
       in
@@ -110,7 +113,7 @@
           in
           {
             docs = mkApp "make -C docs html";
-            clean = mkApp "rm -rf output/plots/examples/*";
+            makeReq = mkApp "uv export --format requirements-txt > requirements.txt && uv clean";
           };
       }
     );

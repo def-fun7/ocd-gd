@@ -10,7 +10,6 @@ from typing import Any, NamedTuple, Optional, Tuple, Union
 import agama
 import numpy as np
 
-# Assuming evaluate_chaos is in a sibling file named 'analysis.py'
 from .evaluate_chaos import evaluate_chaos
 
 
@@ -21,7 +20,6 @@ class ChaosSummary(NamedTuple):
     gali_time: np.ndarray
     sali_check: np.ndarray
     sali_time: np.ndarray
-    lyapunov_exponents: np.ndarray
 
 
 class ChaosFullReport(NamedTuple):
@@ -44,6 +42,7 @@ class OrbitChaosDetector:
         self,
         ic: Any,
         pot: Any,
+        omega: float = 0.0,
         iter_time: float = 10.0,
         gali_threshold: float = 1e-16,
         sali_threshold: float = 1e-8,
@@ -59,6 +58,8 @@ class OrbitChaosDetector:
             Initial conditions for coordinates and velocities.
         pot : agama.Potential
             Agama gravitational potential object.
+        omega : float
+            pattern speed of the rotating frame
         iter_time : float, default 10.0
             Total time duration for orbit integrations.
         gali_threshold : float, default 1e-16
@@ -75,6 +76,7 @@ class OrbitChaosDetector:
         # 1. Configuration Attributes
         self.ic: np.ndarray = np.atleast_2d(ic)
         self.pot: Any = pot
+        self.omega: float = omega
         self.num_orbits: int = len(self.ic)
 
         self.iter_time: float = iter_time
@@ -104,6 +106,7 @@ class OrbitChaosDetector:
         orbit = agama.orbit(
             ic=self.ic,
             potential=self.pot,
+            Omega=self.omega,
             time=self.iter_time,
             der=True,
             separateTime=True,
@@ -288,7 +291,6 @@ class OrbitChaosDetector:
             gali_t = gali_time[orbit_idx]
             sali_c = sali_check[orbit_idx]
             sali_t = sali_time[orbit_idx]
-            lyap_d = self.lyapunov_exponents[orbit_idx]
             gali_d = self.gali_array[orbit_idx]
             sali_d = self.sali_array[orbit_idx]
         else:
@@ -298,11 +300,10 @@ class OrbitChaosDetector:
                 sali_check,
                 sali_time,
             )
-            lyap_d = self.lyapunov_exponents
             gali_d = self.gali_array
             sali_d = self.sali_array
 
-        summary_data = ChaosSummary(gali_c, gali_t, sali_c, sali_t, lyap_d)
+        summary_data = ChaosSummary(gali_c, gali_t, sali_c, sali_t)
 
         if check_only:
             return summary_data
