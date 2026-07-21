@@ -14,11 +14,11 @@ agama.setUnits(length=1, mass=1, velocity=1)
 INI_FILE = Path("data/potentials/MWPotentialHunter24_full.ini")
 BASE_PATH = Path("data/initial_conditions/chaotic_ics_benchmark.npz")
 
-NUM_CANDIDATES = 500
+NUM_CANDIDATES = 1000
 TIME_SPAN = 10
 NUM_STEPS = 1000
 
-MIN_MLE_THRESHOLD = 1e-3
+MIN_MLE_THRESHOLD = 1e-1
 MAX_MLE_THRESHOLD = 1.0
 
 
@@ -95,7 +95,9 @@ def main():
     sorted_mle = np.ascontiguousarray(filtered_mle[sort_idx], dtype=np.float64)
 
     # 1. Export to NPZ (Guarantees zero-loss exact binary float64 retrieval)
-    OUTPUT_NPZ = BASE_PATH.with_stem(f"{BASE_PATH.stem}_{len(filtered_mle)}")
+    OUTPUT_NPZ = BASE_PATH.with_stem(
+        f"{BASE_PATH.stem}_{len(filtered_mle)}_{MIN_MLE_THRESHOLD}"
+    )
     np.savez(OUTPUT_NPZ, ics=sorted_ics, mles=sorted_mle)
     print(f"Exported exact binary float64 array to '{OUTPUT_NPZ}'.")
 

@@ -5,7 +5,7 @@ import numpy as np
 import pytest
 from ocd_gd.orbit_detector import OrbitChaosDetector
 
-BENCHMARK_NPZ = Path("data/initial_conditions/chaotic_ics_benchmark_105.npz")
+BENCHMARK_NPZ = Path("data/initial_conditions/chaotic_ics_benchmark_185_0.1.npz")
 MW_POTENTIAL = "data/potentials/MWPotentialHunter24_full.ini"
 
 
