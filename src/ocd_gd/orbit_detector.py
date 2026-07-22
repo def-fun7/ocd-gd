@@ -7,6 +7,7 @@ Lyapunov exponents.
 """
 
 from typing import Any, NamedTuple, Optional, Tuple, Union, List
+from dataclasses import dataclass
 import numpy as np
 import matplotlib.pyplot as plt
 import plotly.graph_objects as go
@@ -35,6 +36,17 @@ from .visualisation import (
     plot_sali_batch_mpl,
     plot_sali_gali_dual_batch_mpl,
 )
+
+
+@dataclass(frozen=True)
+class IntegrationCriteria:
+    iter_time: float
+    gali_threshold: float
+    sali_threshold: float
+    gali_window_size: int
+    sali_window_size: int
+    accuracy: float
+    max_num_steps: int
 
 
 class ChaosSummary(NamedTuple):
@@ -68,8 +80,8 @@ class OrbitChaosDetector:
         pot: Any,
         omega: float = 0.0,
         iter_time: float = 10.0,
-        gali_threshold: float = 1e-16,
-        sali_threshold: float = 1e-2,
+        gali_threshold: float = 1e-20,
+        sali_threshold: float = 1e-4,
         gali_window_size: int = 100,
         sali_window_size: int = 10,
         accuracy: float = 1e-8,
@@ -184,6 +196,19 @@ class OrbitChaosDetector:
     # =========================================================================
     # PUBLIC PROPERTIES
     # =========================================================================
+
+    @property
+    def criteria(self) -> IntegrationCriteria:
+        """Get the integration and chaos indicator stopping criteria."""
+        return IntegrationCriteria(
+            iter_time=self.iter_time,
+            gali_threshold=self.gali_threshold,
+            sali_threshold=self.sali_threshold,
+            gali_window_size=self.gali_window_size,
+            sali_window_size=self.sali_window_size,
+            accuracy=self.accuracy,
+            max_num_steps=self.max_num_steps,
+        )
 
     @property
     def timestamps(self) -> Optional[np.ndarray]:

@@ -1,0 +1,52 @@
+============================================================
+BENCHMARK CHAOTIC ORBIT DETECTOR REPORT
+============================================================
+Dataset NPZ Path     : data/initial_conditions/chaotic_ics_benchmark_185_0.1.npz
+Potential File       : data/potentials/MWPotentialHunter24_full.ini
+Total Orbits Tested  : 185
+------------------------------------------------------------
+DETECTOR INTEGRATION CRITERIA:
+  • iter_time        : 10
+  • sali_threshold   : 0.0032
+  • gali_threshold   : 1e-20
+  • sali_window_size : 10
+  • gali_window_size : 100
+  • accuracy         : 1e-08
+  • max_num_steps    : 100000000
+------------------------------------------------------------
+SUMMARY STATISTICS:
+  • SALI Sensitivity : 158/185 (85.4%) | Missed: 27
+  • GALI Sensitivity : 173/185 (93.5%) | Missed: 12
+============================================================
+
+MISSED ORBITS DETAIL (Chaotic ICs Missed as Regular):
+------------------------------------------------------------
+Orbit #023 | MLE: 0.57490 | SALI: MISS (inf) | GALI: PASS      
+Orbit #084 | MLE: 0.35214 | SALI: PASS       | GALI: MISS (inf)
+Orbit #092 | MLE: 0.32063 | SALI: MISS (inf) | GALI: MISS (inf)
+Orbit #098 | MLE: 0.30433 | SALI: MISS (inf) | GALI: PASS      
+Orbit #111 | MLE: 0.25815 | SALI: MISS (inf) | GALI: PASS      
+Orbit #119 | MLE: 0.23524 | SALI: MISS (inf) | GALI: PASS      
+Orbit #120 | MLE: 0.23430 | SALI: MISS (inf) | GALI: PASS      
+Orbit #124 | MLE: 0.22153 | SALI: MISS (inf) | GALI: MISS (inf)
+Orbit #146 | MLE: 0.17779 | SALI: MISS (inf) | GALI: PASS      
+Orbit #153 | MLE: 0.16362 | SALI: MISS (inf) | GALI: MISS (inf)
+Orbit #154 | MLE: 0.15862 | SALI: MISS (inf) | GALI: MISS (inf)
+Orbit #155 | MLE: 0.15441 | SALI: MISS (inf) | GALI: MISS (inf)
+Orbit #156 | MLE: 0.14932 | SALI: MISS (inf) | GALI: MISS (inf)
+Orbit #157 | MLE: 0.14843 | SALI: MISS (inf) | GALI: MISS (inf)
+Orbit #159 | MLE: 0.13623 | SALI: MISS (inf) | GALI: PASS      
+Orbit #161 | MLE: 0.13258 | SALI: MISS (inf) | GALI: PASS      
+Orbit #162 | MLE: 0.13258 | SALI: MISS (inf) | GALI: MISS (inf)
+Orbit #164 | MLE: 0.13159 | SALI: MISS (inf) | GALI: PASS      
+Orbit #168 | MLE: 0.13044 | SALI: MISS (inf) | GALI: PASS      
+Orbit #170 | MLE: 0.12869 | SALI: MISS (inf) | GALI: MISS (inf)
+Orbit #175 | MLE: 0.11468 | SALI: MISS (inf) | GALI: PASS      
+Orbit #176 | MLE: 0.11452 | SALI: MISS (inf) | GALI: PASS      
+Orbit #177 | MLE: 0.11432 | SALI: MISS (inf) | GALI: MISS (inf)
+Orbit #178 | MLE: 0.11193 | SALI: MISS (inf) | GALI: MISS (inf)
+Orbit #180 | MLE: 0.11092 | SALI: MISS (inf) | GALI: PASS      
+Orbit #181 | MLE: 0.11048 | SALI: MISS (inf) | GALI: PASS      
+Orbit #183 | MLE: 0.10628 | SALI: MISS (inf) | GALI: PASS      
+Orbit #184 | MLE: 0.10575 | SALI: MISS (inf) | GALI: PASS      
+============================================================

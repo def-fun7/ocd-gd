@@ -1,0 +1,28 @@
+============================================================
+BENCHMARK REGULAR ORBIT DETECTOR REPORT
+============================================================
+Dataset NPZ Path     : data/initial_conditions/regular_ics_benchmark_226.npz
+Potential File       : data/potentials/MWPotentialHunter24_full.ini
+Total Orbits Tested  : 226
+------------------------------------------------------------
+DETECTOR INTEGRATION CRITERIA:
+  • iter_time        : 10
+  • sali_threshold   : 0.0001
+  • gali_threshold   : 1e-20
+  • sali_window_size : 10
+  • gali_window_size : 100
+  • accuracy         : 1e-08
+  • max_num_steps    : 100000000
+------------------------------------------------------------
+SUMMARY STATISTICS:
+  • SALI Specificity : 226/226 (100.0%) | False Positives: 0
+  • GALI Specificity : 222/226 (98.2%) | False Positives: 4
+============================================================
+
+FALSE POSITIVE ORBITS DETAIL (Regular ICs Flagged as Chaotic):
+------------------------------------------------------------
+Orbit #002 | MLE: 0.00000 | SALI: REGULAR     | GALI: FALSE CHAOS
+Orbit #046 | MLE: 0.00000 | SALI: REGULAR     | GALI: FALSE CHAOS
+Orbit #165 | MLE: 0.00000 | SALI: REGULAR     | GALI: FALSE CHAOS
+Orbit #212 | MLE: 0.00000 | SALI: REGULAR     | GALI: FALSE CHAOS
+============================================================
