@@ -6,11 +6,35 @@ via Small Alignment Index (SALI), Generalized Alignment Index (GALI), and
 Lyapunov exponents.
 """
 
-from typing import Any, NamedTuple, Optional, Tuple, Union
-import agama
+from typing import Any, NamedTuple, Optional, Tuple, Union, List
 import numpy as np
+import matplotlib.pyplot as plt
+import plotly.graph_objects as go
+
+import agama
 
 from .evaluate_chaos import evaluate_chaos
+from .visualisation import (
+    plot_sali_mpl,
+    plot_sali_plotly,
+    plot_gali_mpl,
+    plot_gali_plotly,
+    plot_trajectory_2d_mpl,
+    plot_trajectory_2d_plotly,
+    plot_trajectory_3d_mpl,
+    plot_trajectory_3d_plotly,
+    plot_phase_space_mpl,
+    plot_phase_space_plotly,
+    plot_energy_drift_mpl,
+    plot_energy_drift_plotly,
+    plot_colored_trajectory_2d_mpl,
+    plot_colored_trajectory_2d_plotly,
+    plot_dashboard_mpl,
+    plot_dashboard_plotly,
+    plot_gali_batch_mpl,
+    plot_sali_batch_mpl,
+    plot_sali_gali_dual_batch_mpl,
+)
 
 
 class ChaosSummary(NamedTuple):
@@ -49,7 +73,8 @@ class OrbitChaosDetector:
         gali_window_size: int = 100,
         sali_window_size: int = 10,
         accuracy: float = 1e-8,
-        max_num_steps: int = 1e-8,
+        max_num_steps: int = 100000000,
+        plotting_backend: str = "matplotlib",
     ) -> None:
         """Initialize detector and automatically run orbit integrations.
 
@@ -75,7 +100,10 @@ class OrbitChaosDetector:
             Integration precision tracking for Agama.
         max_num_steps : int, default 1e8
             Safety boundary cap for maximum integration steps allowed.
+        plotting_backend: str, default "matplotlib"
+            setup which plotting library to use.
         """
+
         # 1. Configuration Attributes
         self.ic: np.ndarray = np.atleast_2d(ic)
         self.pot: Any = pot
@@ -88,7 +116,8 @@ class OrbitChaosDetector:
         self.gali_window_size: int = gali_window_size
         self.sali_window_size: int = sali_window_size
         self.accuracy: float = accuracy
-        self.max_num_steps: int = max_num_steps
+        self.max_num_steps: int = int(max_num_steps)
+        self.plotting_backend: str = plotting_backend.lower()
 
         # 2. Raw Cached Simulation Data (Private)
         self._time_arr: Optional[np.ndarray] = None
@@ -159,7 +188,7 @@ class OrbitChaosDetector:
     @property
     def timestamps(self) -> Optional[np.ndarray]:
         """Get the full integration time array."""
-        return self._time_arr
+        return self._time_arr[0]
 
     @property
     def trajectories(self) -> Optional[np.ndarray]:
@@ -203,6 +232,16 @@ class OrbitChaosDetector:
                 f"Orbit index {orbit_idx} is out of bounds for "
                 f"{self.num_orbits} integrated orbits."
             )
+
+    def _resolve_backend(self, backend_override: Optional[str] = None) -> str:
+        """Determine backend priority: method argument > instance property."""
+        chosen = backend_override if backend_override else self.plotting_backend
+        chosen = chosen.lower()
+        if chosen not in ("matplotlib", "plotly"):
+            raise ValueError(
+                f"Unsupported backend '{chosen}'. Must be 'matplotlib' or 'plotly'."
+            )
+        return chosen
 
     def get_trajectory(self, orbit_idx: Optional[int] = None) -> np.ndarray:
         """Return the full trajectory or specific targeted orbit index data."""
@@ -252,9 +291,9 @@ class OrbitChaosDetector:
         Union[ChaosSummary, ChaosFullReport]
             The designated analysis container populated with convergence checks.
         """
+
         self._validate_index(orbit_idx)
 
-        # 1. Determine if we can use the default cache
         is_default_run = (sali_override is None) and (gali_override is None)
 
         if is_default_run and self._chaos_results_cache is not None:
@@ -281,7 +320,6 @@ class OrbitChaosDetector:
                 window_size=self.sali_window_size,
             )
 
-            # Save to cache if it used the standard default settings
             if is_default_run:
                 self._chaos_results_cache = (
                     gali_check,
@@ -290,7 +328,6 @@ class OrbitChaosDetector:
                     sali_time,
                 )
 
-        # 2. Slice arrays for the requested orbit index after retrieval
         if orbit_idx is not None:
             gali_c = gali_check[orbit_idx]
             gali_t = gali_time[orbit_idx]
@@ -318,4 +355,411 @@ class OrbitChaosDetector:
             timestamps=self.timestamps,
             gali_array=gali_d,
             sali_array=sali_d,
+        )
+
+    # =========================================================================
+    # VISUALIZATION METHODS
+    # =========================================================================
+
+    def plot_sali(
+        self,
+        orbit_idx: int = 0,
+        all_pairs: bool = False,
+        backend: Optional[str] = None,
+        save_path: Optional[str] = None,
+        show: bool = True,
+        **kwargs,
+    ) -> Union[Tuple[plt.Figure, plt.Axes], go.Figure]:
+        """Plot SALI vs Time for a target orbit.
+
+        Parameters
+        ----------
+        orbit_idx : int, default 0
+            Target orbit index.
+        all_pairs : bool, default False
+            If True and separate SALI pairs are computed, plots all 15 vector pair
+            traces. If False, plots the minimum SALI envelope.
+        backend : str, optional
+            'matplotlib' or 'plotly' (overrides default).
+        save_path : str, optional
+            Path to export figure.
+        show : bool, default True
+            Display figure immediately.
+        """
+        self._validate_index(orbit_idx)
+        engine = self._resolve_backend(backend)
+
+        chaos_report = self.detect_chaos(orbit_idx=orbit_idx, check_only=True)
+
+        # 1. Safely extract boolean check (0 = Regular, 1 = Chaotic)
+        s_check = chaos_report.sali_check
+        is_chaotic = bool(np.any(s_check)) if np.ndim(s_check) > 0 else bool(s_check)
+
+        # 2. Safely extract scalar timestamp without triggering TypeError on arrays/inf
+        s_time = chaos_report.sali_time
+        if np.ndim(s_time) > 0:
+            # If array has elements, extract first value or min finite time
+            det_time = float(s_time.flat[0])
+        else:
+            det_time = float(s_time)
+
+        # Approximate sliding window duration in time units
+        dt = self.timestamps[1] - self.timestamps[0]
+        window_time = self.sali_window_size * dt
+
+        sali_data = np.squeeze(self.sali_array[orbit_idx])
+        if sali_data.ndim > 1 and not all_pairs:
+            sali_data = np.min(sali_data, axis=0)
+        lyap_data = (
+            self.lyapunov_exponents[orbit_idx]
+            if self.lyapunov_exponents is not None
+            else None
+        )
+        plot_fn = plot_sali_mpl if engine == "matplotlib" else plot_sali_plotly
+
+        return plot_fn(
+            t=self.timestamps,
+            sali=sali_data,
+            threshold=self.sali_threshold,
+            is_chaotic=is_chaotic,
+            detection_time=det_time,
+            window_size_time=window_time,
+            lyapunov=lyap_data,
+            save_path=save_path,
+            show=show,
+            **kwargs,
+        )
+
+    def plot_gali(
+        self,
+        orbit_idx: int = 0,
+        k_orders: Optional[List[int]] = None,
+        backend: Optional[str] = None,
+        save_path: Optional[str] = None,
+        show: bool = True,
+        **kwargs,
+    ):
+        self._validate_index(orbit_idx)
+        engine = self._resolve_backend(backend)
+
+        # Extract chaos report & detection time
+        chaos_report = self.detect_chaos(orbit_idx=orbit_idx, check_only=True)
+        g_check = chaos_report.gali_check
+        is_chaotic = bool(np.any(g_check)) if np.ndim(g_check) > 0 else bool(g_check)
+
+        g_time = chaos_report.gali_time
+        det_time = float(g_time.flat[0]) if np.ndim(g_time) > 0 else float(g_time)
+
+        dt = self.timestamps[1] - self.timestamps[0]
+        window_time = self.gali_window_size * dt
+
+        # Extract orbit-specific data
+        gali_data = np.squeeze(self.gali_array[orbit_idx])
+        lyap_data = (
+            self.lyapunov_exponents[orbit_idx]
+            if self.lyapunov_exponents is not None
+            else None
+        )
+
+        if engine == "matplotlib":
+            return plot_gali_mpl(
+                t=self.timestamps,
+                gali=gali_data,
+                k_orders=k_orders,
+                threshold=self.gali_threshold,
+                is_chaotic=is_chaotic,
+                detection_time=det_time if np.isfinite(det_time) else None,
+                window_size_time=window_time,
+                lyapunov=lyap_data,
+                save_path=save_path,
+                show=show,
+                **kwargs,
+            )
+        else:
+            return plot_gali_plotly(...)
+
+    def plot_trajectory_2d(
+        self,
+        orbit_idx: int = 0,
+        backend: Optional[str] = None,
+        save_path: Optional[str] = None,
+        show: bool = True,
+        **kwargs,
+    ) -> Union[Tuple[plt.Figure, np.ndarray], go.Figure]:
+        """Plot Face-On (X-Y) and Edge-On (X-Z) 2D orbit projections."""
+        self._validate_index(orbit_idx)
+        engine = self._resolve_backend(backend)
+
+        pos = self.trajectories[orbit_idx][:, :3]
+
+        if engine == "matplotlib":
+            return plot_trajectory_2d_mpl(pos, save_path=save_path, show=show, **kwargs)
+        else:
+            return plot_trajectory_2d_plotly(
+                pos, save_path=save_path, show=show, **kwargs
+            )
+
+    def plot_trajectory_3d(
+        self,
+        orbit_idx: int = 0,
+        backend: Optional[str] = None,
+        save_path: Optional[str] = None,
+        show: bool = True,
+        **kwargs,
+    ) -> Union[Tuple[plt.Figure, plt.Axes], go.Figure]:
+        """Plot 3D spatial orbit path."""
+        self._validate_index(orbit_idx)
+        engine = self._resolve_backend(backend)
+
+        pos = self.trajectories[orbit_idx][:, :3]
+
+        if engine == "matplotlib":
+            return plot_trajectory_3d_mpl(pos, save_path=save_path, show=show, **kwargs)
+        else:
+            return plot_trajectory_3d_plotly(
+                pos, save_path=save_path, show=show, **kwargs
+            )
+
+    def plot_phase_space(
+        self,
+        orbit_idx: int = 0,
+        plane: str = "x",
+        backend: Optional[str] = None,
+        save_path: Optional[str] = None,
+        show: bool = True,
+        **kwargs,
+    ) -> Union[Tuple[plt.Figure, plt.Axes], go.Figure]:
+        """Plot 2D phase space scatter projection (Position vs Velocity)."""
+        self._validate_index(orbit_idx)
+        engine = self._resolve_backend(backend)
+
+        pos = self.trajectories[orbit_idx][:, :3]
+        vel = self.trajectories[orbit_idx][:, 3:6]
+
+        if engine == "matplotlib":
+            return plot_phase_space_mpl(
+                pos, vel, plane=plane, save_path=save_path, show=show, **kwargs
+            )
+        else:
+            return plot_phase_space_plotly(
+                pos, vel, plane=plane, save_path=save_path, show=show, **kwargs
+            )
+
+    def plot_colored_trajectory(
+        self,
+        orbit_idx: int = 0,
+        color_by: str = "time",
+        backend: Optional[str] = None,
+        save_path: Optional[str] = None,
+        show: bool = True,
+        **kwargs,
+    ) -> Union[Tuple[plt.Figure, plt.Axes], go.Figure]:
+        """Plot 2D Face-On trajectory colored dynamically by time or SALI."""
+        self._validate_index(orbit_idx)
+        engine = self._resolve_backend(backend)
+
+        pos = self.trajectories[orbit_idx][:, :3]
+
+        if color_by.lower() == "sali":
+            sali = np.squeeze(self.sali_array[orbit_idx])
+            c_values = np.log10(np.min(sali, axis=0) if sali.ndim > 1 else sali)
+            c_label = "log10(SALI)"
+        else:
+            c_values = self.timestamps
+            c_label = "Time"
+
+        if engine == "matplotlib":
+            return plot_colored_trajectory_2d_mpl(
+                pos, c_values, c_label=c_label, save_path=save_path, show=show, **kwargs
+            )
+        else:
+            return plot_colored_trajectory_2d_plotly(
+                pos, c_values, c_label=c_label, save_path=save_path, show=show, **kwargs
+            )
+
+    def plot_dashboard(
+        self,
+        orbit_idx: int = 0,
+        backend: Optional[str] = None,
+        save_path: Optional[str] = None,
+        show: bool = True,
+        **kwargs,
+    ) -> Union[Tuple[plt.Figure, np.ndarray], None]:
+        """Plot a multi-panel diagnostic dashboard summarizing trajectory and chaos metrics."""
+        self._validate_index(orbit_idx)
+        engine = self._resolve_backend(backend)
+
+        # 1. Extract Chaos Detection Metadata
+        chaos_report = self.detect_chaos(orbit_idx=orbit_idx, check_only=True)
+
+        s_check = chaos_report.sali_check
+        sali_is_chaotic = (
+            bool(np.any(s_check)) if np.ndim(s_check) > 0 else bool(s_check)
+        )
+        s_time = chaos_report.sali_time
+        sali_det_time = float(s_time.flat[0]) if np.ndim(s_time) > 0 else float(s_time)
+
+        g_check = chaos_report.gali_check
+        gali_is_chaotic = (
+            bool(np.any(g_check)) if np.ndim(g_check) > 0 else bool(g_check)
+        )
+        g_time = chaos_report.gali_time
+        gali_det_time = float(g_time.flat[0]) if np.ndim(g_time) > 0 else float(g_time)
+
+        dt = self.timestamps[1] - self.timestamps[0]
+
+        # 2. Extract Data Arrays
+        sali = np.squeeze(self.sali_array[orbit_idx])
+        if sali.ndim > 1:
+            sali = np.min(sali, axis=0)
+
+        lyap_data = (
+            self.lyapunov_exponents[orbit_idx]
+            if self.lyapunov_exponents is not None
+            else None
+        )
+
+        data = {
+            "t": self.timestamps,
+            "pos": self.trajectories[orbit_idx][:, :3],
+            "vel": self.trajectories[orbit_idx][:, 3:6],
+            "sali": sali,
+            "gali": np.squeeze(self.gali_array[orbit_idx]),
+            "lyapunov": lyap_data,
+            # Detection parameters
+            "sali_is_chaotic": sali_is_chaotic,
+            "sali_det_time": sali_det_time if np.isfinite(sali_det_time) else None,
+            "sali_window_time": self.sali_window_size * dt,
+            "gali_is_chaotic": gali_is_chaotic,
+            "gali_det_time": gali_det_time if np.isfinite(gali_det_time) else None,
+            "gali_window_time": self.gali_window_size * dt,
+        }
+
+        if engine == "matplotlib":
+            return plot_dashboard_mpl(
+                data,
+                sali_threshold=self.sali_threshold,
+                gali_threshold=self.gali_threshold,
+                save_path=save_path,
+                show=show,
+                **kwargs,
+            )
+        else:
+            return plot_dashboard_plotly(
+                data,
+                sali_threshold=self.sali_threshold,
+                gali_threshold=self.gali_threshold,
+                save_path=save_path,
+                show=show,
+                **kwargs,
+            )
+
+    def plot_sali_batch(
+        self,
+        orbit_indices: Optional[List[int]] = None,
+        max_per_page: int = 10,
+        save_path: Optional[str] = None,
+        show: bool = True,
+        **kwargs,
+    ) -> List[plt.Figure]:
+        """Plot a grid of SALI vs Time plots for multiple orbits (paginated).
+
+        Parameters
+        ----------
+        orbit_indices : list of int, optional
+            Selected orbit indices (e.g., [0, 1, 4, 7]). Defaults to all integrated orbits.
+        max_per_page : int, default 10
+            Maximum subplots rendered per figure page.
+        save_path : str, optional
+            Path to export image files. Multi-page figures append '_page1', '_page2'.
+        """
+        chaos_report = self.detect_chaos(check_only=True)
+        dt = self.timestamps[1] - self.timestamps[0]
+
+        return plot_sali_batch_mpl(
+            t=self.timestamps,
+            sali_array=self.sali_array,
+            orbit_indices=orbit_indices,
+            sali_checks=chaos_report.sali_check,
+            sali_times=chaos_report.sali_time,
+            lyapunov_array=self.lyapunov_exponents,
+            threshold=self.sali_threshold,
+            window_size_time=self.sali_window_size * dt,
+            max_per_page=max_per_page,
+            save_path=save_path,
+            show=show,
+            **kwargs,
+        )
+
+    def plot_gali_batch(
+        self,
+        orbit_indices: Optional[List[int]] = None,
+        k_orders: Optional[List[int]] = None,
+        max_per_page: int = 10,
+        save_path: Optional[str] = None,
+        show: bool = True,
+        **kwargs,
+    ) -> List[plt.Figure]:
+        """Plot a grid of GALI vs Time plots for multiple orbits (paginated)."""
+        chaos_report = self.detect_chaos(check_only=True)
+        dt = self.timestamps[1] - self.timestamps[0]
+
+        return plot_gali_batch_mpl(
+            t=self.timestamps,
+            gali_array=self.gali_array,
+            orbit_indices=orbit_indices,
+            gali_checks=chaos_report.gali_check,
+            gali_times=chaos_report.gali_time,
+            lyapunov_array=self.lyapunov_exponents,
+            threshold=self.gali_threshold,
+            window_size_time=self.gali_window_size * dt,
+            k_orders=k_orders,
+            max_per_page=max_per_page,
+            save_path=save_path,
+            show=show,
+            **kwargs,
+        )
+
+    def plot_sali_gali_batch(
+        self,
+        orbit_indices: Optional[List[int]] = None,
+        k_orders: Optional[List[int]] = None,
+        max_orbits_per_page: int = 5,
+        save_path: Optional[str] = None,
+        show: bool = True,
+        **kwargs,
+    ) -> List[plt.Figure]:
+        """Plot side-by-side SALI (left) and GALI (right) for a batch of orbits.
+
+        Parameters
+        ----------
+        orbit_indices : list of int, optional
+            Selected orbit indices. Defaults to all integrated orbits.
+        max_orbits_per_page : int, default 5
+            Number of orbits per figure page (5 orbits = 10 subplots per page).
+        save_path : str, optional
+            Output file path for saving figures.
+        """
+        chaos_report = self.detect_chaos(check_only=True)
+        dt = self.timestamps[1] - self.timestamps[0]
+
+        return plot_sali_gali_dual_batch_mpl(
+            t=self.timestamps,
+            sali_array=self.sali_array,
+            gali_array=self.gali_array,
+            orbit_indices=orbit_indices,
+            sali_checks=chaos_report.sali_check,
+            sali_times=chaos_report.sali_time,
+            gali_checks=chaos_report.gali_check,
+            gali_times=chaos_report.gali_time,
+            lyapunov_array=self.lyapunov_exponents,
+            sali_threshold=self.sali_threshold,
+            gali_threshold=self.gali_threshold,
+            sali_window_time=self.sali_window_size * dt,
+            gali_window_time=self.gali_window_size * dt,
+            k_orders=k_orders,
+            max_orbits_per_page=max_orbits_per_page,
+            save_path=save_path,
+            show=show,
+            **kwargs,
         )

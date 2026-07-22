@@ -42,3 +42,5 @@ uv.lock
 
 .idea/
 .venv/
+
+.DS_Store
