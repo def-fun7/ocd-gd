@@ -1,0 +1,78 @@
+===========================================================================
+SENSITIVITY REPORT: SW_10_GW_100_report.txt
+===========================================================================
+CRITERIA & PARAMETERS:
+  • SALI Threshold : 0.001
+  • GALI Threshold : 1e-20
+  • SALI Window    : 10
+  • GALI Window    : 100
+---------------------------------------------------------------------------
+1. CHAOTIC BENCHMARK SUMMARY (Sensitivity / True Positive Rate):
+  • SALI Sensitivity : 134/151 (88.7%) | Missed: 17
+  • GALI Sensitivity : 148/151 (98.0%) | Missed: 3
+---------------------------------------------------------------------------
+2. REGULAR BENCHMARK SUMMARY (Specificity / True Negative Rate):
+  • SALI Specificity : 137/151 (90.7%) | False Positives: 14
+  • GALI Specificity : 149/151 (98.7%) | False Positives: 2
+---------------------------------------------------------------------------
+3. OVERALL COMBINED ACCURACY (Chaotic + Regular):
+  • SALI Overall Accuracy    : 271/302 (89.7%) | Total Errors: 31
+  • GALI Overall Accuracy    : 297/302 (98.3%) | Total Errors: 5
+  • JOINT (SALI & GALI) Acc  : 269/302 (89.1%) | Total Errors: 33
+---------------------------------------------------------------------------
+4. CONFUSION MATRICES / TRUTH TABLES:
+
+  [ SALI DETECTOR ]
+  Actual Chaotic  | TP (Hits): 134 ( 88.7%)  | FN (Misses): 17  ( 11.3%)
+  Actual Regular  | FP (False): 14 (  9.3%)  | TN (Hits):   137 ( 90.7%)
+
+  [ GALI DETECTOR ]
+  Actual Chaotic  | TP (Hits): 148 ( 98.0%)  | FN (Misses): 3   (  2.0%)
+  Actual Regular  | FP (False): 2  (  1.3%)  | TN (Hits):   137 ( 90.7%)
+---------------------------------------------------------------------------
+5. MISSED INDEXES SUMMARY:
+  • SALI_chaotic_misses : [1, 23, 66, 69, 74, 84, 91, 92, 98, 111, 113, 119, 120, 124, 146, 147, 150]
+  • GALI_chaotic_misses : [84, 92, 124]
+  • SALI_regular_misses : [11, 36, 39, 48, 75, 98, 107, 111, 112, 113, 117, 122, 124, 136]
+  • GALI_regular_misses : [2, 46]
+===========================================================================
+MISSED ORBITS DETAILS:
+
+Chaotic Orbits Missed as Regular:
+---------------------------------------------------------------------------
+Orbit #001 | Ground MLE: 0.92848 | Calc MLE: 0.92848  | SALI: MISS   | GALI: PASS  
+Orbit #023 | Ground MLE: 0.56637 | Calc MLE: 0.56637  | SALI: MISS   | GALI: PASS  
+Orbit #066 | Ground MLE: 0.52844 | Calc MLE: 0.52844  | SALI: MISS   | GALI: PASS  
+Orbit #069 | Ground MLE: 0.34880 | Calc MLE: 0.34880  | SALI: MISS   | GALI: PASS  
+Orbit #074 | Ground MLE: 0.35517 | Calc MLE: 0.35517  | SALI: MISS   | GALI: PASS  
+Orbit #084 | Ground MLE: 0.41772 | Calc MLE: 0.41772  | SALI: MISS   | GALI: MISS  
+Orbit #091 | Ground MLE: 0.37108 | Calc MLE: 0.37108  | SALI: MISS   | GALI: PASS  
+Orbit #092 | Ground MLE: 0.25981 | Calc MLE: 0.25981  | SALI: MISS   | GALI: MISS  
+Orbit #098 | Ground MLE: 0.23553 | Calc MLE: 0.23553  | SALI: MISS   | GALI: PASS  
+Orbit #111 | Ground MLE: 0.23849 | Calc MLE: 0.23849  | SALI: MISS   | GALI: PASS  
+Orbit #113 | Ground MLE: 0.30115 | Calc MLE: 0.30115  | SALI: MISS   | GALI: PASS  
+Orbit #119 | Ground MLE: 0.10561 | Calc MLE: 0.10561  | SALI: MISS   | GALI: PASS  
+Orbit #120 | Ground MLE: 0.21747 | Calc MLE: 0.21747  | SALI: MISS   | GALI: PASS  
+Orbit #124 | Ground MLE: 0.19827 | Calc MLE: 0.19827  | SALI: MISS   | GALI: MISS  
+Orbit #146 | Ground MLE: 0.10347 | Calc MLE: 0.10347  | SALI: MISS   | GALI: PASS  
+Orbit #147 | Ground MLE: 0.19660 | Calc MLE: 0.19660  | SALI: MISS   | GALI: PASS  
+Orbit #150 | Ground MLE: 0.14204 | Calc MLE: 0.14204  | SALI: MISS   | GALI: PASS  
+
+Regular Orbits Flagged as Chaotic:
+---------------------------------------------------------------------------
+Orbit #002 | Ground MLE: 0.00000 | Calc MLE: 0.00000  | SALI: PASS   | GALI: MISS  
+Orbit #011 | Ground MLE: 0.00000 | Calc MLE: 0.00000  | SALI: MISS   | GALI: PASS  
+Orbit #036 | Ground MLE: 0.00000 | Calc MLE: 0.00000  | SALI: MISS   | GALI: PASS  
+Orbit #039 | Ground MLE: 0.00000 | Calc MLE: 0.00000  | SALI: MISS   | GALI: PASS  
+Orbit #046 | Ground MLE: 0.00000 | Calc MLE: 0.00000  | SALI: PASS   | GALI: MISS  
+Orbit #048 | Ground MLE: 0.00000 | Calc MLE: 0.00000  | SALI: MISS   | GALI: PASS  
+Orbit #075 | Ground MLE: 0.00000 | Calc MLE: 0.00000  | SALI: MISS   | GALI: PASS  
+Orbit #098 | Ground MLE: 0.00000 | Calc MLE: 0.00000  | SALI: MISS   | GALI: PASS  
+Orbit #107 | Ground MLE: 0.00000 | Calc MLE: 0.00000  | SALI: MISS   | GALI: PASS  
+Orbit #111 | Ground MLE: 0.00000 | Calc MLE: 0.00000  | SALI: MISS   | GALI: PASS  
+Orbit #112 | Ground MLE: 0.00000 | Calc MLE: 0.00000  | SALI: MISS   | GALI: PASS  
+Orbit #113 | Ground MLE: 0.00000 | Calc MLE: 0.00000  | SALI: MISS   | GALI: PASS  
+Orbit #117 | Ground MLE: 0.00000 | Calc MLE: 0.00000  | SALI: MISS   | GALI: PASS  
+Orbit #122 | Ground MLE: 0.00000 | Calc MLE: 0.00000  | SALI: MISS   | GALI: PASS  
+Orbit #124 | Ground MLE: 0.00000 | Calc MLE: 0.00000  | SALI: MISS   | GALI: PASS  
+Orbit #136 | Ground MLE: 0.00000 | Calc MLE: 0.00000  | SALI: MISS   | GALI: PASS  

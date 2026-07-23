@@ -1,11 +1,16 @@
 """Generate, filter, and export a benchmark set of chaotic Initial Conditions (ICs)
-using AGAMA with strict float64 precision and reproducible seeds.
+using OrbitChaosDetector with strict float64 precision and reproducible seeds.
 """
 
-import csv
 from pathlib import Path
 import agama
 import numpy as np
+
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
+from ocd_gd.orbit_detector import OrbitChaosDetector
 
 # Agama global settings
 agama.setUnits(length=1, mass=1, velocity=1)
@@ -15,8 +20,6 @@ INI_FILE = Path("data/potentials/MWPotentialHunter24_full.ini")
 BASE_PATH = Path("data/initial_conditions/chaotic_ics_benchmark.npz")
 
 NUM_CANDIDATES = 1000
-TIME_SPAN = 10
-NUM_STEPS = 1000
 
 MIN_MLE_THRESHOLD = 1e-1
 MAX_MLE_THRESHOLD = 1.0
@@ -65,39 +68,38 @@ def main():
     print(f"Generating {NUM_CANDIDATES} candidate initial conditions (float64)...")
     candidate_ics = generate_bound_phase_space_points(potential, NUM_CANDIDATES)
 
-    print(f"Integrating orbits with lyapunov=True over t={TIME_SPAN}...")
-    # Omit separateTime=True to get summary array at t=TIME_SPAN directly
-    _, _, lyap_arr = agama.orbit(
-        ic=candidate_ics,
-        potential=potential,
-        time=TIME_SPAN,
-        trajSize=NUM_STEPS,
-        lyapunov=True,
-        separateTime=True,
-    )
+    # 1. Initialize OrbitChaosDetector with default parameters
+    print("Initializing OrbitChaosDetector and integrating orbits...")
+    detector = OrbitChaosDetector(ic=candidate_ics, pot=potential)
+    print("okay, next?")
+    # 2. Extract Lyapunov exponents directly from detector property
+    lyap_exponents = detector.lyapunov_exponents
 
-    # Column 0 holds the finite-time MLE at final time t=TIME_SPAN
-    mle_values = lyap_arr[:, 0].astype(np.float64)
+    # Ensure we extract a 1D array representing the Maximum Lyapunov Exponent (MLE)
+    lyap_arr = np.asarray(lyap_exponents, dtype=np.float64)
 
-    # Filter out regular or unphysical orbits
+    if lyap_arr.ndim > 1:
+        # Take column 0 (or max across axis 1) to get the MLE per orbit
+        mle_values = lyap_arr[:, 0]
+    else:
+        mle_values = lyap_arr
+
+    # 3. Filter regular orbits (MLE <= threshold)
     valid_mask = (mle_values > MIN_MLE_THRESHOLD) & (mle_values < MAX_MLE_THRESHOLD)
 
     filtered_ics = candidate_ics[valid_mask]
     filtered_mle = mle_values[valid_mask]
-
     print(
         f"Retained {len(filtered_mle)} / {NUM_CANDIDATES} chaotic initial conditions."
     )
 
-    # Sort descending by MLE value
+    # 4. Sort descending by MLE value
     sort_idx = np.argsort(filtered_mle)[::-1]
     sorted_ics = np.ascontiguousarray(filtered_ics[sort_idx], dtype=np.float64)
     sorted_mle = np.ascontiguousarray(filtered_mle[sort_idx], dtype=np.float64)
 
-    # 1. Export to NPZ (Guarantees zero-loss exact binary float64 retrieval)
-    OUTPUT_NPZ = BASE_PATH.with_stem(
-        f"{BASE_PATH.stem}_{len(filtered_mle)}_{MIN_MLE_THRESHOLD}"
-    )
+    # 5. Export to NPZ
+    OUTPUT_NPZ = BASE_PATH.with_stem(f"{BASE_PATH.stem}_{len(filtered_mle) }")
     np.savez(OUTPUT_NPZ, ics=sorted_ics, mles=sorted_mle)
     print(f"Exported exact binary float64 array to '{OUTPUT_NPZ}'.")
 

@@ -25,7 +25,7 @@ ic_batch[:, 0] = np.linspace(2.0, 10.0, num_orbits)  # Vary X position
 ic_batch[:, 4] = 150.0  # Initial Vy velocity
 
 # 3. Instantiate Detector and run batch integrations
-detector = OrbitChaosDetector(ic=ic_batch, pot=potential, iter_time=14)
+detector = OrbitChaosDetector(ic=ic_batch, pot=potential, iter_time=10)
 
 # 4. Plot SALI Batch Grid (Max 10 per page -> Creates 2 pages)
 # Page 1 will contain Orbits #0-#9, Page 2 will contain Orbits #10-#14
@@ -45,16 +45,16 @@ detector = OrbitChaosDetector(ic=ic_batch, pot=potential, iter_time=14)
 #     show=False,
 # )
 
-# figures = detector.plot_sali_gali_batch(
-#     orbit_indices=[0, 1, 2, 3, 4, 5, 6, 7],
-#     k_orders=[2, 3],
-#     max_orbits_per_page=4,
-#     save_path="dual_chaos_comparison.png",
-#     show=True,
-# )
-
-detector.plot_dashboard(
-    orbit_idx=5,
-    backend="matplotlib",
+figures = detector.plot_sali_gali_batch(
+    orbit_indices=[0, 1, 2, 3, 4, 5, 6, 7],
+    k_orders=[2, 3],
+    max_orbits_per_page=4,
+    save_path="dual_chaos_comparison.png",
     show=True,
 )
+
+# detector.plot_dashboard(
+#     orbit_idx=5,
+#     backend="matplotlib",
+#     show=True,
+# )

@@ -81,7 +81,7 @@ class OrbitChaosDetector:
         omega: float = 0.0,
         iter_time: float = 10.0,
         gali_threshold: float = 1e-20,
-        sali_threshold: float = 1e-4,
+        sali_threshold: float = 1e-3,
         gali_window_size: int = 100,
         sali_window_size: int = 10,
         accuracy: float = 1e-8,
@@ -292,8 +292,10 @@ class OrbitChaosDetector:
         orbit_idx: Optional[int] = None,
         separate_sali: bool = False,
         check_only: bool = True,
-        sali_override: Optional[float] = None,
-        gali_override: Optional[float] = None,
+        sali_threshold_override: Optional[float] = None,
+        gali_threshold_override: Optional[float] = None,
+        sali_window_override: Optional[float] = None,
+        gali_window_override: Optional[float] = None,
     ) -> Union[ChaosSummary, ChaosFullReport]:
         """Detect system deviations to distinguish chaotic from regular paths.
 
@@ -306,10 +308,14 @@ class OrbitChaosDetector:
         check_only : bool, default True
             When True, provides a basic Summary data package. When False, wraps
             it inside a Full Diagnostic Report package.
-        sali_override : float, optional
+        sali_threshold_override : float, optional
             Change the baseline SALI convergence check threshold parameter.
-        gali_override : float, optional
+        gali_threshold_override : float, optional
             Change the baseline GALI convergence check threshold parameter.
+        sali_window_override : float, optional
+            Change the baseline SALI window size parameter.
+        gali_window_override : float, optional
+            Change the baseline GALI window size parameter.
 
         Returns
         -------
@@ -319,30 +325,49 @@ class OrbitChaosDetector:
 
         self._validate_index(orbit_idx)
 
-        is_default_run = (sali_override is None) and (gali_override is None)
+        is_default_run = (
+            (sali_threshold_override is None)
+            and (gali_threshold_override is None)
+            and (sali_window_override is None)
+            and (gali_window_override is None)
+        )
 
         if is_default_run and self._chaos_results_cache is not None:
             gali_check, gali_time, sali_check, sali_time = self._chaos_results_cache
         else:
             s_thresh = (
-                sali_override if sali_override is not None else self.sali_threshold
+                sali_threshold_override
+                if sali_threshold_override is not None
+                else self.sali_threshold
             )
             g_thresh = (
-                gali_override if gali_override is not None else self.gali_threshold
+                gali_threshold_override
+                if gali_threshold_override is not None
+                else self.gali_threshold
+            )
+            s_window = (
+                sali_window_override
+                if sali_window_override is not None
+                else self.sali_window_size
+            )
+            g_window = (
+                gali_window_override
+                if gali_window_override is not None
+                else self.gali_window_size
             )
 
             gali_check, gali_time = evaluate_chaos(
                 self.gali_array,
                 self.timestamps,
                 threshold=g_thresh,
-                window_size=self.gali_window_size,
+                window_size=g_window,
             )
             sali_check, sali_time = evaluate_chaos(
                 self.sali_array,
                 self.timestamps,
                 threshold=s_thresh,
                 separate=separate_sali,
-                window_size=self.sali_window_size,
+                window_size=s_window,
             )
 
             if is_default_run:

@@ -1,0 +1,287 @@
+=========================================================================================================
+                            COMPREHENSIVE SENSITIVITY & PERFORMANCE META-ANALYSIS
+=========================================================================================================
+
+1. THRESHOLD EFFECTS ANALYSIS (Fixed Windows: SALI_W=10, GALI_W=100):
+---------------------------------------------------------------------------------------------------------
+Run Tag        | SALI Th  | GALI Th  | Ch.SALI% | Ch.GALI% | Reg.SALI% | Reg.GALI% | SALI Acc% | GALI Acc%
+---------------------------------------------------------------------------------------------------------
+ST_2_GT_16     | 0.01     | 1e-16    |    98.7% |   100.0% |     11.3% |     75.5% |     55.0% |     87.7%
+ST_3_GT_18     | 0.001    | 1e-18    |    88.7% |    99.3% |     90.7% |     91.4% |     89.7% |     95.4%
+ST_3_GT_20     | 0.001    | 1e-20    |    88.1% |    98.0% |     98.0% |     98.7% |     93.0% |     98.3%
+ST_4_GT_20     | 0.0001   | 1e-20    |    80.1% |    98.0% |    100.0% |     98.7% |     90.1% |     98.3%
+ST_4_SW_20_GT_20 | 0.0001   | 1e-20    |    78.8% |    98.0% |    100.0% |     98.7% |     89.4% |     98.3%
+
+2. WINDOW SIZE EFFECTS ANALYSIS (Fixed Thresholds: S3 [1e-3], G20 [1e-20]):
+---------------------------------------------------------------------------------------------------------
+Run Tag        | SALI Win | GALI Win | Ch.SALI% | Ch.GALI% | Reg.SALI% | Reg.GALI% | SALI Acc% | GALI Acc%
+---------------------------------------------------------------------------------------------------------
+SW_5_GW_10     | 5        | 10       |    89.4% |   100.0% |     77.5% |     90.7% |     83.4% |     95.4%
+SW_10_GW_100   | 10       | 100      |    88.7% |    98.0% |     90.7% |     98.7% |     89.7% |     98.3%
+SW_20_GW_100   | 20       | 100      |    88.1% |    98.0% |     98.0% |     98.7% |     93.0% |     98.3%
+SW_20_GW_200   | 20       | 200      |    88.1% |    96.0% |     98.0% |     98.7% |     93.0% |     97.4%
+SW_20_GW_500   | 20       | 500      |    88.1% |    93.4% |     98.0% |     99.3% |     93.0% |     96.4%
+
+=========================================================================================================
+3. BEST PERFORMING CONFIGURATIONS (blended accuracy — for reference only):
+=========================================================================================================
+  • Best Threshold Pair  : ST_3_GT_20 (GALI Acc: 98.3%, Joint Acc: 92.4%)
+  • Best Window Pair     : SW_10_GW_100 (GALI Acc: 98.3%, Joint Acc: 89.1%)
+  • Absolute Best GALI   : ST_3_GT_20 (98.3% Overall Accuracy)
+  • Absolute Best SALI   : ST_3_GT_20 (93.0% Overall Accuracy)
+  • Absolute Best JOINT  : SW_20_GW_500 (92.7% Overall Joint Accuracy)
+
+=========================================================================================================
+3b. BALANCED BEST CONFIGURATIONS (no weak spot in Chaos OR Regular detection):
+    Score = worst of {Ch.SALI, Reg.SALI} for SALI; {Ch.GALI, Reg.GALI} for GALI;
+    all four for JOINT. A high blended accuracy can still hide a lopsided run
+    (e.g. great chaos recall but poor regular specificity) — this section can't.
+=========================================================================================================
+  • Best Threshold Pair (balanced) : ST_3_GT_18 (worst sub-metric: 88.7%)
+  • Best Window Pair (balanced)    : SW_10_GW_100 (worst sub-metric: 88.7%)
+  • Best SALI (balanced)           : ST_3_GT_18 (min(Ch.SALI, Reg.SALI) = 88.7%)
+  • Best GALI (balanced)           : ST_3_GT_20 (min(Ch.GALI, Reg.GALI) = 98.0%)
+  • Best JOINT (balanced, overall)  : ST_3_GT_18 (min of all 4 sub-metrics = 88.7%)
+
+=========================================================================================================
+4. PERSISTENT MISSED INDEXES SUMMARY (MISSED MORE THAN 8 TIMES OUT OF 10 RUNS):
+=========================================================================================================
+  • SALI_chaotic_persistent_misses (>8 runs) : [1, 23, 66, 69, 84, 91, 92, 98, 111, 113, 119, 120, 124, 146, 147, 150]
+  • GALI_chaotic_persistent_misses (>8 runs) : []
+  • SALI_regular_persistent_misses (>8 runs) : []
+  • GALI_regular_persistent_misses (>8 runs) : [2, 46]
+
+=========================================================================================================
+5. FULL MISSED ORBITS BREAKDOWN (FREQUENCY & RUN TAGS):
+=========================================================================================================
+
+--- Chaotic Orbits Missed by GALI (Most Missed -> Least Missed) ---
+  Orbit ID   | Miss Count | Failed in Runs
+  ----------------------------------------------------------------------
+  Orbit #92   | 8 / 10 runs | [ST_3_GT_18, ST_3_GT_20, ST_4_GT_20, SW_10_GW_100, SW_20_GW_100, SW_20_GW_200, SW_20_GW_500, ST_4_SW_20_GT_20]
+  Orbit #84   | 7 / 10 runs | [ST_3_GT_20, ST_4_GT_20, SW_10_GW_100, SW_20_GW_100, SW_20_GW_200, SW_20_GW_500, ST_4_SW_20_GT_20]
+  Orbit #124  | 7 / 10 runs | [ST_3_GT_20, ST_4_GT_20, SW_10_GW_100, SW_20_GW_100, SW_20_GW_200, SW_20_GW_500, ST_4_SW_20_GT_20]
+  Orbit #66   | 2 / 10 runs | [SW_20_GW_200, SW_20_GW_500]
+  Orbit #69   | 2 / 10 runs | [SW_20_GW_200, SW_20_GW_500]
+  Orbit #111  | 2 / 10 runs | [SW_20_GW_200, SW_20_GW_500]
+  Orbit #1    | 1 / 10 runs | [SW_20_GW_500]
+  Orbit #23   | 1 / 10 runs | [SW_20_GW_500]
+  Orbit #91   | 1 / 10 runs | [SW_20_GW_500]
+  Orbit #146  | 1 / 10 runs | [SW_20_GW_500]
+
+--- Chaotic Orbits Missed by SALI (Most Missed -> Least Missed) ---
+  Orbit ID   | Miss Count | Failed in Runs
+  ----------------------------------------------------------------------
+  Orbit #23   | 10 / 10 runs | [ST_2_GT_16, ST_3_GT_18, ST_3_GT_20, ST_4_GT_20, SW_5_GW_10, SW_10_GW_100, SW_20_GW_100, SW_20_GW_200, SW_20_GW_500, ST_4_SW_20_GT_20]
+  Orbit #111  | 10 / 10 runs | [ST_2_GT_16, ST_3_GT_18, ST_3_GT_20, ST_4_GT_20, SW_5_GW_10, SW_10_GW_100, SW_20_GW_100, SW_20_GW_200, SW_20_GW_500, ST_4_SW_20_GT_20]
+  Orbit #1    | 9 / 10 runs | [ST_3_GT_18, ST_3_GT_20, ST_4_GT_20, SW_5_GW_10, SW_10_GW_100, SW_20_GW_100, SW_20_GW_200, SW_20_GW_500, ST_4_SW_20_GT_20]
+  Orbit #66   | 9 / 10 runs | [ST_3_GT_18, ST_3_GT_20, ST_4_GT_20, SW_5_GW_10, SW_10_GW_100, SW_20_GW_100, SW_20_GW_200, SW_20_GW_500, ST_4_SW_20_GT_20]
+  Orbit #69   | 9 / 10 runs | [ST_3_GT_18, ST_3_GT_20, ST_4_GT_20, SW_5_GW_10, SW_10_GW_100, SW_20_GW_100, SW_20_GW_200, SW_20_GW_500, ST_4_SW_20_GT_20]
+  Orbit #84   | 9 / 10 runs | [ST_3_GT_18, ST_3_GT_20, ST_4_GT_20, SW_5_GW_10, SW_10_GW_100, SW_20_GW_100, SW_20_GW_200, SW_20_GW_500, ST_4_SW_20_GT_20]
+  Orbit #91   | 9 / 10 runs | [ST_3_GT_18, ST_3_GT_20, ST_4_GT_20, SW_5_GW_10, SW_10_GW_100, SW_20_GW_100, SW_20_GW_200, SW_20_GW_500, ST_4_SW_20_GT_20]
+  Orbit #92   | 9 / 10 runs | [ST_3_GT_18, ST_3_GT_20, ST_4_GT_20, SW_5_GW_10, SW_10_GW_100, SW_20_GW_100, SW_20_GW_200, SW_20_GW_500, ST_4_SW_20_GT_20]
+  Orbit #98   | 9 / 10 runs | [ST_3_GT_18, ST_3_GT_20, ST_4_GT_20, SW_5_GW_10, SW_10_GW_100, SW_20_GW_100, SW_20_GW_200, SW_20_GW_500, ST_4_SW_20_GT_20]
+  Orbit #113  | 9 / 10 runs | [ST_3_GT_18, ST_3_GT_20, ST_4_GT_20, SW_5_GW_10, SW_10_GW_100, SW_20_GW_100, SW_20_GW_200, SW_20_GW_500, ST_4_SW_20_GT_20]
+  Orbit #119  | 9 / 10 runs | [ST_3_GT_18, ST_3_GT_20, ST_4_GT_20, SW_5_GW_10, SW_10_GW_100, SW_20_GW_100, SW_20_GW_200, SW_20_GW_500, ST_4_SW_20_GT_20]
+  Orbit #120  | 9 / 10 runs | [ST_3_GT_18, ST_3_GT_20, ST_4_GT_20, SW_5_GW_10, SW_10_GW_100, SW_20_GW_100, SW_20_GW_200, SW_20_GW_500, ST_4_SW_20_GT_20]
+  Orbit #124  | 9 / 10 runs | [ST_3_GT_18, ST_3_GT_20, ST_4_GT_20, SW_5_GW_10, SW_10_GW_100, SW_20_GW_100, SW_20_GW_200, SW_20_GW_500, ST_4_SW_20_GT_20]
+  Orbit #146  | 9 / 10 runs | [ST_3_GT_18, ST_3_GT_20, ST_4_GT_20, SW_5_GW_10, SW_10_GW_100, SW_20_GW_100, SW_20_GW_200, SW_20_GW_500, ST_4_SW_20_GT_20]
+  Orbit #147  | 9 / 10 runs | [ST_3_GT_18, ST_3_GT_20, ST_4_GT_20, SW_5_GW_10, SW_10_GW_100, SW_20_GW_100, SW_20_GW_200, SW_20_GW_500, ST_4_SW_20_GT_20]
+  Orbit #150  | 9 / 10 runs | [ST_3_GT_18, ST_3_GT_20, ST_4_GT_20, SW_5_GW_10, SW_10_GW_100, SW_20_GW_100, SW_20_GW_200, SW_20_GW_500, ST_4_SW_20_GT_20]
+  Orbit #74   | 8 / 10 runs | [ST_3_GT_18, ST_3_GT_20, ST_4_GT_20, SW_10_GW_100, SW_20_GW_100, SW_20_GW_200, SW_20_GW_500, ST_4_SW_20_GT_20]
+  Orbit #48   | 6 / 10 runs | [ST_3_GT_20, ST_4_GT_20, SW_20_GW_100, SW_20_GW_200, SW_20_GW_500, ST_4_SW_20_GT_20]
+  Orbit #3    | 2 / 10 runs | [ST_4_GT_20, ST_4_SW_20_GT_20]
+  Orbit #60   | 2 / 10 runs | [ST_4_GT_20, ST_4_SW_20_GT_20]
+  Orbit #61   | 2 / 10 runs | [ST_4_GT_20, ST_4_SW_20_GT_20]
+  Orbit #67   | 2 / 10 runs | [ST_4_GT_20, ST_4_SW_20_GT_20]
+  Orbit #70   | 2 / 10 runs | [ST_4_GT_20, ST_4_SW_20_GT_20]
+  Orbit #76   | 2 / 10 runs | [ST_4_GT_20, ST_4_SW_20_GT_20]
+  Orbit #89   | 2 / 10 runs | [ST_4_GT_20, ST_4_SW_20_GT_20]
+  Orbit #90   | 2 / 10 runs | [ST_4_GT_20, ST_4_SW_20_GT_20]
+  Orbit #115  | 2 / 10 runs | [ST_4_GT_20, ST_4_SW_20_GT_20]
+  Orbit #118  | 2 / 10 runs | [ST_4_GT_20, ST_4_SW_20_GT_20]
+  Orbit #125  | 2 / 10 runs | [ST_4_GT_20, ST_4_SW_20_GT_20]
+  Orbit #126  | 2 / 10 runs | [ST_4_GT_20, ST_4_SW_20_GT_20]
+  Orbit #82   | 1 / 10 runs | [ST_4_SW_20_GT_20]
+  Orbit #103  | 1 / 10 runs | [ST_4_SW_20_GT_20]
+
+--- Regular Orbits Missed by GALI (False Positives) (Most Missed -> Least Missed) ---
+  Orbit ID   | Miss Count | Failed in Runs
+  ----------------------------------------------------------------------
+  Orbit #2    | 10 / 10 runs | [ST_2_GT_16, ST_3_GT_18, ST_3_GT_20, ST_4_GT_20, SW_5_GW_10, SW_10_GW_100, SW_20_GW_100, SW_20_GW_200, SW_20_GW_500, ST_4_SW_20_GT_20]
+  Orbit #46   | 9 / 10 runs | [ST_2_GT_16, ST_3_GT_18, ST_3_GT_20, ST_4_GT_20, SW_5_GW_10, SW_10_GW_100, SW_20_GW_100, SW_20_GW_200, ST_4_SW_20_GT_20]
+  Orbit #3    | 3 / 10 runs | [ST_2_GT_16, ST_3_GT_18, SW_5_GW_10]
+  Orbit #25   | 3 / 10 runs | [ST_2_GT_16, ST_3_GT_18, SW_5_GW_10]
+  Orbit #27   | 3 / 10 runs | [ST_2_GT_16, ST_3_GT_18, SW_5_GW_10]
+  Orbit #91   | 3 / 10 runs | [ST_2_GT_16, ST_3_GT_18, SW_5_GW_10]
+  Orbit #112  | 3 / 10 runs | [ST_2_GT_16, ST_3_GT_18, SW_5_GW_10]
+  Orbit #120  | 3 / 10 runs | [ST_2_GT_16, ST_3_GT_18, SW_5_GW_10]
+  Orbit #141  | 3 / 10 runs | [ST_2_GT_16, ST_3_GT_18, SW_5_GW_10]
+  Orbit #144  | 3 / 10 runs | [ST_2_GT_16, ST_3_GT_18, SW_5_GW_10]
+  Orbit #145  | 3 / 10 runs | [ST_2_GT_16, ST_3_GT_18, SW_5_GW_10]
+  Orbit #150  | 3 / 10 runs | [ST_2_GT_16, ST_3_GT_18, SW_5_GW_10]
+  Orbit #21   | 2 / 10 runs | [ST_2_GT_16, SW_5_GW_10]
+  Orbit #75   | 2 / 10 runs | [ST_2_GT_16, SW_5_GW_10]
+  Orbit #125  | 2 / 10 runs | [ST_2_GT_16, ST_3_GT_18]
+  Orbit #8    | 1 / 10 runs | [ST_2_GT_16]
+  Orbit #15   | 1 / 10 runs | [ST_2_GT_16]
+  Orbit #16   | 1 / 10 runs | [ST_2_GT_16]
+  Orbit #22   | 1 / 10 runs | [ST_2_GT_16]
+  Orbit #28   | 1 / 10 runs | [ST_2_GT_16]
+  Orbit #40   | 1 / 10 runs | [ST_2_GT_16]
+  Orbit #52   | 1 / 10 runs | [ST_2_GT_16]
+  Orbit #73   | 1 / 10 runs | [ST_2_GT_16]
+  Orbit #74   | 1 / 10 runs | [ST_2_GT_16]
+  Orbit #80   | 1 / 10 runs | [ST_2_GT_16]
+  Orbit #85   | 1 / 10 runs | [ST_2_GT_16]
+  Orbit #93   | 1 / 10 runs | [ST_2_GT_16]
+  Orbit #96   | 1 / 10 runs | [ST_2_GT_16]
+  Orbit #98   | 1 / 10 runs | [ST_2_GT_16]
+  Orbit #106  | 1 / 10 runs | [ST_2_GT_16]
+  Orbit #111  | 1 / 10 runs | [ST_2_GT_16]
+  Orbit #115  | 1 / 10 runs | [ST_2_GT_16]
+  Orbit #131  | 1 / 10 runs | [ST_2_GT_16]
+  Orbit #132  | 1 / 10 runs | [ST_2_GT_16]
+  Orbit #134  | 1 / 10 runs | [ST_2_GT_16]
+  Orbit #148  | 1 / 10 runs | [ST_2_GT_16]
+  Orbit #149  | 1 / 10 runs | [ST_2_GT_16]
+
+--- Regular Orbits Missed by SALI (False Positives) (Most Missed -> Least Missed) ---
+  Orbit ID   | Miss Count | Failed in Runs
+  ----------------------------------------------------------------------
+  Orbit #111  | 8 / 10 runs | [ST_2_GT_16, ST_3_GT_18, ST_3_GT_20, SW_5_GW_10, SW_10_GW_100, SW_20_GW_100, SW_20_GW_200, SW_20_GW_500]
+  Orbit #117  | 8 / 10 runs | [ST_2_GT_16, ST_3_GT_18, ST_3_GT_20, SW_5_GW_10, SW_10_GW_100, SW_20_GW_100, SW_20_GW_200, SW_20_GW_500]
+  Orbit #136  | 8 / 10 runs | [ST_2_GT_16, ST_3_GT_18, ST_3_GT_20, SW_5_GW_10, SW_10_GW_100, SW_20_GW_100, SW_20_GW_200, SW_20_GW_500]
+  Orbit #11   | 4 / 10 runs | [ST_2_GT_16, ST_3_GT_18, SW_5_GW_10, SW_10_GW_100]
+  Orbit #36   | 4 / 10 runs | [ST_2_GT_16, ST_3_GT_18, SW_5_GW_10, SW_10_GW_100]
+  Orbit #39   | 4 / 10 runs | [ST_2_GT_16, ST_3_GT_18, SW_5_GW_10, SW_10_GW_100]
+  Orbit #48   | 4 / 10 runs | [ST_2_GT_16, ST_3_GT_18, SW_5_GW_10, SW_10_GW_100]
+  Orbit #75   | 4 / 10 runs | [ST_2_GT_16, ST_3_GT_18, SW_5_GW_10, SW_10_GW_100]
+  Orbit #98   | 4 / 10 runs | [ST_2_GT_16, ST_3_GT_18, SW_5_GW_10, SW_10_GW_100]
+  Orbit #107  | 4 / 10 runs | [ST_2_GT_16, ST_3_GT_18, SW_5_GW_10, SW_10_GW_100]
+  Orbit #112  | 4 / 10 runs | [ST_2_GT_16, ST_3_GT_18, SW_5_GW_10, SW_10_GW_100]
+  Orbit #113  | 4 / 10 runs | [ST_2_GT_16, ST_3_GT_18, SW_5_GW_10, SW_10_GW_100]
+  Orbit #122  | 4 / 10 runs | [ST_2_GT_16, ST_3_GT_18, SW_5_GW_10, SW_10_GW_100]
+  Orbit #124  | 4 / 10 runs | [ST_2_GT_16, ST_3_GT_18, SW_5_GW_10, SW_10_GW_100]
+  Orbit #16   | 2 / 10 runs | [ST_2_GT_16, SW_5_GW_10]
+  Orbit #23   | 2 / 10 runs | [ST_2_GT_16, SW_5_GW_10]
+  Orbit #24   | 2 / 10 runs | [ST_2_GT_16, SW_5_GW_10]
+  Orbit #47   | 2 / 10 runs | [ST_2_GT_16, SW_5_GW_10]
+  Orbit #63   | 2 / 10 runs | [ST_2_GT_16, SW_5_GW_10]
+  Orbit #64   | 2 / 10 runs | [ST_2_GT_16, SW_5_GW_10]
+  Orbit #90   | 2 / 10 runs | [ST_2_GT_16, SW_5_GW_10]
+  Orbit #91   | 2 / 10 runs | [ST_2_GT_16, SW_5_GW_10]
+  Orbit #92   | 2 / 10 runs | [ST_2_GT_16, SW_5_GW_10]
+  Orbit #93   | 2 / 10 runs | [ST_2_GT_16, SW_5_GW_10]
+  Orbit #97   | 2 / 10 runs | [ST_2_GT_16, SW_5_GW_10]
+  Orbit #105  | 2 / 10 runs | [ST_2_GT_16, SW_5_GW_10]
+  Orbit #114  | 2 / 10 runs | [ST_2_GT_16, SW_5_GW_10]
+  Orbit #128  | 2 / 10 runs | [ST_2_GT_16, SW_5_GW_10]
+  Orbit #132  | 2 / 10 runs | [ST_2_GT_16, SW_5_GW_10]
+  Orbit #133  | 2 / 10 runs | [ST_2_GT_16, SW_5_GW_10]
+  Orbit #137  | 2 / 10 runs | [ST_2_GT_16, SW_5_GW_10]
+  Orbit #142  | 2 / 10 runs | [ST_2_GT_16, SW_5_GW_10]
+  Orbit #144  | 2 / 10 runs | [ST_2_GT_16, SW_5_GW_10]
+  Orbit #146  | 2 / 10 runs | [ST_2_GT_16, SW_5_GW_10]
+  Orbit #0    | 1 / 10 runs | [ST_2_GT_16]
+  Orbit #2    | 1 / 10 runs | [ST_2_GT_16]
+  Orbit #4    | 1 / 10 runs | [ST_2_GT_16]
+  Orbit #5    | 1 / 10 runs | [ST_2_GT_16]
+  Orbit #6    | 1 / 10 runs | [ST_2_GT_16]
+  Orbit #7    | 1 / 10 runs | [ST_2_GT_16]
+  Orbit #8    | 1 / 10 runs | [ST_2_GT_16]
+  Orbit #9    | 1 / 10 runs | [ST_2_GT_16]
+  Orbit #13   | 1 / 10 runs | [ST_2_GT_16]
+  Orbit #14   | 1 / 10 runs | [ST_2_GT_16]
+  Orbit #15   | 1 / 10 runs | [ST_2_GT_16]
+  Orbit #17   | 1 / 10 runs | [ST_2_GT_16]
+  Orbit #18   | 1 / 10 runs | [ST_2_GT_16]
+  Orbit #19   | 1 / 10 runs | [ST_2_GT_16]
+  Orbit #20   | 1 / 10 runs | [ST_2_GT_16]
+  Orbit #21   | 1 / 10 runs | [ST_2_GT_16]
+  Orbit #22   | 1 / 10 runs | [ST_2_GT_16]
+  Orbit #25   | 1 / 10 runs | [ST_2_GT_16]
+  Orbit #26   | 1 / 10 runs | [ST_2_GT_16]
+  Orbit #27   | 1 / 10 runs | [ST_2_GT_16]
+  Orbit #29   | 1 / 10 runs | [ST_2_GT_16]
+  Orbit #30   | 1 / 10 runs | [ST_2_GT_16]
+  Orbit #31   | 1 / 10 runs | [ST_2_GT_16]
+  Orbit #32   | 1 / 10 runs | [ST_2_GT_16]
+  Orbit #34   | 1 / 10 runs | [ST_2_GT_16]
+  Orbit #35   | 1 / 10 runs | [ST_2_GT_16]
+  Orbit #37   | 1 / 10 runs | [ST_2_GT_16]
+  Orbit #38   | 1 / 10 runs | [ST_2_GT_16]
+  Orbit #41   | 1 / 10 runs | [ST_2_GT_16]
+  Orbit #42   | 1 / 10 runs | [ST_2_GT_16]
+  Orbit #44   | 1 / 10 runs | [ST_2_GT_16]
+  Orbit #46   | 1 / 10 runs | [ST_2_GT_16]
+  Orbit #49   | 1 / 10 runs | [ST_2_GT_16]
+  Orbit #50   | 1 / 10 runs | [ST_2_GT_16]
+  Orbit #51   | 1 / 10 runs | [ST_2_GT_16]
+  Orbit #52   | 1 / 10 runs | [ST_2_GT_16]
+  Orbit #53   | 1 / 10 runs | [ST_2_GT_16]
+  Orbit #54   | 1 / 10 runs | [ST_2_GT_16]
+  Orbit #55   | 1 / 10 runs | [ST_2_GT_16]
+  Orbit #56   | 1 / 10 runs | [ST_2_GT_16]
+  Orbit #59   | 1 / 10 runs | [ST_2_GT_16]
+  Orbit #60   | 1 / 10 runs | [ST_2_GT_16]
+  Orbit #61   | 1 / 10 runs | [ST_2_GT_16]
+  Orbit #62   | 1 / 10 runs | [ST_2_GT_16]
+  Orbit #65   | 1 / 10 runs | [ST_2_GT_16]
+  Orbit #66   | 1 / 10 runs | [ST_2_GT_16]
+  Orbit #67   | 1 / 10 runs | [ST_2_GT_16]
+  Orbit #68   | 1 / 10 runs | [ST_2_GT_16]
+  Orbit #70   | 1 / 10 runs | [ST_2_GT_16]
+  Orbit #71   | 1 / 10 runs | [ST_2_GT_16]
+  Orbit #72   | 1 / 10 runs | [ST_2_GT_16]
+  Orbit #73   | 1 / 10 runs | [ST_2_GT_16]
+  Orbit #74   | 1 / 10 runs | [ST_2_GT_16]
+  Orbit #76   | 1 / 10 runs | [ST_2_GT_16]
+  Orbit #77   | 1 / 10 runs | [ST_2_GT_16]
+  Orbit #78   | 1 / 10 runs | [ST_2_GT_16]
+  Orbit #79   | 1 / 10 runs | [ST_2_GT_16]
+  Orbit #80   | 1 / 10 runs | [ST_2_GT_16]
+  Orbit #81   | 1 / 10 runs | [ST_2_GT_16]
+  Orbit #83   | 1 / 10 runs | [ST_2_GT_16]
+  Orbit #84   | 1 / 10 runs | [ST_2_GT_16]
+  Orbit #85   | 1 / 10 runs | [ST_2_GT_16]
+  Orbit #86   | 1 / 10 runs | [ST_2_GT_16]
+  Orbit #87   | 1 / 10 runs | [ST_2_GT_16]
+  Orbit #88   | 1 / 10 runs | [ST_2_GT_16]
+  Orbit #89   | 1 / 10 runs | [ST_2_GT_16]
+  Orbit #94   | 1 / 10 runs | [ST_2_GT_16]
+  Orbit #95   | 1 / 10 runs | [ST_2_GT_16]
+  Orbit #96   | 1 / 10 runs | [ST_2_GT_16]
+  Orbit #99   | 1 / 10 runs | [ST_2_GT_16]
+  Orbit #100  | 1 / 10 runs | [ST_2_GT_16]
+  Orbit #101  | 1 / 10 runs | [ST_2_GT_16]
+  Orbit #104  | 1 / 10 runs | [ST_2_GT_16]
+  Orbit #108  | 1 / 10 runs | [ST_2_GT_16]
+  Orbit #110  | 1 / 10 runs | [ST_2_GT_16]
+  Orbit #115  | 1 / 10 runs | [ST_2_GT_16]
+  Orbit #116  | 1 / 10 runs | [ST_2_GT_16]
+  Orbit #118  | 1 / 10 runs | [ST_2_GT_16]
+  Orbit #119  | 1 / 10 runs | [ST_2_GT_16]
+  Orbit #120  | 1 / 10 runs | [ST_2_GT_16]
+  Orbit #121  | 1 / 10 runs | [ST_2_GT_16]
+  Orbit #123  | 1 / 10 runs | [ST_2_GT_16]
+  Orbit #125  | 1 / 10 runs | [ST_2_GT_16]
+  Orbit #126  | 1 / 10 runs | [ST_2_GT_16]
+  Orbit #127  | 1 / 10 runs | [ST_2_GT_16]
+  Orbit #129  | 1 / 10 runs | [ST_2_GT_16]
+  Orbit #130  | 1 / 10 runs | [ST_2_GT_16]
+  Orbit #131  | 1 / 10 runs | [ST_2_GT_16]
+  Orbit #134  | 1 / 10 runs | [ST_2_GT_16]
+  Orbit #135  | 1 / 10 runs | [ST_2_GT_16]
+  Orbit #138  | 1 / 10 runs | [ST_2_GT_16]
+  Orbit #139  | 1 / 10 runs | [ST_2_GT_16]
+  Orbit #140  | 1 / 10 runs | [ST_2_GT_16]
+  Orbit #141  | 1 / 10 runs | [ST_2_GT_16]
+  Orbit #143  | 1 / 10 runs | [ST_2_GT_16]
+  Orbit #145  | 1 / 10 runs | [ST_2_GT_16]
+  Orbit #147  | 1 / 10 runs | [ST_2_GT_16]
+  Orbit #148  | 1 / 10 runs | [ST_2_GT_16]
+  Orbit #149  | 1 / 10 runs | [ST_2_GT_16]
+  Orbit #150  | 1 / 10 runs | [ST_2_GT_16]
+
+=========================================================================================================
