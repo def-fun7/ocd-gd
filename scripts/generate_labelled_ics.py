@@ -20,6 +20,8 @@ BASE_PATH = Path("data/initial_conditions/labeled_ics_benchmark.npz")
 
 NUM_CANDIDATES = 1000
 
+BALANCE = False
+
 # Thresholds
 CHAOTIC_MIN_MLE = 1e-1
 CHAOTIC_MAX_MLE = 1.0
@@ -102,9 +104,13 @@ def main():
         selected_regular_ics = regular_ics
         selected_regular_mles = regular_mles
     else:
-        # Sample regular ICs to match the exact size of chaotic ICs
-        selected_regular_ics = regular_ics[:num_chaotic]
-        selected_regular_mles = regular_mles[:num_chaotic]
+        if BALANCE:
+            # Sample regular ICs to match the exact size of chaotic ICs
+            selected_regular_ics = regular_ics[:num_chaotic]
+            selected_regular_mles = regular_mles[:num_chaotic]
+        else:
+            selected_regular_ics = regular_ics
+            selected_regular_mles = regular_mles
 
     # Combine datasets
     combined_ics = np.vstack([chaotic_ics, selected_regular_ics])
