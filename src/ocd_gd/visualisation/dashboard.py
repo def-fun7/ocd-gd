@@ -90,7 +90,6 @@ def plot_dashboard_mpl(
         ax=ax_gali,
         show=False,
     )
-
     if kwargs.get("suptitle", True):
         status_str = (
             "Chaotic"
