@@ -56,6 +56,8 @@ class ChaosSummary(NamedTuple):
     gali_time: np.ndarray
     sali_check: np.ndarray
     sali_time: np.ndarray
+    lyapunov_check: np.ndarray
+    lyapunov_time: np.ndarray
 
 
 class ChaosFullReport(NamedTuple):
@@ -65,6 +67,7 @@ class ChaosFullReport(NamedTuple):
     timestamps: np.ndarray
     gali_array: np.ndarray
     sali_array: np.ndarray
+    lyapunov_array: np.ndarray
 
 
 class OrbitChaosDetector:
@@ -82,8 +85,8 @@ class OrbitChaosDetector:
         iter_time: float = 10.0,
         gali_threshold: float = 1e-20,
         sali_threshold: float = 1e-3,
-        gali_window_size: int = 100,
-        sali_window_size: int = 10,
+        gali_window_size: int = 50,
+        sali_window_size: int = 25,
         accuracy: float = 1e-8,
         max_num_steps: int = 100000000,
         plotting_backend: str = "matplotlib",
@@ -378,6 +381,10 @@ class OrbitChaosDetector:
                     sali_time,
                 )
 
+        lyap_array = self._lyap[:, 0]
+        lyap_time = self._lyap[:, 1]
+        lyap_check = np.where(lyap_array <= 0.1, 0, 1)
+
         if orbit_idx is not None:
             gali_c = gali_check[orbit_idx]
             gali_t = gali_time[orbit_idx]
@@ -385,6 +392,9 @@ class OrbitChaosDetector:
             sali_t = sali_time[orbit_idx]
             gali_d = self.gali_array[orbit_idx]
             sali_d = self.sali_array[orbit_idx]
+            lyap_c = lyap_check[orbit_idx]
+            lyap_t = lyap_time[orbit_idx]
+            lyap_d = lyap_array[orbit_idx]
         else:
             gali_c, gali_t, sali_c, sali_t = (
                 gali_check,
@@ -392,11 +402,13 @@ class OrbitChaosDetector:
                 sali_check,
                 sali_time,
             )
+            lyap_c, lyap_t = (lyap_check, lyap_time)
+
             gali_d = self.gali_array
             sali_d = self.sali_array
+            lyap_d = lyap_array
 
-        summary_data = ChaosSummary(gali_c, gali_t, sali_c, sali_t)
-
+        summary_data = ChaosSummary(gali_c, gali_t, sali_c, sali_t, lyap_c, lyap_t)
         if check_only:
             return summary_data
 
@@ -405,6 +417,7 @@ class OrbitChaosDetector:
             timestamps=self.timestamps,
             gali_array=gali_d,
             sali_array=sali_d,
+            lyapunov_array=lyap_d,
         )
 
     # =========================================================================

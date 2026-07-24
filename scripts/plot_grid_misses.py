@@ -74,7 +74,6 @@ def main():
             sali_window_size=SALI_WINDOW_SIZE,
             gali_window_size=GALI_WINDOW_SIZE,
         )
-
         for i in range(len(idx)):
             missed_in = " | ".join(src[i])
             save_file = OUTPUT_DIR / f"orbit_{idx[i]}_{missed_in}.png"
