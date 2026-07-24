@@ -1,0 +1,41 @@
+====================================================================
+             DETAILED ORBIT CLASSIFICATION REPORT                   
+====================================================================
+
+Dataset File: labeled_ics_benchmark_size_962.npz
+Evaluated Subset Size: 481
+Class Distribution   : Chaotic=98, Regular=383
+
+--- PARAMETERS USED ---
+SALI Optimal: Threshold = 1.0e-03, Window = 25
+GALI Optimal: Threshold = 1.0e-20, Window = 50
+
+====================================================================
+                      DETAILED METRIC SUMMARY                       
+====================================================================
+Metric                    | SALI               | GALI              
+--------------------------------------------------------------------
+Balanced Accuracy         | 0.8709             | 0.9667            
+Standard Accuracy         | 0.9335             | 0.9771            
+F1-Score                  | 0.8242             | 0.9442            
+Precision                 | 0.8929             | 0.9394            
+Recall / Sensitivity (TPR) | 0.7653             | 0.9490            
+Specificity (TNR)         | 0.9765             | 0.9843            
+--------------------------------------------------------------------
+True Positives (TP)       | 75                 | 93                
+True Negatives (TN)       | 374                | 377               
+False Positives (FP)      | 9                  | 6                 
+False Negatives (FN)      | 23                 | 5                 
+====================================================================
+
+--- MISCLASSIFIED ORBIT INDEX SUMMARY ---
+SALI FP Count (Regular -> Chaotic): 9
+SALI FN Count (Chaotic -> Regular): 23
+GALI FP Count (Regular -> Chaotic): 6
+GALI FN Count (Chaotic -> Regular): 5
+
+Index Lists:
+sali_fp = [6, 150, 187, 377, 389, 391, 406, 407, 420]
+sali_fn = [38, 41, 47, 63, 76, 88, 127, 136, 168, 197, 198, 318, 328, 335, 352, 360, 385, 394, 411, 417, 429, 441, 444]
+gali_fp = [54, 105, 196, 255, 391, 407]
+gali_fn = [38, 63, 197, 429, 441]

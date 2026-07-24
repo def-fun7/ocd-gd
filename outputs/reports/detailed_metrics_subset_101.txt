@@ -1,0 +1,41 @@
+====================================================================
+             DETAILED ORBIT CLASSIFICATION REPORT                   
+====================================================================
+
+Dataset File: labeled_ics_benchmark_size_370.npz
+Evaluated Subset Size: 101
+Class Distribution   : Chaotic=55, Regular=46
+
+--- PARAMETERS USED ---
+SALI Optimal: Threshold = 1.0e-03, Window = 25
+GALI Optimal: Threshold = 1.0e-20, Window = 50
+
+====================================================================
+                      DETAILED METRIC SUMMARY                       
+====================================================================
+Metric                    | SALI               | GALI              
+--------------------------------------------------------------------
+Balanced Accuracy         | 0.8818             | 0.9909            
+Standard Accuracy         | 0.8713             | 0.9901            
+F1-Score                  | 0.8660             | 0.9908            
+Precision                 | 1.0000             | 1.0000            
+Recall / Sensitivity (TPR) | 0.7636             | 0.9818            
+Specificity (TNR)         | 1.0000             | 1.0000            
+--------------------------------------------------------------------
+True Positives (TP)       | 42                 | 54                
+True Negatives (TN)       | 46                 | 46                
+False Positives (FP)      | 0                  | 0                 
+False Negatives (FN)      | 13                 | 1                 
+====================================================================
+
+--- MISCLASSIFIED ORBIT INDEX SUMMARY ---
+SALI FP Count (Regular -> Chaotic): 0
+SALI FN Count (Chaotic -> Regular): 13
+GALI FP Count (Regular -> Chaotic): 0
+GALI FN Count (Chaotic -> Regular): 1
+
+Index Lists:
+sali_fp = []
+sali_fn = [4, 11, 12, 44, 45, 47, 49, 59, 60, 80, 88, 89, 96]
+gali_fp = []
+gali_fn = [44]
