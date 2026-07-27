@@ -7,6 +7,7 @@ to an NPZ file for downstream analysis.
 
 from pathlib import Path
 import sys
+import time
 import agama
 import numpy as np
 
@@ -24,7 +25,7 @@ SUBSET = 370  # Adjust or set to NUM as needed
 INI_FILE = Path("data/potentials/MWPotentialHunter24_full.ini")
 DATASET_PATH = Path(f"data/initial_conditions/labeled_ics_benchmark_size_{NUM}.npz")
 
-OUTPUT_TXT = Path(f"./outputs/reports/detailed_metrics_subset_{SUBSET}.txt")
+OUTPUT_TXT = Path(f"./outputs/reports/detailed_metrics_subset_{SUBSET}_(v3).txt")
 OUTPUT_INDICES_NPZ = Path(
     f"./outputs/misclassified_datasets/misclassified_indices_{SUBSET}.npz"
 )
@@ -84,6 +85,7 @@ def compute_detailed_metrics(y_true: np.ndarray, y_pred: np.ndarray) -> dict:
 
 
 def main():
+    t1 = time.perf_counter()
     if not INI_FILE.exists():
         raise FileNotFoundError(f"Potential file '{INI_FILE}' not found!")
     if not DATASET_PATH.exists():
@@ -103,12 +105,15 @@ def main():
     print(f"Loaded {len(y_true)} ICs (Chaotic: {n_chaotic}, Regular: {n_regular})")
 
     # 2. Initialize detector
+    it = time.perf_counter()
     print("Initializing potential and detector...")
     potential = agama.Potential(file=str(INI_FILE))
     detector = OrbitChaosDetector(ic=ics, pot=potential)
-
+    et = time.perf_counter()
+    intTime = et - it
     # 3. Run detection with optimal parameters
     print("Running chaos detection...")
+    it = time.perf_counter()
     summary = detector.detect_chaos(
         separate_sali=False,
         check_only=True,
@@ -117,7 +122,9 @@ def main():
         gali_threshold_override=GALI_OPT_THRESH,
         gali_window_override=GALI_OPT_WIN,
     )
-
+    et = time.perf_counter()
+    detectTime = et - it
+    t2 = time.perf_counter() - t1
     # 4. Compute metrics and indices
     s_pred = summary.sali_check.flatten()
     g_pred = summary.gali_check.flatten()
@@ -143,8 +150,8 @@ def main():
         gali_fp=gali_fp_indices,
         gali_fn=gali_fn_indices,
     )
-    print(f"Saved misclassified indices to '{OUTPUT_INDICES_NPZ}'")
 
+    print(f"Saved misclassified indices to '{OUTPUT_INDICES_NPZ}'")
     # 6. Generate detailed text report
     with open(OUTPUT_TXT, "w", encoding="utf-8") as f:
         f.write(
@@ -219,6 +226,9 @@ def main():
         f.write(f"SALI FN Count (Chaotic -> Regular): {len(sali_fn_indices)}\n")
         f.write(f"GALI FP Count (Regular -> Chaotic): {len(gali_fp_indices)}\n")
         f.write(f"GALI FN Count (Chaotic -> Regular): {len(gali_fn_indices)}\n\n")
+        f.write(
+            f"Integration Time: {intTime} | Detection Time: {detectTime} | Script runtime: {t2} \n\n"
+        )
 
         f.write("Index Lists:\n")
         f.write(f"sali_fp = {sali_fp_indices.tolist()}\n")

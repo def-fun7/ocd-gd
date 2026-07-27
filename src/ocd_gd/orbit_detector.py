@@ -9,6 +9,7 @@ Lyapunov exponents.
 from typing import Any, NamedTuple, Optional, Tuple, Union, List
 from dataclasses import dataclass
 import numpy as np
+from numba import njit, prange
 import matplotlib.pyplot as plt
 import plotly.graph_objects as go
 
@@ -70,6 +71,37 @@ class ChaosFullReport(NamedTuple):
     lyapunov_array: np.ndarray
 
 
+@njit(parallel=True, fastmath=True, cache=True)
+def _sali_kernel(arr: np.ndarray, idx_i: np.ndarray, idx_j: np.ndarray) -> np.ndarray:
+    """Compute SALI per (orbit, pair, timestep) without materializing
+    full-size w1/w2 arrays — only tiny fixed-length vectors ever exist
+    in memory at once.
+    """
+    n_orbits, _, n_time, n_dim = arr.shape
+    n_pairs = idx_i.shape[0]
+    out = np.empty((n_orbits, n_pairs, n_time), dtype=arr.dtype)
+
+    for orb in prange(n_orbits):
+        for p in range(n_pairs):
+            i = idx_i[p]
+            j = idx_j[p]
+            for t in range(n_time):
+                sum_sq = 0.0
+                diff_sq = 0.0
+                for d in range(n_dim):
+                    a = arr[orb, i, t, d]
+                    b = arr[orb, j, t, d]
+                    s = a + b
+                    df = a - b
+                    sum_sq += s * s
+                    diff_sq += df * df
+                sum_norm = np.sqrt(sum_sq)
+                diff_norm = np.sqrt(diff_sq)
+                out[orb, p, t] = sum_norm if sum_norm < diff_norm else diff_norm
+
+    return out
+
+
 class OrbitChaosDetector:
     """Integrate orbits and analyze chaotic behavior using SALI/GALI indicators.
 
@@ -90,6 +122,7 @@ class OrbitChaosDetector:
         accuracy: float = 1e-8,
         max_num_steps: int = 100000000,
         plotting_backend: str = "matplotlib",
+        keep_raw_deviations: bool = False,
     ) -> None:
         """Initialize detector and automatically run orbit integrations.
 
@@ -117,6 +150,13 @@ class OrbitChaosDetector:
             Safety boundary cap for maximum integration steps allowed.
         plotting_backend: str, default "matplotlib"
             setup which plotting library to use.
+        keep_raw_deviations : bool, default False
+            If True, preserve the raw (un-normalized) deviation vectors so they
+            remain accessible via `self._dev_arr` after normalisation — useful
+            for plotting/diagnostics on small batches. If False (default),
+            normalisation happens in place on `self._dev_arr` directly, avoiding
+            an extra full-size array copy — recommended for large batches
+            (thousands of orbits) where memory is the binding constraint.
         """
 
         # 1. Configuration Attributes
@@ -133,6 +173,7 @@ class OrbitChaosDetector:
         self.accuracy: float = accuracy
         self.max_num_steps: int = int(max_num_steps)
         self.plotting_backend: str = plotting_backend.lower()
+        self.keep_raw_deviations: bool = keep_raw_deviations
 
         # 2. Raw Cached Simulation Data (Private)
         self._time_arr: Optional[np.ndarray] = None
@@ -147,6 +188,7 @@ class OrbitChaosDetector:
         self._chaos_results_cache: Optional[Tuple[np.ndarray, ...]] = None
 
         # Automatically kick off the heavy simulation on creation
+        _sali_kernel(np.array([[[[1]]]]), np.array([0]), np.array([1]))
         self._integrate_orbits()
 
     def _integrate_orbits(self) -> None:
@@ -167,34 +209,57 @@ class OrbitChaosDetector:
         self._time_arr, self._traj_arr, self._dev_arr, self._lyap = orbit
 
     def _normalize_deviation_vectors(self) -> np.ndarray:
-        """Clean and unit-normalize deviation vectors safely."""
-        dev_clean = np.nan_to_num(self._dev_arr, nan=0.0, posinf=1e30, neginf=-1e30)
-        max_vals = np.abs(dev_clean).max(axis=-1, keepdims=True)
-        max_vals_safe = np.where(max_vals == 0.0, 1.0, max_vals)
-        scaled_dev = dev_clean / max_vals_safe
+        """Clean and unit-normalize deviation vectors safely.
 
-        scaled_norm = np.linalg.norm(scaled_dev, axis=-1, keepdims=True)
-        scaled_norm_safe = np.where(scaled_norm == 0.0, 1.0, scaled_norm)
+        Behavior depends on `self.keep_raw_deviations`:
+        - True: operates on a copy, leaving `self._dev_arr` untouched.
+        - False (default): operates in place on `self._dev_arr`, saving one
+        full-size array allocation — `self._dev_arr` is no longer usable
+        afterward (it becomes the normalized array).
+        """
+        if self.keep_raw_deviations:
+            dev = np.array(self._dev_arr, dtype=np.float64, copy=True)
+        else:
+            dev = self._dev_arr
+            if dev.dtype != np.float64:
+                dev = dev.astype(np.float64, copy=False)
+                self._dev_arr = (
+                    dev  # keep attribute consistent with what we're mutating
+                )
 
-        return scaled_dev / scaled_norm_safe
+        np.nan_to_num(dev, copy=False, nan=0.0, posinf=1e30, neginf=-1e30)
+
+        max_vals = np.abs(dev).max(axis=-1, keepdims=True)
+        np.divide(dev, np.where(max_vals == 0.0, 1.0, max_vals), out=dev)
+
+        norm = np.linalg.norm(dev, axis=-1, keepdims=True)
+        np.divide(dev, np.where(norm == 0.0, 1.0, norm), out=dev)
+
+        return dev
 
     def _compute_sali(self) -> np.ndarray:
-        """Internal computation for smaller alignment index."""
-        arr = np.array(self.deviation_vectors, ndmin=4, copy=False)
+        """Internal computation for smaller alignment index.
+
+        Delegates to a Numba-jitted kernel that loops over the 15 (i, j)
+        deviation-vector pairs directly, avoiding the (n, 15, timesteps, 6)
+        fancy-indexed copies the numpy-vectorized version required.
+        """
+        arr = np.ascontiguousarray(self.deviation_vectors)
         idx_i, idx_j = np.triu_indices(6, k=1)
-
-        w1 = arr[:, idx_i, :, :]
-        w2 = arr[:, idx_j, :, :]
-
-        sum_norm = np.linalg.norm(w1 + w2, axis=-1)
-        diff_norm = np.linalg.norm(w1 - w2, axis=-1)
-        return np.minimum(sum_norm, diff_norm)
+        return _sali_kernel(arr, idx_i.astype(np.int64), idx_j.astype(np.int64))
 
     def _compute_gali(self) -> np.ndarray:
-        """Internal computation for generalized alignment index."""
+        """Internal computation for generalized alignment index.
+
+        GALI is the product of the singular values of the deviation-vector
+        matrix at each timestep. For a square matrix, that product equals
+        |det(matrix)|, so this uses np.linalg.det (LU-based) instead of a full
+        SVD (compute_uv=False still does the full bidiagonalization + QR
+        iteration under the hood) — same result, substantially less compute
+        per matrix.
+        """
         matrix_a = np.transpose(self.deviation_vectors, (0, 2, 1, 3))
-        singular_values = np.linalg.svd(matrix_a, compute_uv=False)
-        return np.prod(singular_values, axis=-1)
+        return np.abs(np.linalg.det(matrix_a))
 
     # =========================================================================
     # PUBLIC PROPERTIES

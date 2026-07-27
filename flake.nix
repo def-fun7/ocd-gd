@@ -65,6 +65,7 @@
           ps.numpy
           ps.matplotlib
           ps.plotly
+          ps.numba
 
           ps.sphinx
           ps.sphinx-rtd-theme
