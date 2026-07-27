@@ -4,7 +4,9 @@ import numpy as np
 import pytest
 from ocd_gd.orbit_detector import OrbitChaosDetector
 
-REGULAR_BENCHMARK_NPZ = Path("data/initial_conditions/regular_ics_benchmark_226.npz")
+REGULAR_BENCHMARK_NPZ = Path(
+    "data/initial_conditions/labeled_ics_benchmark_size_370.npz"
+)
 MW_POTENTIAL = "data/potentials/MWPotentialHunter24_full.ini"
 
 
@@ -41,8 +43,8 @@ class TestRegularSensitivity:
         # Flatten check arrays (True = Chaos detected, False = Regular detected)
         sali_chaotic = summary.sali_check.flatten().astype(bool)
         gali_chaotic = summary.gali_check.flatten().astype(bool)
-
-        total_orbits = len(ics)
+        lyap_check = summary.lyapunov_check.flatten().astype(bool)
+        total_orbits = int(np.sum(~lyap_check))
 
         # Count True Regulars (False in check array) and False Positives (True in check array)
         sali_regular_hits = int(np.sum(~sali_chaotic))

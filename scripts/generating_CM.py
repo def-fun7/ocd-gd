@@ -321,7 +321,7 @@ v_circ = np.sqrt(r_ref * np.abs(force[0]))
 
 # Total Energy E_0 = Phi(r) + 0.5 * v_circ^2
 E_0 = potential.potential(pos_ref)[0] + 0.5 * v_circ**2
-grid_size = 10
+grid_size = 50
 
 ics, mask, (x_grid, vx_grid), E_rem_vals = generate_ics_from_agama(
     potential=potential,

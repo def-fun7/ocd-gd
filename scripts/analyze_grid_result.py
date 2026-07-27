@@ -19,8 +19,8 @@ from ocd_gd.orbit_detector import OrbitChaosDetector
 agama.setUnits(length=1, mass=1, velocity=1)
 
 # Paths
-NUM = 370
-SUBSET = 370  # Adjust or set to NUM as needed
+NUM = 962
+SUBSET = 100  # Adjust or set to NUM as needed
 
 INI_FILE = Path("data/potentials/MWPotentialHunter24_full.ini")
 DATASET_PATH = Path(f"data/initial_conditions/labeled_ics_benchmark_size_{NUM}.npz")
