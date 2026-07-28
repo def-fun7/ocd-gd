@@ -30,7 +30,7 @@ class TestChaosDetection:
     def test_threshold_overrides_bypass_cache(self, chaos_detector):
         detector, mock_eval = chaos_detector
         _ = detector.detect_chaos()
-        _ = detector.detect_chaos(sali_override=1e-5)
+        _ = detector.detect_chaos(sali_threshold_override=1e-5)
         assert mock_eval.call_count == 4  # Cache bypassed
 
     def test_sliced_orbit_index(self, chaos_detector):
@@ -136,7 +136,7 @@ def test_detect_chaos_threshold_overrides_bypass_cache(chaos_detector):
     _ = detector.detect_chaos()
 
     # Second call provides a custom sali threshold -> bypasses cache (call_count becomes 4)
-    _ = detector.detect_chaos(sali_override=1e-5)
+    _ = detector.detect_chaos(sali_threshold_override=1e-5)
     assert mock_eval.call_count == 4
 
 

@@ -30,7 +30,7 @@ def mock_detector():
 
 def test_raw_property_getters(mock_detector):
     """Verify raw simulation properties directly return underlying private attributes."""
-    assert mock_detector.timestamps is mock_detector._time_arr
+    assert mock_detector.timestamps is mock_detector._time_arr[0]
     assert mock_detector.trajectories is mock_detector._traj_arr
     assert mock_detector.lyapunov_exponents is mock_detector._lyap
 

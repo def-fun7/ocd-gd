@@ -59,9 +59,35 @@
             export LDFLAGS="-L${pkgs.gsl}/lib -L${pkgs.openblas}/lib"
           '';
         };
+        ocd-gd = pkgs.python3Packages.buildPythonPackage {
+          pname = "ocd-gd";
+          version = "0.1.0";
 
+          pyproject = true;
+          src = ./.;
+          nativeBuildInputs = with pkgs.python3Packages; [
+            uv-build
+          ];
+          build-system = with pkgs.python3Packages; [
+            setuptools
+            wheel
+          ];
+
+          propagatedBuildInputs = [
+            agama-python
+          ]
+          ++ (with pkgs.python3Packages; [
+            numpy
+            matplotlib
+            plotly
+            numba
+          ]);
+
+          doCheck = false;
+        };
         pythonEnv = pkgs.python3.withPackages (ps: [
           agama-python
+          ocd-gd
           ps.numpy
           ps.matplotlib
           ps.plotly
@@ -85,6 +111,7 @@
           ];
 
           shellHook = ''
+            export PYTHONPATH="$PWD/src:$PYTHONPATH"
             echo "========================================================="
             echo "🪐 AGAMA Automated Environment Loaded"
             echo "========================================================="

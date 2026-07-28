@@ -4,12 +4,7 @@ from pathlib import Path
 from typing import List, Set
 import numpy as np
 import agama
-
-import sys
-from pathlib import Path
-
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
-from ocd_gd.orbit_detector import OrbitChaosDetector
+from ocd_gd import OrbitChaosDetector
 
 # ==============================================================================
 # 1. CONSTANTS & CONFIGURATION
