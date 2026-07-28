@@ -14,7 +14,7 @@ import agama
 from ._evaluate_chaos import evaluate_chaos
 from ._sali_kernel import _sali_kernel
 from ._plotting import _OrbitPlottingMixin
-from .chaos_types import IntegrationCriteria, ChaosSummary, ChaosFullReport
+from ._types import IntegrationCriteria, ChaosSummary, ChaosFullReport
 
 
 class OrbitChaosDetector(_OrbitPlottingMixin):

@@ -34,6 +34,13 @@ from .batch import (
 )
 from .utils import set_publication_style, set_output_dir
 
+from .grid_visualisation import (
+    plot_chaos_maps_mpl,
+    plot_chaos_maps_plotly,
+    plot_composite_chaos_map_mpl,
+    plot_composite_chaos_map_plotly,
+)
+
 __all__ = [
     # Matplotlib
     "plot_sali_mpl",
@@ -60,4 +67,9 @@ __all__ = [
     "plot_sali_batch_mpl",
     "plot_gali_batch_mpl",
     "plot_sali_gali_dual_batch_mpl",
+    # grid
+    "plot_chaos_maps_mpl",
+    "plot_chaos_maps_plotly",
+    "plot_composite_chaos_map_mpl",
+    "plot_composite_chaos_map_plotly",
 ]

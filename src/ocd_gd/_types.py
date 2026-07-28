@@ -1,8 +1,5 @@
 """
-Data containers for orbit chaos detection results.
-
-Kept separate from the detector logic since these are plain structured
-containers with no behavior of their own.
+Data containers for orbit chaos detection results and grid-based chaos detection.
 """
 
 from typing import NamedTuple
@@ -42,3 +39,17 @@ class ChaosFullReport(NamedTuple):
     gali_array: np.ndarray
     sali_array: np.ndarray
     lyapunov_array: np.ndarray
+
+
+class GridInitialConditions(NamedTuple):
+    """Bundle of initial conditions and metadata produced by grid generation.
+
+    Replaces the previous "ics, mask, (x_vals, v_x_vals), E_rem_vals" nested
+    tuple with named fields.
+    """
+
+    ics: np.ndarray
+    unphysical_mask: np.ndarray
+    x_vals: np.ndarray
+    v_x_vals: np.ndarray
+    E_rem_vals: np.ndarray
