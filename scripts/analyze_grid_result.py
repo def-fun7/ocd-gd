@@ -20,8 +20,7 @@ agama.setUnits(length=1, mass=1, velocity=1)
 
 # Paths
 NUM = 962
-SUBSET = 100  # Adjust or set to NUM as needed
-
+SUBSET = 900
 INI_FILE = Path("data/potentials/MWPotentialHunter24_full.ini")
 DATASET_PATH = Path(f"data/initial_conditions/labeled_ics_benchmark_size_{NUM}.npz")
 
@@ -97,6 +96,7 @@ def main():
     # 1. Load benchmark dataset
     print(f"Loading dataset from '{DATASET_PATH}'...")
     data = np.load(DATASET_PATH)
+    indices = data["indices"][:SUBSET]
     ics = data["ics"][:SUBSET]
     y_true = data["labels"][:SUBSET]  # 1 = chaotic, 0 = regular
 
@@ -145,10 +145,10 @@ def main():
     # Save indices to NPZ for downstream analysis
     np.savez_compressed(
         OUTPUT_INDICES_NPZ,
-        sali_fp=sali_fp_indices,
-        sali_fn=sali_fn_indices,
-        gali_fp=gali_fp_indices,
-        gali_fn=gali_fn_indices,
+        sali_fp=indices[sali_fp_indices],
+        sali_fn=indices[sali_fn_indices],
+        gali_fp=indices[gali_fp_indices],
+        gali_fn=indices[gali_fn_indices],
     )
 
     print(f"Saved misclassified indices to '{OUTPUT_INDICES_NPZ}'")
@@ -231,10 +231,10 @@ def main():
         )
 
         f.write("Index Lists:\n")
-        f.write(f"sali_fp = {sali_fp_indices.tolist()}\n")
-        f.write(f"sali_fn = {sali_fn_indices.tolist()}\n")
-        f.write(f"gali_fp = {gali_fp_indices.tolist()}\n")
-        f.write(f"gali_fn = {gali_fn_indices.tolist()}\n")
+        f.write(f"sali_fp = {indices[sali_fp_indices.tolist()]}\n")
+        f.write(f"sali_fn = {indices[sali_fn_indices.tolist()]}\n")
+        f.write(f"gali_fp = {indices[gali_fp_indices.tolist()]}\n")
+        f.write(f"gali_fn = {indices[gali_fn_indices.tolist()]}\n")
 
     print(f"Report successfully saved to '{OUTPUT_TXT}'.")
 
