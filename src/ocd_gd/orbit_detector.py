@@ -30,6 +30,7 @@ class OrbitChaosDetector(_OrbitPlottingMixin):
         self,
         ic: Any,
         pot: Any,
+        units: Tuple = (1, 1, 1),
         omega: float = 0.0,
         iter_time: float = 10.0,
         gali_threshold: float = 1e-20,
@@ -49,6 +50,8 @@ class OrbitChaosDetector(_OrbitPlottingMixin):
             Initial conditions for coordinates and velocities.
         pot : agama.Potential
             Agama gravitational potential object.
+        units : Tuple
+            A tuple of (length, mass, velocity)
         omega : float
             pattern speed of the rotating frame
         iter_time : float, default 10.0
@@ -75,6 +78,7 @@ class OrbitChaosDetector(_OrbitPlottingMixin):
             an extra full-size array copy — recommended for large batches
             (thousands of orbits) where memory is the binding constraint.
         """
+        agama.setUnits(length=units[0], mass=units[1], velocity=units[2])
 
         # 1. Configuration Attributes
         self.ic: np.ndarray = np.atleast_2d(ic)
