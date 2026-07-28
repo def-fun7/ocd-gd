@@ -365,7 +365,9 @@ class OrbitChaosDetector(_OrbitPlottingMixin):
 
         lyap_array = self._lyap[:, 0]
         lyap_time = self._lyap[:, 1]
-        lyap_check = np.where(lyap_array <= 0.1, 0, 1)
+        is_nan = np.isnan(lyap_array)
+        lyap_check = np.where(lyap_array <= 0.1, 0, 1).astype(float)
+        lyap_check[is_nan] = np.nan
 
         if orbit_idx is not None:
             gali_c = gali_check[orbit_idx]
@@ -390,7 +392,14 @@ class OrbitChaosDetector(_OrbitPlottingMixin):
             sali_d = self.sali_array
             lyap_d = lyap_array
 
-        summary_data = ChaosSummary(gali_c, gali_t, sali_c, sali_t, lyap_c, lyap_t)
+        total_chaotic = {
+            "sali": int(np.asarray(sali_c).sum()),
+            "gali": int(np.asarray(gali_c).sum()),
+            "lyapunov": int(np.nan_to_num(lyap_c, nan=0.0).sum()),
+        }
+        summary_data = ChaosSummary(
+            gali_c, gali_t, sali_c, sali_t, lyap_c, lyap_t, total_chaotic
+        )
         if check_only:
             return summary_data
 

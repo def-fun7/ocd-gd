@@ -29,6 +29,7 @@ class ChaosSummary(NamedTuple):
     sali_time: np.ndarray
     lyapunov_check: np.ndarray
     lyapunov_time: np.ndarray
+    total_chaotic: dict
 
 
 class ChaosFullReport(NamedTuple):

@@ -25,7 +25,7 @@ E_0 = pot.potential(pos_ref)[0] + 0.5 * v_circ**2
 detector = GridChaosDetector(
     potential=pot,
     E_0=E_0,
-    grid_size=10,
+    grid_size=5,
     y_0=10.0,
     z_0=10.0,
     v_y0=0.6 * v_circ,
@@ -37,6 +37,4 @@ detector = GridChaosDetector(
 
 # # Render composite RGB overlay map
 detector.plot_composite_chaos_map(save_path="composite_chaos_map.png")
-
-# detector.plot_dashboard(4)
-# detector.plot_chaos_map(save_path="chaos_grid_maps.png")
+detector.plot_chaos_map(save_path="chaos_grid_maps.png")
