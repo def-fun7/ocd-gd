@@ -27,6 +27,7 @@ class _GridChaosPlottingMixin:
         backend: Optional[str] = None,
         save_path: Optional[str] = None,
         show: bool = True,
+        show_resonances: bool = True,
         **kwargs,
     ) -> Any:
         """Plot SALI, GALI, and Lyapunov chaos maps side-by-side over the grid.
@@ -41,6 +42,10 @@ class _GridChaosPlottingMixin:
             `fig.write_image` (requires the `kaleido` package).
         show : bool, default True
             Display the figure immediately.
+        show_resonances : bool, default True
+            Overlay corotation/Lindblad radii (see `resonance_radii`) as
+            mirrored vertical lines. Set False to omit them (e.g. for a
+            non-rotating potential where they'd all be absent anyway).
         """
         sali_grid, gali_grid, lyap_grid = self.chaos_grids
         return self._dispatch_plot(
@@ -53,6 +58,7 @@ class _GridChaosPlottingMixin:
             x_vals=self.x_grid,
             v_x_vals=self.vx_grid,
             E_rem_vals=self.energy_remainder,
+            resonance_radii=self.resonance_radii if show_resonances else None,
             save_path=save_path,
             show=show,
             **kwargs,
@@ -63,6 +69,7 @@ class _GridChaosPlottingMixin:
         backend: Optional[str] = None,
         save_path: Optional[str] = None,
         show: bool = True,
+        show_resonances: bool = True,
         **kwargs,
     ) -> Any:
         """Plot a single RGB composite overlay of the SALI/GALI/Lyapunov maps.
@@ -80,6 +87,7 @@ class _GridChaosPlottingMixin:
             x_vals=self.x_grid,
             v_x_vals=self.vx_grid,
             E_rem_vals=self.energy_remainder,
+            resonance_radii=self.resonance_radii if show_resonances else None,
             save_path=save_path,
             show=show,
             **kwargs,

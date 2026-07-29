@@ -6,15 +6,23 @@ via Small Alignment Index (SALI), Generalized Alignment Index (GALI), and
 Lyapunov exponents.
 """
 
-from typing import Any, Optional, Tuple, Union
+from typing import Any, Dict, Optional, Tuple, Union
 import numpy as np
+from astropy.table import QTable
 
 import agama
 
 from ._evaluate_chaos import evaluate_chaos
 from ._sali_kernel import _sali_kernel
+from ._types import (
+    IntegrationCriteria,
+    ChaosSummary,
+    ChaosFullReport,
+    ChaosSurveySummary,
+    MethodChaosStats,
+    ChaosAgreement,
+)
 from ._plotting import _OrbitPlottingMixin
-from ._types import IntegrationCriteria, ChaosSummary, ChaosFullReport
 
 
 class OrbitChaosDetector(_OrbitPlottingMixin):
@@ -104,6 +112,7 @@ class OrbitChaosDetector(_OrbitPlottingMixin):
         self._gali_arr: Optional[np.ndarray] = None
         self._chaos_results_cache: Optional[Tuple[np.ndarray, ...]] = None
 
+        # Automatically kick off the heavy simulation on creation
         _sali_kernel(np.array([[[[1]]]]), np.array([0]), np.array([1]))
         self._integrate_orbits()
 
@@ -390,6 +399,7 @@ class OrbitChaosDetector(_OrbitPlottingMixin):
             gali_d = self.gali_array
             sali_d = self.sali_array
             lyap_d = lyap_array
+
         summary_data = ChaosSummary(gali_c, gali_t, sali_c, sali_t, lyap_c, lyap_t)
         if check_only:
             return summary_data
@@ -401,3 +411,117 @@ class OrbitChaosDetector(_OrbitPlottingMixin):
             sali_array=sali_d,
             lyapunov_array=lyap_d,
         )
+
+    # =========================================================================
+    # SURVEY SUMMARY
+    # =========================================================================
+
+    def _method_stats(self, check: np.ndarray) -> MethodChaosStats:
+        """Build a MethodChaosStats block for one indicator's 0/1 check array."""
+        check_bool = np.asarray(check).astype(bool)
+        chaotic_indices = np.where(check_bool)[0]
+        regular_indices = np.where(~check_bool)[0]
+        n_chaotic = len(chaotic_indices)
+        n_regular = len(regular_indices)
+        n_total = self.num_orbits
+        return MethodChaosStats(
+            n_chaotic=n_chaotic,
+            n_regular=n_regular,
+            n_total=n_total,
+            chaotic_fraction=n_chaotic / n_total if n_total else float("nan"),
+            chaotic_indices=chaotic_indices,
+            regular_indices=regular_indices,
+            chaotic_ics=self.ic[chaotic_indices],
+            regular_ics=self.ic[regular_indices],
+        )
+
+    def chaos_summary(self, **detect_chaos_kwargs: Any) -> ChaosSurveySummary:
+        """Summarize chaos classification across every integrated orbit:
+        per-indicator counts/fractions/indices/ICs, plus how often SALI,
+        GALI, and Lyapunov agree with each other.
+
+        Works for any integrated batch — not grid-specific. On a
+        `GridChaosDetector`, `self.num_orbits`/`self.ic` already exclude
+        unphysical cells (they were never integrated), so this summary
+        automatically covers physical orbits only.
+
+        Parameters
+        ----------
+        **detect_chaos_kwargs :
+            Forwarded to `detect_chaos()` — e.g. `sali_threshold_override`,
+            `gali_window_override`, etc., to summarize under different
+            settings than the detector's own defaults.
+
+        Returns
+        -------
+        ChaosSurveySummary
+            `n_total`, one `MethodChaosStats` per indicator (`.sali`,
+            `.gali`, `.lyapunov`), and a `ChaosAgreement` block.
+        """
+        summary = self.detect_chaos(check_only=True, **detect_chaos_kwargs)
+
+        sali_stats = self._method_stats(summary.sali_check)
+        gali_stats = self._method_stats(summary.gali_check)
+        lyap_stats = self._method_stats(summary.lyapunov_check)
+
+        sali_bool = np.asarray(summary.sali_check).astype(bool)
+        gali_bool = np.asarray(summary.gali_check).astype(bool)
+        lyap_bool = np.asarray(summary.lyapunov_check).astype(bool)
+
+        all_agree = (sali_bool == gali_bool) & (gali_bool == lyap_bool)
+        agreement = ChaosAgreement(
+            sali_gali_agreement=float(np.mean(sali_bool == gali_bool)),
+            sali_lyapunov_agreement=float(np.mean(sali_bool == lyap_bool)),
+            gali_lyapunov_agreement=float(np.mean(gali_bool == lyap_bool)),
+            all_agree_chaotic=int(np.sum(all_agree & sali_bool)),
+            all_agree_regular=int(np.sum(all_agree & ~sali_bool)),
+            disagreement=int(np.sum(~all_agree)),
+        )
+
+        return ChaosSurveySummary(
+            n_total=self.num_orbits,
+            sali=sali_stats,
+            gali=gali_stats,
+            lyapunov=lyap_stats,
+            agreement=agreement,
+        )
+
+    # =========================================================================
+    # RUN METADATA
+    # =========================================================================
+
+    def metadata_row(self, extra: Optional[Dict[str, Any]] = None) -> QTable:
+        """Build a single-row astropy QTable of this run's integration and
+        chaos-detection settings (from `criteria`), plus any extra columns
+        the caller supplies.
+
+        Intended for collecting many runs (e.g. a bar-strength or BH-mass
+        sweep) into one table: build a `metadata_row` per run, `vstack` them
+        together, and add result columns (see `chaos_summary`) alongside.
+        Values in `extra` may be plain numbers/strings or astropy
+        `Quantity` objects — QTable handles both, so unit-aware columns
+        (e.g. `bh_mass=1e6 * u.Msun`) work directly.
+
+        Parameters
+        ----------
+        extra : dict, optional
+            Additional columns to attach — e.g. potential-construction
+            parameters (`bar_strength`, `bh_mass`) that this class has no
+            way to introspect from an opaque `agama.Potential` object, so
+            the caller supplies them explicitly.
+        """
+        criteria = self.criteria
+        columns: Dict[str, Any] = {
+            "num_orbits": [self.num_orbits],
+            "iter_time": [criteria.iter_time],
+            "gali_threshold": [criteria.gali_threshold],
+            "sali_threshold": [criteria.sali_threshold],
+            "gali_window_size": [criteria.gali_window_size],
+            "sali_window_size": [criteria.sali_window_size],
+            "accuracy": [criteria.accuracy],
+            "max_num_steps": [criteria.max_num_steps],
+        }
+        if extra:
+            for key, value in extra.items():
+                columns[key] = [value]
+        return QTable(columns)

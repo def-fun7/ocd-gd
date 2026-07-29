@@ -1,10 +1,14 @@
 """
-Data containers for orbit chaos detection results and grid-based chaos detection.
+Data containers for orbit chaos detection results.
+
+Kept separate from the detector logic since these are plain structured
+containers with no behavior of their own.
 """
 
 from typing import NamedTuple
 from dataclasses import dataclass
 import numpy as np
+from astropy.table import QTable
 
 
 @dataclass(frozen=True)
@@ -54,3 +58,88 @@ class GridInitialConditions(NamedTuple):
     v_x_vals: np.ndarray
     E_rem_vals: np.ndarray
     E_0: float
+
+
+class MethodChaosStats(NamedTuple):
+    """Chaotic/regular breakdown for a single indicator (SALI, GALI, or
+    Lyapunov), including which orbits fell into each class.
+
+    `chaotic_indices`/`regular_indices` are orbit_idx values — usable
+    directly with `get_sali`, `get_trajectory`, `plot_sali`, etc.
+    `chaotic_ics`/`regular_ics` are the matching rows of `self.ic`, provided
+    so a chaotic/regular subset can be re-integrated, re-analyzed, or handed
+    to another tool without re-deriving the indices first.
+    """
+
+    n_chaotic: int
+    n_regular: int
+    n_total: int
+    chaotic_fraction: float
+    chaotic_indices: np.ndarray
+    regular_indices: np.ndarray
+    chaotic_ics: np.ndarray
+    regular_ics: np.ndarray
+
+
+class ChaosAgreement(NamedTuple):
+    """Pairwise and three-way agreement between SALI, GALI, and Lyapunov
+    classifications, for a single batch of orbits.
+
+    The pairwise fields are agreement *rates* (fraction of orbits where two
+    indicators reach the same chaotic/regular verdict); `all_agree_chaotic`
+    and `all_agree_regular` are raw counts where all three agree;
+    `disagreement` counts orbits where at least one indicator differs from
+    the others.
+    """
+
+    sali_gali_agreement: float
+    sali_lyapunov_agreement: float
+    gali_lyapunov_agreement: float
+    all_agree_chaotic: int
+    all_agree_regular: int
+    disagreement: int
+
+
+class ChaosSurveySummary(NamedTuple):
+    """Full chaos-detection summary across a batch of integrated orbits:
+    per-indicator counts/fractions/indices plus cross-indicator agreement.
+
+    Returned by `OrbitChaosDetector.chaos_summary()` — works for any
+    integrated batch, grid-based or not.
+    """
+
+    n_total: int
+    sali: MethodChaosStats
+    gali: MethodChaosStats
+    lyapunov: MethodChaosStats
+    agreement: ChaosAgreement
+
+
+def chaos_summary_row(summary: ChaosSurveySummary) -> QTable:
+    """Flatten a ChaosSurveySummary's scalar statistics (counts, fractions,
+    agreement) into a single-row QTable — omits the chaotic/regular index
+    and IC arrays, which don't fit a tabular row.
+
+    Pairs with `OrbitChaosDetector.metadata_row()`: put the two side by side
+    (e.g. via `astropy.table.hstack`) to build one row of a sweep-results
+    table — `metadata_row` for the run's inputs, this for its outputs.
+    """
+    columns = {
+        "n_total": [summary.n_total],
+        "sali_n_chaotic": [summary.sali.n_chaotic],
+        "sali_n_regular": [summary.sali.n_regular],
+        "sali_chaotic_fraction": [summary.sali.chaotic_fraction],
+        "gali_n_chaotic": [summary.gali.n_chaotic],
+        "gali_n_regular": [summary.gali.n_regular],
+        "gali_chaotic_fraction": [summary.gali.chaotic_fraction],
+        "lyapunov_n_chaotic": [summary.lyapunov.n_chaotic],
+        "lyapunov_n_regular": [summary.lyapunov.n_regular],
+        "lyapunov_chaotic_fraction": [summary.lyapunov.chaotic_fraction],
+        "sali_gali_agreement": [summary.agreement.sali_gali_agreement],
+        "sali_lyapunov_agreement": [summary.agreement.sali_lyapunov_agreement],
+        "gali_lyapunov_agreement": [summary.agreement.gali_lyapunov_agreement],
+        "all_agree_chaotic": [summary.agreement.all_agree_chaotic],
+        "all_agree_regular": [summary.agreement.all_agree_regular],
+        "disagreement": [summary.agreement.disagreement],
+    }
+    return QTable(columns)

@@ -92,6 +92,7 @@
           ps.matplotlib
           ps.plotly
           ps.numba
+          ps.astropy
           ps.rich
 
           ps.sphinx

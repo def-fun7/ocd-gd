@@ -121,6 +121,44 @@ def _legend_proxy_traces(labels_and_colors: Sequence[Tuple[str, str]]) -> list:
     ]
 
 
+def _line_legend_proxy_traces(labels_and_colors: Sequence[Tuple[str, str]]) -> list:
+    """Same as `_legend_proxy_traces` but styled as a line, for the resonance
+    radius overlays (`add_vline` shapes carry no legend entry either)."""
+    return [
+        go.Scatter(
+            x=[None],
+            y=[None],
+            mode="lines",
+            line=dict(color=to_hex(color), dash="dot", width=1.5),
+            name=label,
+            showlegend=True,
+        )
+        for label, color in labels_and_colors
+    ]
+
+
+# Resonance field name -> (legend label, line color). Order controls legend order.
+_RESONANCE_STYLES = {
+    "corotation": ("Corotation Radius", "#2ca02c"),
+    "inner_lindblad": ("Inner Lindblad (ILR)", "#9467bd"),
+    "outer_lindblad": ("Outer Lindblad (OLR)", "#8c564b"),
+}
+
+
+def _resonance_overlay_specs(resonance_radii) -> list:
+    """Return (radius, label, color) for each resonance radius that was
+    actually found (skips any that are None — e.g. a non-rotating potential
+    has no corotation/Lindblad radii at all)."""
+    if resonance_radii is None:
+        return []
+    specs = []
+    for field, (label, color) in _RESONANCE_STYLES.items():
+        radius = getattr(resonance_radii, field, None)
+        if radius is not None:
+            specs.append((radius, label, color))
+    return specs
+
+
 # =============================================================================
 # SIDE-BY-SIDE CHAOS MAPS
 # =============================================================================
@@ -133,6 +171,7 @@ def plot_chaos_maps_mpl(
     x_vals: np.ndarray,
     v_x_vals: np.ndarray,
     E_rem_vals: Optional[np.ndarray] = None,
+    resonance_radii=None,
     cmap_colors: Sequence[str] = ("#1f4e78", "#f2c811"),  # [Regular (0), Chaotic (1)]
     masked_color: str = "#333333",  # unphysical (NaN) regions
     save_path: Optional[str] = None,
@@ -153,6 +192,9 @@ def plot_chaos_maps_mpl(
     E_rem_vals : ndarray, optional
         Residual energy at each x value; if given, overlays the
         zero-velocity curve (ZVC).
+    resonance_radii : ResonanceRadii, optional
+        Corotation/Lindblad radii to overlay as mirrored (±R) vertical
+        lines; any field left as None is simply skipped.
     cmap_colors : sequence of str, default ("#1f4e78", "#f2c811")
         [regular color, chaotic color].
     masked_color : str, default "#333333"
@@ -173,6 +215,7 @@ def plot_chaos_maps_mpl(
     v_zvc = (
         np.sqrt(2.0 * np.maximum(E_rem_vals, 0.0)) if E_rem_vals is not None else None
     )
+    resonance_specs = _resonance_overlay_specs(resonance_radii)
 
     panel_configs = [
         (axes[0], sali_grid, f"SALI Chaos Map ({grid_size_x}x{grid_size_y})"),
@@ -194,6 +237,9 @@ def plot_chaos_maps_mpl(
         if v_zvc is not None:
             ax.plot(x_vals, v_zvc, color="red", linestyle="--", linewidth=1.5)
             ax.plot(x_vals, -v_zvc, color="red", linestyle="--", linewidth=1.5)
+        for radius, _, color in resonance_specs:
+            ax.axvline(radius, color=color, linestyle=":", linewidth=1.3)
+            ax.axvline(-radius, color=color, linestyle=":", linewidth=1.3)
         ax.set_xlabel("$x$", fontsize=12)
         ax.set_title(title, fontsize=13, fontweight="bold", pad=12)
 
@@ -207,6 +253,10 @@ def plot_chaos_maps_mpl(
     if v_zvc is not None:
         legend_elements.append(
             Line2D([0], [0], color="red", lw=1.5, ls="--", label="Zero-Velocity Curve")
+        )
+    for radius, label, color in resonance_specs:
+        legend_elements.append(
+            Line2D([0], [0], color=color, lw=1.3, ls=":", label=label)
         )
 
     axes[2].legend(
@@ -230,6 +280,7 @@ def plot_chaos_maps_plotly(
     x_vals: np.ndarray,
     v_x_vals: np.ndarray,
     E_rem_vals: Optional[np.ndarray] = None,
+    resonance_radii=None,
     cmap_colors: Sequence[str] = ("#1f4e78", "#f2c811"),
     masked_color: str = "#333333",
     save_path: Optional[str] = None,
@@ -256,6 +307,7 @@ def plot_chaos_maps_plotly(
     v_zvc = (
         np.sqrt(2.0 * np.maximum(E_rem_vals, 0.0)) if E_rem_vals is not None else None
     )
+    resonance_specs = _resonance_overlay_specs(resonance_radii)
 
     for col, (grid, _) in enumerate(panels, start=1):
         rgb = (
@@ -290,6 +342,13 @@ def plot_chaos_maps_plotly(
                 row=1,
                 col=col,
             )
+        for radius, _, color in resonance_specs:
+            fig.add_vline(
+                x=radius, line=dict(color=color, dash="dot", width=1.3), row=1, col=col
+            )
+            fig.add_vline(
+                x=-radius, line=dict(color=color, dash="dot", width=1.3), row=1, col=col
+            )
 
     legend_labels = [
         ("Regular Orbit", color_regular),
@@ -297,6 +356,10 @@ def plot_chaos_maps_plotly(
         ("Unphysical Domain", masked_color),
     ]
     for trace in _legend_proxy_traces(legend_labels):
+        fig.add_trace(trace, row=1, col=1)
+    for trace in _line_legend_proxy_traces(
+        [(label, color) for _, label, color in resonance_specs]
+    ):
         fig.add_trace(trace, row=1, col=1)
 
     fig.update_layout(title="Chaos Maps", height=550, width=1400)
@@ -317,6 +380,7 @@ def plot_composite_chaos_map_mpl(
     x_vals: np.ndarray,
     v_x_vals: np.ndarray,
     E_rem_vals: Optional[np.ndarray] = None,
+    resonance_radii=None,
     masked_color: Tuple[float, float, float] = (0.2, 0.2, 0.2),
     save_path: Optional[str] = None,
     show: bool = True,
@@ -336,6 +400,9 @@ def plot_composite_chaos_map_mpl(
         Grid axis coordinates.
     E_rem_vals : ndarray, optional
         Residual energy at each x value; if given, overlays the ZVC.
+    resonance_radii : ResonanceRadii, optional
+        Corotation/Lindblad radii to overlay as mirrored (±R) vertical
+        lines; any field left as None is simply skipped.
     masked_color : tuple of float, default (0.2, 0.2, 0.2)
         RGB color for unphysical (NaN) grid cells.
     save_path : str, optional
@@ -348,6 +415,7 @@ def plot_composite_chaos_map_mpl(
     )
     grid_shape = sali_grid.shape
     extent = [x_vals[0], x_vals[-1], v_x_vals[0], v_x_vals[-1]]
+    resonance_specs = _resonance_overlay_specs(resonance_radii)
 
     fig, ax = plt.subplots(figsize=(8, 7))
     ax.imshow(
@@ -358,6 +426,10 @@ def plot_composite_chaos_map_mpl(
         v_zvc = np.sqrt(2.0 * np.maximum(E_rem_vals, 0.0))
         ax.plot(x_vals, v_zvc, color="red", linestyle="--", linewidth=1.5)
         ax.plot(x_vals, -v_zvc, color="red", linestyle="--", linewidth=1.5)
+
+    for radius, _, color in resonance_specs:
+        ax.axvline(radius, color=color, linestyle=":", linewidth=1.3)
+        ax.axvline(-radius, color=color, linestyle=":", linewidth=1.3)
 
     ax.set_xlabel("$x$", fontsize=12)
     ax.set_ylabel("$v_x$", fontsize=12)
@@ -378,6 +450,10 @@ def plot_composite_chaos_map_mpl(
     if E_rem_vals is not None:
         legend_elements.append(
             Line2D([0], [0], color="red", lw=1.5, ls="--", label="Zero-Velocity Curve")
+        )
+    for radius, label, color in resonance_specs:
+        legend_elements.append(
+            Line2D([0], [0], color=color, lw=1.3, ls=":", label=label)
         )
 
     ax.legend(
@@ -400,6 +476,7 @@ def plot_composite_chaos_map_plotly(
     x_vals: np.ndarray,
     v_x_vals: np.ndarray,
     E_rem_vals: Optional[np.ndarray] = None,
+    resonance_radii=None,
     masked_color: Tuple[float, float, float] = (0.2, 0.2, 0.2),
     save_path: Optional[str] = None,
     show: bool = True,
@@ -416,6 +493,7 @@ def plot_composite_chaos_map_plotly(
 
     dx = (x_vals[-1] - x_vals[0]) / max(grid_size_x - 1, 1)
     dy = (v_x_vals[-1] - v_x_vals[0]) / max(grid_size_y - 1, 1)
+    resonance_specs = _resonance_overlay_specs(resonance_radii)
 
     fig = go.Figure()
     fig.add_trace(go.Image(z=rgb, x0=x_vals[0], dx=dx, y0=v_x_vals[0], dy=dy))
@@ -441,6 +519,10 @@ def plot_composite_chaos_map_plotly(
             )
         )
 
+    for radius, _, color in resonance_specs:
+        fig.add_vline(x=radius, line=dict(color=color, dash="dot", width=1.3))
+        fig.add_vline(x=-radius, line=dict(color=color, dash="dot", width=1.3))
+
     legend_labels = [
         ("Regular Orbit (All 0)", (0.12, 0.31, 0.47)),
         ("All Indicators Agree (1,1,1)", (0.9, 0.8, 0.9)),
@@ -449,6 +531,10 @@ def plot_composite_chaos_map_plotly(
         ("Unphysical Domain", masked_color),
     ]
     for trace in _legend_proxy_traces(legend_labels):
+        fig.add_trace(trace)
+    for trace in _line_legend_proxy_traces(
+        [(label, color) for _, label, color in resonance_specs]
+    ):
         fig.add_trace(trace)
 
     fig.update_layout(

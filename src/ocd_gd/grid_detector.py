@@ -1,30 +1,30 @@
 """
-Grid Chaos Detector Module.
+Grid-based orbit chaos detection.
 
-Generates a dense (x, v_x) phase-space grid over a constant energy surface
-E_0, integrates the orbital trajectories, and computes SALI, GALI, and Lyapunov
-maps across the grid.
+Builds a 2D (x, v_x) grid of initial conditions at fixed energy and layers
+grid-shaped chaos-map visualizations on top of OrbitChaosDetector.
 """
 
-from typing import Any, Tuple, Optional
+from typing import Any, Dict, Optional, Tuple
 import numpy as np
+from astropy.table import QTable
 
+from .orbit_detector import OrbitChaosDetector
 from ._grid_ics import _generate_grid_ics, _circular_velocity, _reference_energy
 from ._grid_plotting import _GridChaosPlottingMixin
-from .orbit_detector import OrbitChaosDetector
+from ._resonance import ResonanceRadii, compute_resonance_radii
 
 
 class GridChaosDetector(_GridChaosPlottingMixin, OrbitChaosDetector):
-    """Generate a phase-space initial-condition grid and compute chaos maps.
+    """Build a 2D (x, v_x) grid of initial conditions at fixed energy and
+    detect/visualize chaos across the grid as a spatial map.
 
-    Combines automatic grid generation on a constant energy surface with the
-    orbital integration and chaos-detection infrastructure of `OrbitChaosDetector`.
-    Unphysical grid cells (where local kinetic energy would be negative) are
-    automatically masked out with `np.nan`.
-
-    Inherits all visualization utilities (`plot_chaos_map`,
-    `plot_composite_chaos_map`, `save_chaos_maps`) from
-    `_GridChaosPlottingMixin`.
+    Subclasses `OrbitChaosDetector`: once the grid of initial conditions is
+    generated, integration and chaos detection proceed exactly as in the
+    parent class — `detect_chaos`, `get_sali`, `plot_sali`, etc. all work
+    unchanged, indexed by the flattened grid order. This class adds the
+    grid-generation step plus `plot_chaos_map` / `plot_composite_chaos_map` /
+    `save_chaos_maps` (see `_GridChaosPlottingMixin` in `_grid_plotting.py`).
     """
 
     def __init__(
@@ -106,6 +106,10 @@ class GridChaosDetector(_GridChaosPlottingMixin, OrbitChaosDetector):
         self.grid_size = grid_size
         self.R_0 = R_0
         self.E_0 = grid_info.E_0
+        self.y_0 = y_0
+        self.z_0 = z_0
+        self.v_y0_frac = v_y0_frac
+        self.v_z0_frac = v_z0_frac
         self.unphysical_mask = grid_info.unphysical_mask
         self.x_grid = grid_info.x_vals
         self.vx_grid = grid_info.v_x_vals
@@ -114,6 +118,13 @@ class GridChaosDetector(_GridChaosPlottingMixin, OrbitChaosDetector):
             None
         )
         self._orbit_idx_lookup_cache: Optional[np.ndarray] = None
+        self._resonance_radii_cache: Optional[ResonanceRadii] = None
+
+        # Only physically valid grid cells get integrated — skips wasted
+        # agama.orbit() work on cells already known to violate the energy
+        # constraint. `_physical_indices` records each integrated orbit's
+        # original flat grid position, so chaos results can be scattered
+        # back into (grid_size, grid_size) shape later.
         self._physical_indices = np.where(~grid_info.unphysical_mask)[0]
 
         super().__init__(
@@ -133,7 +144,21 @@ class GridChaosDetector(_GridChaosPlottingMixin, OrbitChaosDetector):
 
     def _compute_chaos_grids(self) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         """Reshape SALI/GALI/Lyapunov chaos checks into (grid_size, grid_size)
-        maps, masking unphysical grid cells as NaN."""
+        maps, masking unphysical grid cells as NaN.
+
+        `detect_chaos()` only ever ran on the physical orbits (see
+        `_physical_indices` in `__init__`), so its check arrays are compact —
+        one entry per integrated orbit, not per grid cell. This scatters them
+        back into full grid_size**2-length arrays at their original flat grid
+        positions before reshaping, leaving every unphysical cell as NaN.
+
+        No transpose is applied: `_generate_grid_ics` builds `ics` from
+        `np.meshgrid(x_vals, v_x_vals)` (default 'xy' indexing), which already
+        lays the flattened array out as row = v_x index, column = x index —
+        exactly the (row=y, col=x) orientation `imshow`/`Heatmap`/`Image`
+        expect. Transposing here would rotate the map 90 degrees relative to
+        the x-axis-indexed zero-velocity curve overlay.
+        """
         summary = self.detect_chaos()
         n_cells = self.grid_size**2
 
@@ -146,16 +171,11 @@ class GridChaosDetector(_GridChaosPlottingMixin, OrbitChaosDetector):
         lyap[self._physical_indices] = summary.lyapunov_check
 
         shape = (self.grid_size, self.grid_size)
-
         return (
             sali.reshape(shape),
             gali.reshape(shape),
             lyap.reshape(shape),
         )
-
-    # =========================================================================
-    # GRID SPECIFIC PROPERTIES & RESHAPED ACCESSORS
-    # =========================================================================
 
     @property
     def chaos_grids(self) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
@@ -207,6 +227,34 @@ class GridChaosDetector(_GridChaosPlottingMixin, OrbitChaosDetector):
         to, rather than its raw (row, col) grid position."""
         row, col = self.grid_position_of(orbit_idx)
         return float(self.x_grid[col]), float(self.vx_grid[row])
+
+    @property
+    def resonance_radii(self) -> ResonanceRadii:
+        """Lazy-loaded corotation/inner/outer Lindblad radii for this
+        detector's potential at its pattern speed `self.omega`. Used by
+        `plot_chaos_map`/`plot_composite_chaos_map` to overlay reference
+        lines; any radius is None if `omega == 0` or no root was found."""
+        if self._resonance_radii_cache is None:
+            self._resonance_radii_cache = compute_resonance_radii(self.pot, self.omega)
+        return self._resonance_radii_cache
+
+    def metadata_row(self, extra: Optional[Dict[str, Any]] = None) -> QTable:
+        """Extends `OrbitChaosDetector.metadata_row` with grid-specific
+        parameters (R_0, E_0, grid geometry, transverse velocity fractions).
+        See the base method for the `extra` parameter and general behavior.
+        """
+        grid_columns: Dict[str, Any] = {
+            "R_0": self.R_0,
+            "E_0": self.E_0,
+            "y_0": self.y_0,
+            "z_0": self.z_0,
+            "v_y0_frac": self.v_y0_frac,
+            "v_z0_frac": self.v_z0_frac,
+            "grid_size": self.grid_size,
+            "omega": self.omega,
+        }
+        merged_extra = {**grid_columns, **(extra or {})}
+        return super().metadata_row(extra=merged_extra)
 
     @staticmethod
     def circular_velocity(potential: Any, R_0: float) -> float:
