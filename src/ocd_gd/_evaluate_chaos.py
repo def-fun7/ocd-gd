@@ -43,7 +43,7 @@ def evaluate_chaos(
             np.inf,
         )[:, np.newaxis]
 
-        return check, time
+        return check.flatten(), time.flatten()
 
     elif metric_arr.ndim == 3:
         if separate:
@@ -56,7 +56,6 @@ def evaluate_chaos(
             )[..., np.newaxis]
 
             return check, time
-
         else:
             any_crossed = np.any(sustained_mask, axis=(1, 2))
             check = np.where(any_crossed, 1, 0)[:, np.newaxis]
@@ -72,6 +71,6 @@ def evaluate_chaos(
                 np.inf,
             )[:, np.newaxis]
 
-            return check, time
+            return check.flatten(), time.flatten()
 
     return np.empty(0), np.empty(0)

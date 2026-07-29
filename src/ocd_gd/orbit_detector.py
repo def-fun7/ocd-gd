@@ -390,15 +390,7 @@ class OrbitChaosDetector(_OrbitPlottingMixin):
             gali_d = self.gali_array
             sali_d = self.sali_array
             lyap_d = lyap_array
-
-        total_chaotic = {
-            "sali": int(np.asarray(sali_c).sum()),
-            "gali": int(np.asarray(gali_c).sum()),
-            "lyapunov": int(np.nan_to_num(lyap_c, nan=0.0).sum()),
-        }
-        summary_data = ChaosSummary(
-            gali_c, gali_t, sali_c, sali_t, lyap_c, lyap_t, total_chaotic
-        )
+        summary_data = ChaosSummary(gali_c, gali_t, sali_c, sali_t, lyap_c, lyap_t)
         if check_only:
             return summary_data
 
