@@ -9,7 +9,7 @@ maps across the grid.
 from typing import Any, Tuple, Optional
 import numpy as np
 
-from ._grid_ics import _generate_grid_ics
+from ._grid_ics import _generate_grid_ics, _circular_velocity, _reference_energy
 from ._grid_plotting import _GridChaosPlottingMixin
 from .orbit_detector import OrbitChaosDetector
 
@@ -30,11 +30,12 @@ class GridChaosDetector(_GridChaosPlottingMixin, OrbitChaosDetector):
     def __init__(
         self,
         potential: Any,
-        E_0: float,
-        y_0: float = 10.0,
-        z_0: float = 10.0,
-        v_y0: float = 10.0,
-        v_z0: float = 10.0,
+        R_0: float = 8.0,
+        y_0: float = 1e-4,
+        z_0: float = 0.1,
+        v_y0_frac: float = 0.2,
+        v_z0_frac: float = 0.02,
+        E_0: Optional[float] = None,
         grid_size: int = 10,
         x_search_range: Tuple[float, float] = (-10.0, 10.0),
         search_resolution: int = 1000,
@@ -49,74 +50,74 @@ class GridChaosDetector(_GridChaosPlottingMixin, OrbitChaosDetector):
         plotting_backend: str = "matplotlib",
         keep_raw_deviations: bool = False,
     ) -> None:
-        """Generate grid ICs and run orbit integrations across the grid.
+        """Generate a grid of initial conditions at fixed energy, then
+        integrate and analyze them via `OrbitChaosDetector`.
 
         Parameters
         ----------
         potential : agama.Potential
-            Agama gravitational potential object.
-        E_0 : float
-            Fixed total energy defining the accessible (x, v_x) surface.
-        y_0, z_0 : float, default 0.0
-            Fixed transverse position coordinates.
-        v_y0, v_z0 : float, default 0.0
-            Fixed transverse velocity components.
+            Agama gravitational potential object. Its units must already be
+            set via `agama.setUnits(...)` before constructing this detector.
+        R_0 : float, default 8.0
+            Reference radius used to derive the local circular velocity —
+            which converts `v_y0_frac`/`v_z0_frac` into actual transverse
+            velocities — and, unless `E_0` is given explicitly, the grid's
+            total energy.
+        y_0, z_0 : float, default 1e-4, 0.1
+            Fixed transverse position coordinates for every grid orbit.
+            Cannot both be zero.
+        v_y0_frac, v_z0_frac : float, default 0.2, 0.02
+            Transverse velocities as a fraction of the local circular
+            velocity at `R_0`. Individually capped and jointly capped in
+            quadrature — see `_validate_grid_params` in `_grid_ics.py` for
+            the exact limits and rationale.
+        E_0 : float, optional
+            Total energy defining the accessible (x, v_x) region. If None
+            (default), it's derived from a circular orbit at `R_0`. Passing
+            this explicitly decouples the grid's energy from `R_0`'s
+            circular velocity — `R_0` is still used to set `v_y0`/`v_z0`
+            from their fractions.
         grid_size : int, default 10
-            Grid dimensions along each axis (grid_size x grid_size total orbits).
+            Number of grid points per axis (grid_size x grid_size orbits
+            total).
         x_search_range : tuple of float, default (-10.0, 10.0)
-            Search bounds to scan for turning points at energy E_0.
+            Range to scan when locating the physical x turning points at E_0.
         search_resolution : int, default 1000
-            Number of points used during the turning-point search scan.
-        omega : float, default 0.0
-            Pattern speed of the rotating frame.
-        iter_time : float, default 10.0
-            Total time duration for orbit integrations.
-        gali_threshold : float, default 1e-20
-            Threshold limit to register chaos in GALI.
-        sali_threshold : float, default 1e-3
-            Threshold limit to register chaos in SALI.
-        gali_window_size : int, default 50
-            Sliding window size for GALI convergence.
-        sali_window_size : int, default 25
-            Sliding window size for SALI convergence.
-        accuracy : float, default 1e-8
-            Integration precision tracking for Agama.
-        max_num_steps : int, default 100000000
-            Maximum integration steps allowed per orbit.
-        plotting_backend : str, default "matplotlib"
-            Default plotting backend ('matplotlib' or 'plotly').
-        keep_raw_deviations : bool, default False
-            If True, preserve un-normalized deviation vectors in memory.
+            Number of scan points used to locate the turning points.
+        omega, iter_time, gali_threshold, sali_threshold, gali_window_size,
+        sali_window_size, accuracy, max_num_steps, plotting_backend,
+        keep_raw_deviations :
+            Forwarded to `OrbitChaosDetector.__init__` — see its docstring
+            for details.
         """
-        # 1. Store Grid Specific Configuration
-        self.E_0: float = E_0
-        self.y_0: float = y_0
-        self.z_0: float = z_0
-        self.v_y0: float = v_y0
-        self.v_z0: float = v_z0
-        self.grid_size: int = grid_size
-
-        # 2. Generate Initial Conditions Matrix & Mask Metadata
-        grid_ics = _generate_grid_ics(
+        grid_info = _generate_grid_ics(
             potential=potential,
-            E_0=E_0,
+            R_0=R_0,
             y_0=y_0,
             z_0=z_0,
-            v_y0=v_y0,
-            v_z0=v_z0,
+            v_y0_frac=v_y0_frac,
+            v_z0_frac=v_z0_frac,
+            E_0=E_0,
             x_search_range=x_search_range,
             grid_size=grid_size,
             search_resolution=search_resolution,
         )
-        self.ics_grid = grid_ics.ics
-        self.x_grid: np.ndarray = grid_ics.x_vals
-        self.vx_grid: np.ndarray = grid_ics.v_x_vals
-        self.energy_remainder: np.ndarray = grid_ics.E_rem_vals
-        self.unphysical_mask: np.ndarray = grid_ics.unphysical_mask
 
-        # 3. Initialize Parent Class (Triggers Integration Automatically)
+        self.grid_size = grid_size
+        self.R_0 = R_0
+        self.E_0 = grid_info.E_0
+        self.unphysical_mask = grid_info.unphysical_mask
+        self.x_grid = grid_info.x_vals
+        self.vx_grid = grid_info.v_x_vals
+        self.energy_remainder = grid_info.E_rem_vals
+        self._chaos_grids_cache: Optional[Tuple[np.ndarray, np.ndarray, np.ndarray]] = (
+            None
+        )
+        self._orbit_idx_lookup_cache: Optional[np.ndarray] = None
+        self._physical_indices = np.where(~grid_info.unphysical_mask)[0]
+
         super().__init__(
-            ic=grid_ics.ics,
+            ic=grid_info.ics[self._physical_indices],
             pot=potential,
             omega=omega,
             iter_time=iter_time,
@@ -130,83 +131,98 @@ class GridChaosDetector(_GridChaosPlottingMixin, OrbitChaosDetector):
             keep_raw_deviations=keep_raw_deviations,
         )
 
-        # 4. Mask Unphysical Grid Points in Trajectory/Lyapunov Cache
-        self._apply_unphysical_mask()
+    def _compute_chaos_grids(self) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+        """Reshape SALI/GALI/Lyapunov chaos checks into (grid_size, grid_size)
+        maps, masking unphysical grid cells as NaN."""
+        summary = self.detect_chaos()
+        n_cells = self.grid_size**2
 
-    def _apply_unphysical_mask(self) -> None:
-        """Apply NaN mask to unphysical trajectories in raw array caches."""
-        if not np.any(self.unphysical_mask):
-            return
+        sali = np.full(n_cells, np.nan)
+        gali = np.full(n_cells, np.nan)
+        lyap = np.full(n_cells, np.nan)
 
-        if self._traj_arr is not None:
-            self._traj_arr[self.unphysical_mask] = np.nan
-        if self._lyap is not None:
-            self._lyap[self.unphysical_mask] = np.nan
+        sali[self._physical_indices] = summary.sali_check
+        gali[self._physical_indices] = summary.gali_check
+        lyap[self._physical_indices] = summary.lyapunov_check
+
+        shape = (self.grid_size, self.grid_size)
+
+        return (
+            sali.reshape(shape),
+            gali.reshape(shape),
+            lyap.reshape(shape),
+        )
 
     # =========================================================================
     # GRID SPECIFIC PROPERTIES & RESHAPED ACCESSORS
     # =========================================================================
-    @property
-    def grid_ics(self) -> np.ndarray:
-        """The grid intital conditions"""
-        return self.ics_grid
-
-    @property
-    def sali_grid(self) -> np.ndarray:
-        """Reshape final SALI chaos classifications into a 2D (grid_size, grid_size) map."""
-        summary = self.detect_chaos(check_only=True)
-        sali_check = np.array(summary.sali_check, dtype=float, copy=True)
-        sali_check[self.unphysical_mask] = np.nan
-        return sali_check.reshape((self.grid_size, self.grid_size)).T
-
-    @property
-    def gali_grid(self) -> np.ndarray:
-        """Reshape final GALI chaos classifications into a 2D (grid_size, grid_size) map."""
-        summary = self.detect_chaos(check_only=True)
-        gali_check = np.array(summary.gali_check, dtype=float, copy=True)
-        gali_check[self.unphysical_mask] = np.nan
-        return gali_check.reshape((self.grid_size, self.grid_size)).T
-
-    @property
-    def lyapunov_grid(self) -> np.ndarray:
-        """Reshape final Lyapunov values into a 2D (grid_size, grid_size) map."""
-        summary = self.detect_chaos(check_only=True)
-        lyap_check = np.array(summary.lyapunov_check, dtype=float, copy=True)
-        lyap_check[self.unphysical_mask] = np.nan
-        return lyap_check.reshape((self.grid_size, self.grid_size)).T
 
     @property
     def chaos_grids(self) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-        """Bundle tuple of (sali_grid, gali_grid, lyapunov_grid) expected by _GridChaosPlottingMixin."""
-        return self.sali_grid, self.gali_grid, self.lyapunov_grid
+        """Lazy-loaded (sali_grid, gali_grid, lyapunov_grid) maps, each shaped
+        (grid_size, grid_size) with unphysical cells set to NaN."""
+        if self._chaos_grids_cache is None:
+            self._chaos_grids_cache = self._compute_chaos_grids()
+        return self._chaos_grids_cache
 
     @property
-    def sali_time_series_grid(self) -> np.ndarray:
-        """3D (grid_size, grid_size, n_steps) array for full SALI time evolution."""
-        sali = np.array(self.sali_array, copy=True)
-        sali[self.unphysical_mask] = np.nan
-        return sali.reshape((self.grid_size, self.grid_size, -1))
+    def _orbit_idx_lookup(self) -> np.ndarray:
+        """Lazy-loaded (grid_size**2,) int array mapping a flat grid index to
+        its orbit_idx, or -1 for grid cells that were never integrated
+        (unphysical)."""
+        if self._orbit_idx_lookup_cache is None:
+            lookup = np.full(self.grid_size**2, -1, dtype=int)
+            lookup[self._physical_indices] = np.arange(len(self._physical_indices))
+            self._orbit_idx_lookup_cache = lookup
+        return self._orbit_idx_lookup_cache
 
-    @property
-    def gali_time_series_grid(self) -> np.ndarray:
-        """3D (grid_size, grid_size, n_steps) array for full GALI time evolution."""
-        gali = np.array(self.gali_array, copy=True)
-        gali[self.unphysical_mask] = np.nan
-        return gali.reshape((self.grid_size, self.grid_size, -1))
+    def orbit_idx_at(self, row: int, col: int) -> Optional[int]:
+        """Return the orbit_idx for grid cell (row, col), or None if that
+        cell was unphysical and was never integrated.
 
-    # =========================================================================
-    # INDEX HELPERS (2D Grid <-> 1D Orbit Index)
-    # =========================================================================
-
-    def grid_to_orbit_idx(self, i: int, j: int) -> int:
-        """Convert 2D grid index (row i, column j) to flattened orbit index."""
-        if not (0 <= i < self.grid_size and 0 <= j < self.grid_size):
+        `row` indexes v_x and `col` indexes x — matching `chaos_grids`' axes
+        (`chaos_grids[0][row, col]` is the SALI check for the orbit this
+        returns). Use the returned orbit_idx with any inherited orbit_idx-
+        based method: `get_sali`, `get_gali`, `get_trajectory`, `plot_sali`,
+        `plot_gali`, `detect_chaos(orbit_idx=...)`, etc.
+        """
+        if not (0 <= row < self.grid_size and 0 <= col < self.grid_size):
             raise IndexError(
-                f"Grid indices ({i}, {j}) out of bounds for grid size {self.grid_size}."
+                f"Grid position ({row}, {col}) is out of bounds for a "
+                f"{self.grid_size}x{self.grid_size} grid."
             )
-        return i * self.grid_size + j
+        flat = row * self.grid_size + col
+        idx = self._orbit_idx_lookup[flat]
+        return None if idx == -1 else int(idx)
 
-    def orbit_to_grid_idx(self, orbit_idx: int) -> Tuple[int, int]:
-        """Convert flattened orbit index to 2D grid index (row i, column j)."""
+    def grid_position_of(self, orbit_idx: int) -> Tuple[int, int]:
+        """Return the (row, col) grid position an orbit_idx corresponds to —
+        the inverse of `orbit_idx_at`. `row` indexes v_x, `col` indexes x."""
         self._validate_index(orbit_idx)
-        return divmod(orbit_idx, self.grid_size)
+        flat = self._physical_indices[orbit_idx]
+        return divmod(int(flat), self.grid_size)
+
+    def grid_coordinates_of(self, orbit_idx: int) -> Tuple[float, float]:
+        """Return the (x, v_x) physical coordinates an orbit_idx corresponds
+        to, rather than its raw (row, col) grid position."""
+        row, col = self.grid_position_of(orbit_idx)
+        return float(self.x_grid[col]), float(self.vx_grid[row])
+
+    @staticmethod
+    def circular_velocity(potential: Any, R_0: float) -> float:
+        """Local circular velocity magnitude at (R_0, 0, 0) from the
+        potential's radial force — the same helper used internally to turn
+        `v_y0_frac`/`v_z0_frac` into actual velocities. Exposed for
+        inspection (e.g. checking what velocity a given R_0 implies) without
+        needing to construct a detector first.
+        """
+        return _circular_velocity(potential, R_0)
+
+    @staticmethod
+    def reference_energy(potential: Any, R_0: float) -> float:
+        """Total energy of a circular orbit at (R_0, 0, 0) — the same value
+        `GridChaosDetector` derives internally when `E_0` is left as None.
+        Exposed for inspection ahead of constructing a detector.
+        """
+        v_circ = _circular_velocity(potential, R_0)
+        return _reference_energy(potential, R_0, v_circ)

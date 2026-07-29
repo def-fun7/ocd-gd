@@ -54,3 +54,4 @@ class GridInitialConditions(NamedTuple):
     x_vals: np.ndarray
     v_x_vals: np.ndarray
     E_rem_vals: np.ndarray
+    E_0: float

@@ -6,42 +6,126 @@ procedure (locate the physical (x, v_x) region at fixed energy, then build a
 dense grid inside it) with no dependency on the detector class itself.
 """
 
-from typing import Any, Tuple
+from typing import Any, Optional, Tuple
 import numpy as np
 
 from ._types import GridInitialConditions
 
+# Limits on transverse velocity, expressed as a fraction of the local
+# circular velocity at R_0. The individual caps keep either axis from
+# dominating the reference kinetic energy on its own; the combined
+# (quadrature, since kinetic energy scales as v^2) cap ensures enough energy
+# budget remains for x-axis motion, which is what the grid actually samples.
+_MAX_VY0_FRAC = 0.6
+_MAX_VZ0_FRAC = 0.3
+_MAX_TRANSVERSE_FRAC_SQ = 0.8
+
+
+def _validate_grid_params(
+    y_0: float, z_0: float, v_y0_frac: float, v_z0_frac: float
+) -> None:
+    """Validate grid-generation inputs before touching the potential.
+
+    Parameters
+    ----------
+    y_0, z_0 : float
+        Fixed transverse position coordinates for every grid orbit.
+    v_y0_frac, v_z0_frac : float
+        Transverse velocity fractions of the local circular velocity.
+
+    Raises
+    ------
+    ValueError
+        If y_0 and z_0 are both zero (AGAMA's force evaluation is undefined
+        at the transverse-plane origin), if either transverse velocity
+        fraction exceeds its individual cap, or if their combined
+        (quadrature) fraction leaves too little energy budget for x-axis
+        motion.
+    """
+    if y_0 == 0.0 and z_0 == 0.0:
+        raise ValueError(
+            "y_0 and z_0 cannot both be zero — AGAMA's force evaluation is "
+            "undefined at the origin of the transverse plane."
+        )
+    if not (0.0 <= v_y0_frac < _MAX_VY0_FRAC):
+        raise ValueError(
+            f"v_y0_frac must be in [0.0, {_MAX_VY0_FRAC}), got {v_y0_frac}"
+        )
+    if not (0.0 <= v_z0_frac < _MAX_VZ0_FRAC):
+        raise ValueError(
+            f"v_z0_frac must be in [0.0, {_MAX_VZ0_FRAC}), got {v_z0_frac}"
+        )
+
+    transverse_frac_sq = v_y0_frac**2 + v_z0_frac**2
+    if transverse_frac_sq >= _MAX_TRANSVERSE_FRAC_SQ:
+        raise ValueError(
+            "Combined transverse velocity fraction "
+            f"(sqrt({transverse_frac_sq:.3f}) = {np.sqrt(transverse_frac_sq):.2f}) "
+            f"is too high — must stay below sqrt({_MAX_TRANSVERSE_FRAC_SQ}) = "
+            f"{np.sqrt(_MAX_TRANSVERSE_FRAC_SQ):.2f}. It would leave "
+            "insufficient energy budget for x-axis motion."
+        )
+
+
+def _circular_velocity(potential: Any, R_0: float) -> float:
+    """Local circular velocity magnitude at (R_0, 0, 0) from the potential's
+    radial force."""
+    pos_ref = np.array([[R_0, 0.0, 0.0]])
+    force = potential.force(pos_ref)[0]
+    return float(np.sqrt(R_0 * np.abs(force[0])))
+
+
+def _reference_energy(potential: Any, R_0: float, v_circ: float) -> float:
+    """Total energy of a circular orbit at (R_0, 0, 0) with the given
+    circular velocity."""
+    pos_ref = np.array([[R_0, 0.0, 0.0]])
+    return float(potential.potential(pos_ref)[0] + 0.5 * v_circ**2)
+
 
 def _generate_grid_ics(
     potential: Any,
-    E_0: float,
+    R_0: float,
     y_0: float,
     z_0: float,
-    v_y0: float,
-    v_z0: float,
+    v_y0_frac: float,
+    v_z0_frac: float,
+    E_0: Optional[float] = None,
     x_search_range: Tuple[float, float] = (-10.0, 10.0),
     grid_size: int = 10,
     search_resolution: int = 1000,
 ) -> GridInitialConditions:
     """Generate a (grid_size^2, 6) IC matrix constrained by total energy E_0.
 
-    Locates the physically accessible x-range at the given energy (via a
-    dense 1D scan + linear interpolation of the turning points), then lays a
-    cell-centered (x, v_x) grid over that range with y_0/z_0/v_y0/v_z0 held
-    fixed for every point. Grid cells that spill outside the energy surface
-    are flagged via `unphysical_mask` rather than dropped, so the returned
-    grid stays rectangular and easy to reshape for plotting.
+    Derives the local circular velocity at `R_0` and uses it to convert
+    `v_y0_frac`/`v_z0_frac` into actual transverse velocities. Unless `E_0`
+    is given explicitly, the grid's total energy is also derived from `R_0`
+    (a circular orbit's energy there). Locates the physically accessible
+    x-range at that energy (via a dense 1D scan + linear interpolation of the
+    turning points), then lays a cell-centered (x, v_x) grid over that range.
+    Grid cells that spill outside the energy surface are flagged via
+    `unphysical_mask` rather than dropped, so the returned grid stays
+    rectangular and easy to reshape for plotting.
 
     Parameters
     ----------
     potential : agama.Potential
         Agama gravitational potential object.
-    E_0 : float
-        Fixed total energy defining the accessible (x, v_x) region.
+    R_0 : float
+        Reference radius used to derive the local circular velocity (for
+        converting `v_y0_frac`/`v_z0_frac` into actual velocities) and,
+        unless `E_0` is given explicitly, the grid's total energy.
     y_0, z_0 : float
-        Fixed transverse position coordinates for every grid orbit.
-    v_y0, v_z0 : float
-        Fixed transverse velocity components for every grid orbit.
+        Fixed transverse position coordinates for every grid orbit. Cannot
+        both be zero.
+    v_y0_frac, v_z0_frac : float
+        Transverse velocities as a fraction of the local circular velocity
+        at `R_0`. See `_validate_grid_params` for the allowed ranges.
+    E_0 : float, optional
+        Total energy defining the accessible (x, v_x) region. If None
+        (default), it's derived from a circular orbit at `R_0`. Passing this
+        explicitly decouples the grid's energy from `R_0`'s circular
+        velocity — `R_0` is still used to set `v_y0`/`v_z0` from their
+        fractions.
     x_search_range : tuple of float, default (-10.0, 10.0)
         Range to scan when locating the physical x turning points at E_0.
     grid_size : int, default 10
@@ -53,8 +137,18 @@ def _generate_grid_ics(
     -------
     GridInitialConditions
         Named bundle of the flattened ICs, the unphysical-cell mask, the
-        per-axis grid coordinates, and the residual energy at each x value.
+        per-axis grid coordinates, the residual energy at each x value, and
+        the E_0 actually used.
     """
+    _validate_grid_params(y_0, z_0, v_y0_frac, v_z0_frac)
+
+    v_circ = _circular_velocity(potential, R_0)
+    v_y0 = v_y0_frac * v_circ
+    v_z0 = v_z0_frac * v_circ
+
+    if E_0 is None:
+        E_0 = _reference_energy(potential, R_0, v_circ)
+
     # 1. Fixed kinetic energy from off-axis motion
     K_fixed = 0.5 * (v_y0**2 + v_z0**2)
 
@@ -77,7 +171,8 @@ def _generate_grid_ics(
 
     if len(valid_indices) == 0:
         raise ValueError(
-            "No physical region found for E_0. Try adjusting E_0 or search range."
+            "No physical region found for E_0. Try adjusting E_0, R_0, or "
+            "the search range."
         )
 
     idx_min, idx_max = valid_indices[0], valid_indices[-1]
@@ -147,4 +242,5 @@ def _generate_grid_ics(
         x_vals=x_vals,
         v_x_vals=v_x_vals,
         E_rem_vals=E_rem_vals,
+        E_0=E_0,
     )

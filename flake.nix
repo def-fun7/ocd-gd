@@ -92,6 +92,7 @@
           ps.matplotlib
           ps.plotly
           ps.numba
+          ps.rich
 
           ps.sphinx
           ps.sphinx-rtd-theme
