@@ -2,7 +2,7 @@
 Multi-panel diagnostic dashboard for orbit dynamics and chaos indicators.
 """
 
-from typing import Optional, Dict, Tuple, List
+from typing import Optional, Dict, Tuple, List, Any
 import numpy as np
 import matplotlib.pyplot as plt
 

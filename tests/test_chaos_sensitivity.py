@@ -4,15 +4,15 @@ import numpy as np
 import pytest
 from ocd_gd.orbit_detector import OrbitChaosDetector
 
-BENCHMARK_NPZ = Path("data/initial_conditions/labeled_ics_benchmark_size_370.npz")
-MW_POTENTIAL = "data/potentials/MWPotentialHunter24_full.ini"
+BASE_PATH = Path(__file__).parent / "fixtures"
+BENCHMARK_NPZ = BASE_PATH / "labeled_ics_benchmark_size_370.npz"
+MW_POTENTIAL = BASE_PATH / "MWPotentialHunter24_full.ini"
 
 
 def load_benchmark_ics():
     """Helper to load initial conditions and MLE ground truth from NPZ."""
     if not BENCHMARK_NPZ.exists():
         pytest.skip(f"{BENCHMARK_NPZ} not found, skipping benchmark tests.")
-
     data = np.load(BENCHMARK_NPZ)
     return data["ics"], data["mles"]
 
@@ -23,7 +23,7 @@ class TestChaosSensitivity:
     def test_detector_benchmark_sensitivity(self):
         """Evaluate detector sensitivity across the full benchmark set of chaotic orbits"""
         ics, mles = load_benchmark_ics()
-        mw_potential = agama.Potential(MW_POTENTIAL)
+        mw_potential = agama.Potential(str(MW_POTENTIAL))
 
         # Run detection on all benchmark ICs
         detector = OrbitChaosDetector(ic=ics, pot=mw_potential)

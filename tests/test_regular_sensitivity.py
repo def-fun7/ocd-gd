@@ -4,10 +4,9 @@ import numpy as np
 import pytest
 from ocd_gd.orbit_detector import OrbitChaosDetector
 
-REGULAR_BENCHMARK_NPZ = Path(
-    "data/initial_conditions/labeled_ics_benchmark_size_370.npz"
-)
-MW_POTENTIAL = "data/potentials/MWPotentialHunter24_full.ini"
+BASE_PATH = Path(__file__).parent / "fixtures"
+REGULAR_BENCHMARK_NPZ = BASE_PATH / "labeled_ics_benchmark_size_370.npz"
+MW_POTENTIAL = BASE_PATH / "MWPotentialHunter24_full.ini"
 
 
 def load_regular_benchmark_ics():
@@ -24,14 +23,12 @@ def load_regular_benchmark_ics():
 class TestRegularSensitivity:
     """Benchmark tests evaluating detector performance on verified regular ICs."""
 
-    def test_detector_regular_specificity(
-        self, output_dir=Path("./outputs/benchmark_results")
-    ):
+    def test_detector_regular_specificity(self):
         """
         Evaluate detector performance on regular orbits
         """
         ics, mles = load_regular_benchmark_ics()
-        mw_potential = agama.Potential(MW_POTENTIAL)
+        mw_potential = agama.Potential(str(MW_POTENTIAL))
 
         # Run detection on all regular benchmark ICs
         detector = OrbitChaosDetector(
