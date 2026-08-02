@@ -38,7 +38,6 @@ docs/reference/generated/
 
 .vercel/
 .vercel
-uv.lock
 
 .idea/
 .venv/
