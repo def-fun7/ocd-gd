@@ -1,11 +1,7 @@
 # Orbital Chaos Detector - Galactic Dynamics (ocd-gd)
 
-[![License: GPL-3.0](https://img.shields.io/badge/License-GPL--3.0-blue.svg)](LICENSE)
-[![Python Version](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12-3776AB.svg?logo=python&logoColor=white)](https://www.python.org/)
-[![AGAMA Core](https://img.shields.io/badge/C%2B%2B%20Core-AGAMA-orange.svg)](https://github.com/gaspicker/agama)
-[![Build Tool](https://img.shields.io/badge/package%20manager-uv-de5b44.svg?logo=python&logoColor=white)](https://github.com/astral-sh/uv)
-[![Nix Support](https://img.shields.io/badge/Nix-Flake-5277C3.svg?logo=nixos&logoColor=white)](flake.nix)
-[![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Linux%20%7C%20Windows-lightgrey.svg)](#setup--installation)
+[![License: GPL-3.0](https://img.shields.io/badge/License-GPL--3.0-blue.svg)](LICENSE) [![Python Version](https://img.shields.io/badge/03.13+-3776AB.svg?logo=python&logoColor=white)](https://www.python.org/) [![AGAMA Core](https://img.shields.io/badge/C%2B%2B%20Core-AGAMA-orange.svg)](https://github.com/gaspicker/agama) [![Build Tool](https://img.shields.io/badge/package%20manager-uv-de5b44.svg?logo=python&logoColor=white)](https://github.com/astral-sh/uv)
+[![Nix Support](https://img.shields.io/badge/Nix-Flake-5277C3.svg?logo=nixos&logoColor=white)](flake.nix) [![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Linux%20%7C%20Windows-lightgrey.svg)](#setup--installation)
 
 `ocd-gd` is a toolkit for analyzing chaotic dynamics in galactic potential models. It builds on top of the **AGAMA** library for galactic dynamics, providing automated tools for orbit integration, chaos detection, and phase-space classification.
 
@@ -92,6 +88,28 @@ After completing setup, verify your installation by running the test suite:
 uv run pytest
 ```
 
-## Documentation
+---
 
-Read the docs at [docs](https://ocd-gd.readthedocs.io/en/latest/)
+## 📚 Documentation & Resources
+
+Comprehensive guides, API references, and interactive tutorials are available on **[ocd-gd.readthedocs.io](https://ocd-gd.readthedocs.io/en/latest/)**.
+
+[![Documentation Status](https://readthedocs.org/projects/ocd-gd/badge/?version=latest)](https://ocd-gd.readthedocs.io/en/latest/?badge=latest) [![Python Version](https://img.shields.io/badge/python-3.13%2B-blue.svg)](pyproject.toml)
+
+### 🚀 Quick Links
+
+- **[Getting Started Guide](https://ocd-gd.readthedocs.io/en/latest/getting_started.html)** — Installation, Agama potential setup, and first orbit integration.
+- **[Example Gallery](https://ocd-gd.readthedocs.io/en/latest/examples/index.html)** — Executable recipes ranging from single orbit SALI/GALI checks to 2D grid chaos mapping.
+- **[API Reference](https://ocd-gd.readthedocs.io/en/latest/api/index.html)** — Detailed docstrings and signatures for `OrbitChaosDetector`, `GridChaosDetector`, and visualization mixins.
+
+### 💻 Running Examples Locally
+
+You can explore and run the full executable example suite locally:
+
+```bash
+# Run the automated test runner across all examples
+python examples
+
+# Or execute a specific topic script
+python examples/05_grid_chaos_map_plot.py
+```
