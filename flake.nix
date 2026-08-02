@@ -1,9 +1,26 @@
 {
-  description = "Fully automated native environment for AGAMA (Python 3.13 compatible | MacOS & Linux)";
-
+  description = "Fully automated native environment for AGAMA (Python 3.13 compatible | MacOS & Linux) along uv2nix";
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     flake-utils.url = "github:numtide/flake-utils";
+
+    pyproject-nix = {
+      url = "github:pyproject-nix/pyproject.nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
+    uv2nix = {
+      url = "github:pyproject-nix/uv2nix";
+      inputs.pyproject-nix.follows = "pyproject-nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
+    pyproject-build-systems = {
+      url = "github:pyproject-nix/build-system-pkgs";
+      inputs.pyproject-nix.follows = "pyproject-nix";
+      inputs.uv2nix.follows = "uv2nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs =
@@ -11,17 +28,19 @@
       self,
       nixpkgs,
       flake-utils,
+      pyproject-nix,
+      uv2nix,
+      pyproject-build-systems,
     }:
     flake-utils.lib.eachDefaultSystem (
       system:
       let
         pkgs = import nixpkgs { inherit system; };
 
-        # Custom Nix package definition for AGAMA
+        # 1. Custom AGAMA build (Kept exactly as you had it)
         agama-python = pkgs.python3Packages.buildPythonPackage {
           pname = "agama";
           version = "latest";
-
           pyproject = true;
 
           src = pkgs.fetchFromGitHub {
@@ -59,54 +78,40 @@
             export LDFLAGS="-L${pkgs.gsl}/lib -L${pkgs.openblas}/lib"
           '';
         };
-        ocd-gd = pkgs.python3Packages.buildPythonPackage {
-          pname = "ocd-gd";
-          version = "0.1.0";
 
-          pyproject = true;
-          src = ./.;
-          nativeBuildInputs = with pkgs.python3Packages; [
-            uv-build
-          ];
-          build-system = with pkgs.python3Packages; [
-            setuptools
-            wheel
-          ];
+        # 2. Parse uv.lock workspace via uv2nix
+        workspace = uv2nix.lib.workspace.loadWorkspace { workspaceRoot = ./.; };
 
-          propagatedBuildInputs = [
-            agama-python
-          ]
-          ++ (with pkgs.python3Packages; [
-            numpy
-            matplotlib
-            plotly
-            numba
-          ]);
-
-          doCheck = false;
+        # Construct package set from uv.lock
+        overlay = workspace.mkPyprojectOverlay {
+          sourcePreference = "wheel";
         };
-        pythonEnv = pkgs.python3.withPackages (ps: [
-          agama-python
-          ocd-gd
-          ps.numpy
-          ps.matplotlib
-          ps.plotly
-          ps.numba
-          ps.astropy
-          ps.rich
 
-          ps.sphinx
-          ps.sphinx-rtd-theme
-          ps.myst-parser
+        # Combine default build systems + python packages
+        pythonSet =
+          (pkgs.callPackage pyproject-nix.build.packages {
+            python = pkgs.python313;
+          }).overrideScope
+            (
+              pkgs.lib.composeManyExtensions [
+                pyproject-build-systems.overlays.default
+                overlay
+                (final: prev: {
+                  # Inject AGAMA into the uv2nix Python package set
+                  agama = agama-python;
+                })
+              ]
+            );
 
-          ps.pytest
-          ps.pytest-cov
-        ]);
+        # Create Python environment containing all workspace dependencies + dev extras
+        pythonEnv = pythonSet.mkVirtualEnv "ocd-gd-env" {
+          ocd-gd = [ "dev" ]; # Pulls core dependencies + project.optional-dependencies.dev
+        };
 
       in
       {
         devShells.default = pkgs.mkShell {
-          buildInputs = [
+          packages = [
             pythonEnv
             pkgs.gnumake
             pkgs.uv
@@ -115,11 +120,10 @@
           shellHook = ''
             export PYTHONPATH="$PWD/src:$PYTHONPATH"
             echo "========================================================="
-            echo "🪐 AGAMA Automated Environment Loaded"
+            echo "🪐 AGAMA + uv2nix Automated Environment Loaded"
             echo "========================================================="
             echo "Platform detected: ${system}"
-            echo "AGAMA is pre-compiled and available globally in this shell."
-            echo "Try launching a python terminal via python command and running: import agama"
+            echo "AGAMA is pre-compiled via Nix, while all dependencies are driven by uv.lock"
 
             ${pkgs.lib.optionalString pkgs.stdenv.isDarwin ''
               export CFLAGS="-I${pkgs.gsl}/include -I${pkgs.openblas}/include"

@@ -1,30 +1,32 @@
 [project]
 name = "ocd-gd"
-version = "0.1.4"
+version = "0.1.0"
 description = "This is the main public repo for Orbital Chaos Detector package"
 readme = "README.md"
-authors = [
-    { name = "def-fun7", email = "asad.mail@icloud.com" }
-]
 requires-python = ">=3.13"
+authors = [
+    { name = "Asad Arshad", email = "asad.mail@icloud.com" }
+]
 dependencies = [
     "agama>=1.0.0",
+    "astropy>=8.0.0",
     "matplotlib>=3.11.0",
-    "numpy>=2.4.6",
-    "plotly>=6.0.0",
-    "numba>=0.65.1"
+    "numba>=0.65.1",
+    "numpy>=2.5.0",
+    "plotly>=6.8.0",
+    "scipy>=1.18.0",
+    "tqdm>=4.67.3",
 ]
 
 [project.optional-dependencies]
 dev = [
-    "sphinx>=8.0.0",
-    "sphinx-rtd-theme>=3.0.0",
     "myst-parser>=4.0.0",
     "pytest>=9.0.3",
-    "pytest>=7.1.0"
+    "pytest-cov>=7.1.0",
+    "sphinx>=9.1.0",
+    "sphinx-rtd-theme>=3.0.0",
 ]
-[tool.setuptools.packages.find]
-where = ["src"]
+
 [build-system]
 requires = ["uv_build"]
 build-backend = "uv_build"
@@ -32,17 +34,15 @@ build-backend = "uv_build"
 [tool.uv.extra-build-dependencies]
 agama = ["numpy", "setuptools", "wheel", "scipy", "matplotlib"]
 
-[tool.uv.config-settings]
-"--build-option" = "--yes"
-
 [tool.pytest.ini_options]
 pythonpath = ["src"]
-
-addopts = [
-    "-v",                      
-    "--strict-markers",        
-    "-W ignore::DeprecationWarning" 
-]
-
 testpaths = ["tests"]
 python_files = ["test_*.py"]
+addopts = [
+    "-v",
+    "--strict-markers",
+    "-W ignore::DeprecationWarning",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
