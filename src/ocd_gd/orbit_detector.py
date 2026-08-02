@@ -6,6 +6,7 @@ via Small Alignment Index (SALI), Generalized Alignment Index (GALI), and
 Lyapunov exponents.
 """
 
+import time
 from typing import Any, Dict, Optional, Tuple, Union
 import numpy as np
 from astropy.table import QTable
@@ -23,6 +24,9 @@ from ._types import (
     ChaosAgreement,
 )
 from ._plotting import _OrbitPlottingMixin
+from ._logging_config import get_logger
+
+logger = get_logger(__name__)
 
 
 class OrbitChaosDetector(_OrbitPlottingMixin):
@@ -118,6 +122,14 @@ class OrbitChaosDetector(_OrbitPlottingMixin):
 
     def _integrate_orbits(self) -> None:
         """Run the expensive orbit integration exactly once and cache results."""
+        logger.info(
+            "Integrating %d orbit(s) for iter_time=%.4g (accuracy=%.1e, max_num_steps=%d) ...",
+            self.num_orbits,
+            self.iter_time,
+            self.accuracy,
+            self.max_num_steps,
+        )
+        start = time.perf_counter()
         orbit = agama.orbit(
             ic=self.ic,
             potential=self.pot,
@@ -132,6 +144,10 @@ class OrbitChaosDetector(_OrbitPlottingMixin):
             dtype="float64",
         )
         self._time_arr, self._traj_arr, self._dev_arr, self._lyap = orbit
+        elapsed = time.perf_counter() - start
+        logger.info(
+            "Finished integrating %d orbit(s) in %.3fs", self.num_orbits, elapsed
+        )
 
     def _normalize_deviation_vectors(self) -> np.ndarray:
         """Clean and unit-normalize deviation vectors safely.
@@ -169,9 +185,16 @@ class OrbitChaosDetector(_OrbitPlottingMixin):
         deviation-vector pairs directly, avoiding the (n, 15, timesteps, 6)
         fancy-indexed copies the numpy-vectorized version required.
         """
+        logger.info("Computing SALI for %d orbit(s) ...", self.num_orbits)
+        start = time.perf_counter()
         arr = np.ascontiguousarray(self.deviation_vectors)
         idx_i, idx_j = np.triu_indices(6, k=1)
-        return _sali_kernel(arr, idx_i.astype(np.int64), idx_j.astype(np.int64))
+        result = _sali_kernel(arr, idx_i.astype(np.int64), idx_j.astype(np.int64))
+        elapsed = time.perf_counter() - start
+        logger.info(
+            "Finished computing SALI for %d orbit(s) in %.3fs", self.num_orbits, elapsed
+        )
+        return result
 
     def _compute_gali(self) -> np.ndarray:
         """Internal computation for generalized alignment index.
@@ -183,8 +206,15 @@ class OrbitChaosDetector(_OrbitPlottingMixin):
         iteration under the hood) — same result, substantially less compute
         per matrix.
         """
+        logger.info("Computing GALI for %d orbit(s) ...", self.num_orbits)
+        start = time.perf_counter()
         matrix_a = np.transpose(self.deviation_vectors, (0, 2, 1, 3))
-        return np.abs(np.linalg.det(matrix_a))
+        result = np.abs(np.linalg.det(matrix_a))
+        elapsed = time.perf_counter() - start
+        logger.info(
+            "Finished computing GALI for %d orbit(s) in %.3fs", self.num_orbits, elapsed
+        )
+        return result
 
     # =========================================================================
     # PUBLIC PROPERTIES
@@ -315,6 +345,7 @@ class OrbitChaosDetector(_OrbitPlottingMixin):
         Union[ChaosSummary, ChaosFullReport]
             The designated analysis container populated with convergence checks.
         """
+        detect_chaos_start = time.perf_counter()
 
         self._validate_index(orbit_idx)
 
@@ -326,6 +357,7 @@ class OrbitChaosDetector(_OrbitPlottingMixin):
         )
 
         if is_default_run and self._chaos_results_cache is not None:
+            logger.info("Using cached GALI/SALI convergence results for detect_chaos")
             gali_check, gali_time, sali_check, sali_time = self._chaos_results_cache
         else:
             s_thresh = (
@@ -402,8 +434,18 @@ class OrbitChaosDetector(_OrbitPlottingMixin):
 
         summary_data = ChaosSummary(gali_c, gali_t, sali_c, sali_t, lyap_c, lyap_t)
         if check_only:
+            logger.info(
+                "detect_chaos completed in %.3fs (orbit_idx=%s, check_only=True)",
+                time.perf_counter() - detect_chaos_start,
+                orbit_idx,
+            )
             return summary_data
 
+        logger.info(
+            "detect_chaos completed in %.3fs (orbit_idx=%s, check_only=False)",
+            time.perf_counter() - detect_chaos_start,
+            orbit_idx,
+        )
         return ChaosFullReport(
             summary=summary_data,
             timestamps=self.timestamps,

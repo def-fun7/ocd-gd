@@ -17,6 +17,7 @@ from ._types import (
     chaos_summary_row,
 )
 from ._resonance import ResonanceRadii
+from ._logging_config import setup_logging
 
 __all__ = [
     "OrbitChaosDetector",
@@ -29,4 +30,5 @@ __all__ = [
     "ChaosAgreement",
     "chaos_summary_row",
     "ResonanceRadii",
+    "setup_logging",
 ]

@@ -5,6 +5,7 @@ Builds a 2D (x, v_x) grid of initial conditions at fixed energy and layers
 grid-shaped chaos-map visualizations on top of OrbitChaosDetector.
 """
 
+import time
 from typing import Any, Dict, Optional, Tuple
 import numpy as np
 from astropy.table import QTable
@@ -13,6 +14,9 @@ from .orbit_detector import OrbitChaosDetector
 from ._grid_ics import _generate_grid_ics, _circular_velocity, _reference_energy
 from ._grid_plotting import _GridChaosPlottingMixin
 from ._resonance import ResonanceRadii, compute_resonance_radii
+from ._logging_config import get_logger
+
+logger = get_logger(__name__)
 
 
 class GridChaosDetector(_GridChaosPlottingMixin, OrbitChaosDetector):
@@ -90,6 +94,13 @@ class GridChaosDetector(_GridChaosPlottingMixin, OrbitChaosDetector):
             Forwarded to `OrbitChaosDetector.__init__` — see its docstring
             for details.
         """
+        logger.info(
+            "Generating %dx%d (x, v_x) grid of initial conditions at R_0=%.4g ...",
+            grid_size,
+            grid_size,
+            R_0,
+        )
+        grid_gen_start = time.perf_counter()
         grid_info = _generate_grid_ics(
             potential=potential,
             R_0=R_0,
@@ -101,6 +112,9 @@ class GridChaosDetector(_GridChaosPlottingMixin, OrbitChaosDetector):
             x_search_range=x_search_range,
             grid_size=grid_size,
             search_resolution=search_resolution,
+        )
+        logger.info(
+            "Finished generating grid in %.3fs", time.perf_counter() - grid_gen_start
         )
 
         self.grid_size = grid_size
@@ -126,6 +140,16 @@ class GridChaosDetector(_GridChaosPlottingMixin, OrbitChaosDetector):
         # original flat grid position, so chaos results can be scattered
         # back into (grid_size, grid_size) shape later.
         self._physical_indices = np.where(~grid_info.unphysical_mask)[0]
+
+        n_total_cells = grid_size**2
+        n_physical = len(self._physical_indices)
+        logger.info(
+            "%d/%d grid cells are physical at E_0=%.6g (%d unphysical, skipped)",
+            n_physical,
+            n_total_cells,
+            self.E_0,
+            n_total_cells - n_physical,
+        )
 
         super().__init__(
             ic=grid_info.ics[self._physical_indices],
