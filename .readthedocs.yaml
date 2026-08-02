@@ -8,8 +8,10 @@ build:
   tools:
     python: "3.13"
 
-  # Use build jobs to explicitly tell the server how to install your package
-  jobs:
-    post_install:
-      - pip install -r docs/requirements.txt
-      - pip install --no-deps .
+python:
+  install:
+    - method: pip
+      path: .
+      extra_requirements:
+        - dev
+        - cli
