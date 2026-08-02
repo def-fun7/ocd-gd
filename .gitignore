@@ -22,6 +22,7 @@ data/processed/
 # Ignore heavy output generation pools
 output/plots/diagnostics/
 output/tables/*.csv
+examples/outputs
 
 *.vscode
 *.code-workspace

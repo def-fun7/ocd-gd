@@ -1,18 +1,28 @@
 <!--
-ocd-gd documentation master file, created by
-sphinx-quickstart on Mon Jul 20 13:42:53 2026.
-You can adapt this file completely to your liking, but it should at least
-contain the root `toctree` directive.
+ocd-gd documentation master file
 -->
 
-# ocd-gd documentation
+# Orbital Chaos Detector - Galactic Dynamics (`ocd-gd`)
 
-Add your content using `reStructuredText` syntax. See the
-[reStructuredText](https://www.sphinx-doc.org/en/master/usage/restructuredtext/index.html)
-documentation for details.
+Welcome to the documentation for **`ocd-gd`**, a Python package designed for analyzing chaotic dynamics, orbit integration, and phase-space structure in galactic potential models using **AGAMA**.
+
+```{toctree}
+:maxdepth: 1
+:caption: Getting Started
+
+quickstart
+```
 
 ```{toctree}
 :maxdepth: 2
-:caption: Contents:
+:caption: User Guide & Examples
+
+examples/index
+```
+
+```{toctree}
+:maxdepth: 2
+:caption: API Reference
+
 modules
 ```

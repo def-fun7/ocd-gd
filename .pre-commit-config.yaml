@@ -1,0 +1,21 @@
+repos:
+  - repo: local
+    hooks:
+      - id: check-examples-sync
+        name: Check examples/README.md and examples/CHANGELOG.md co-commit
+        language: system
+        stages: [pre-commit]
+        entry: >
+          bash -c '
+          CHANGES=$(git diff --cached --name-only);
+          README_CHANGED=$(echo "$CHANGES" | grep -E "^examples/README\.md$" || true);
+          CHANGELOG_CHANGED=$(echo "$CHANGES" | grep -E "^examples/CHANGELOG\.md$" || true);
+          EXAMPLES_CHANGED=$(echo "$CHANGES" | grep -E "^examples/([0-9]{2}_|_display\.py)" || true);
+
+          if [ -n "$EXAMPLES_CHANGED" ] || [ -n "$README_CHANGED" ] || [ -n "$CHANGELOG_CHANGED" ]; then
+            if [ -z "$README_CHANGED" ] || [ -z "$CHANGELOG_CHANGED" ]; then
+              echo "❌ ERROR: Modifications in examples/ require BOTH examples/README.md AND examples/CHANGELOG.md to be updated and staged together.";
+              exit 1;
+            fi;
+          fi;
+          '
