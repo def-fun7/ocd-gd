@@ -4,9 +4,8 @@ requires-python = ">=3.13"
 
 [[package]]
 name = "agama"
-version = "1.0.0"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/b1/5e/94c5b3dd347410ca0a8102ada30731ae0783eb5823e8205e1a9e318a6031/agama-1.0.0.tar.gz", hash = "sha256:94d0f17988cdf4ac1244327421a947d04cecd33f08f6e0466d9f98b3df574a99", size = 1305, upload-time = "2025-11-18T00:38:14.161Z" }
+version = "1.0"
+source = { git = "https://github.com/GalacticDynamics-Oxford/AGAMA.git?branch=master#60d8d8b8dce4eea33e500c34700f28ebc6bbfd7b" }
 
 [[package]]
 name = "alabaster"
@@ -660,7 +659,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "agama", specifier = ">=1.0.0" },
+    { name = "agama", git = "https://github.com/GalacticDynamics-Oxford/AGAMA.git?branch=master" },
     { name = "astropy", specifier = ">=8.0.0" },
     { name = "matplotlib", specifier = ">=3.11.0" },
     { name = "myst-parser", marker = "extra == 'dev'", specifier = ">=4.0.0" },

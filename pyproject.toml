@@ -4,9 +4,21 @@ version = "0.1.0"
 description = "This is the main public repo for Orbital Chaos Detector package"
 readme = "README.md"
 requires-python = ">=3.13"
+license = { file = "LICENSE" }
 authors = [
     { name = "Asad Arshad", email = "asad.mail@icloud.com" }
 ]
+
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering :: Astronomy",
+    "Topic :: Scientific/Engineering :: Physics",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.13",
+    "Operating System :: OS Independent",
+]
+
 dependencies = [
     "agama>=1.0.0",
     "astropy>=8.0.0",
@@ -18,6 +30,9 @@ dependencies = [
     "tqdm>=4.67.3",
 ]
 
+[tool.uv.sources]
+agama = { git = "https://github.com/GalacticDynamics-Oxford/AGAMA.git", branch = "master" }
+
 [project.optional-dependencies]
 dev = [
     "myst-parser>=4.0.0",
@@ -28,7 +43,7 @@ dev = [
 ]
 
 [build-system]
-requires = ["uv_build"]
+requires = ["uv_build>=0.5.0,<0.14"]
 build-backend = "uv_build"
 
 [tool.uv.extra-build-dependencies]
@@ -46,3 +61,12 @@ addopts = [
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[project.urls]
+Homepage = "https://github.com/def-fun7/ocd-gd"
+Repository = "https://github.com/def-fun7/ocd-gd.git"
+Docs = "https://ocd-gd.readthedocs.io/en/latest/"
+Issues = "https://github.com/def-fun7/ocd-gd/issues"
+
+[project.scripts]
+setup-env = "scripts.setup_env:main"

@@ -38,50 +38,37 @@
       let
         pkgs = import nixpkgs { inherit system; };
 
-        # Parse pyproject.toml + uv.lock — this is now the single source of truth
+        # Parse pyproject.toml + uv.lock
         workspace = uv2nix.lib.workspace.loadWorkspace { workspaceRoot = ./.; };
 
         overlay = workspace.mkPyprojectOverlay {
           sourcePreference = "wheel";
         };
 
-        agamaFixupOverlay = final: prev: {
+        # Patch AGAMA with required native C libraries and build tools
+        agama-python = final: prev: {
           agama = prev.agama.overrideAttrs (old: {
-            nativeBuildInputs =
-              (old.nativeBuildInputs or [ ])
-              ++ [
-                pkgs.gsl
-                pkgs.gmp
-                pkgs.openblas
-                pkgs.eigen
-              ]
-              ++ [
-                final.setuptools
-                final.wheel
-                final.numpy
-                final.scipy
-                final.matplotlib
-              ];
+            # C dependencies for linking
+            buildInputs = (old.buildInputs or [ ]) ++ [
+              pkgs.gsl
+              pkgs.gmp
+              pkgs.openblas
+              pkgs.eigen
+            ];
 
-            preBuild =
-              (old.preBuild or "")
-              + ''
-                # Decline the optional CVXOPT and UNSIO libraries outright — they require
-                # network access to download (blocked by the Nix sandbox) and ocd-gd
-                # doesn't need Schwarzschild modelling or N-body snapshot I/O.
-                # This must happen BEFORE the --yes hack below, since --yes would
-                # otherwise auto-approve these downloads too.
-                sed -i "/if ask('CVXOPT library/,/Y\/N\] '):/c\\
-                if False:" setup.py
-                sed -i "/if ask('UNSIO library/,/Y\/N\] '):/c\\
-                if False:" setup.py
+            # Python build system dependencies
+            nativeBuildInputs = (old.nativeBuildInputs or [ ]) ++ [
+              final.setuptools
+              final.wheel
+              final.numpy
+              final.scipy
+              final.matplotlib
+            ];
 
-                echo 'import sys; sys.argv.append("--yes")' | cat - setup.py > setup.py.tmp && mv setup.py.tmp setup.py
-              ''
-              + pkgs.lib.optionalString pkgs.stdenv.isDarwin ''
-                export CFLAGS="-I${pkgs.gsl}/include -I${pkgs.openblas}/include -I${pkgs.eigen}/include/eigen3 ''${CFLAGS:-}"
-                export LDFLAGS="-L${pkgs.gsl}/lib -L${pkgs.openblas}/lib ''${LDFLAGS:-}"
-              '';
+            # Pre-append '--yes' flag to non-interactive AGAMA setup script
+            preBuild = (old.preBuild or "") + ''
+              echo 'import sys; sys.argv.append("--yes")' | cat - setup.py > setup.py.tmp && mv setup.py.tmp setup.py
+            '';
           });
         };
 
@@ -93,12 +80,10 @@
               pkgs.lib.composeManyExtensions [
                 pyproject-build-systems.overlays.default
                 overlay
-                agamaFixupOverlay
+                agama-python
               ]
             );
 
-        # "all" pulls in the dev optional-dependency group (pytest, sphinx, etc.)
-        # as well as ocd-gd itself and its runtime deps.
         pythonEnv = pythonSet.mkVirtualEnv "ocd-gd-env" workspace.deps.all;
       in
       {
@@ -116,11 +101,6 @@
             echo "========================================================="
             echo "Platform detected: ${system}"
             echo "pyproject.toml + uv.lock are the source of truth."
-
-            ${pkgs.lib.optionalString pkgs.stdenv.isDarwin ''
-              export CFLAGS="-I${pkgs.gsl}/include -I${pkgs.openblas}/include"
-              export LDFLAGS="-L${pkgs.gsl}/lib -L${pkgs.openblas}/lib"
-            ''}
           '';
         };
 
@@ -129,8 +109,7 @@
             mkApp = scriptText: {
               type = "app";
               program = toString (
-                pkgs.writeScript "app-script" ''
-                  #!/usr/bin/env bash
+                pkgs.writeShellScript "app-script" ''
                   export PATH="${pythonEnv}/bin:${pkgs.bash}/bin:$PATH"
                   ${scriptText}
                 ''
