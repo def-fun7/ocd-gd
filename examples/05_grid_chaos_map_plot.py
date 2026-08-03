@@ -5,16 +5,17 @@ Demonstrates visualizing spatial chaos maps using GridChaosDetector's
 plot_chaos_map(), plot_composite_chaos_map(), and save_chaos_maps() methods.
 """
 
+import logging
 import sys
 from pathlib import Path
-import logging
+
 import agama
 
+from ocd_gd._logging_config import print_banner, print_kv_table, setup_logging
 from ocd_gd.grid_detector import GridChaosDetector
-from ocd_gd._logging_config import setup_logging
-from ocd_gd._logging_config import print_banner, print_kv_table
 
 BASE_OUTPUT_PATH = Path(__file__).parent / "outputs"
+logger = logging.getLogger(__name__)
 
 
 def build_potential() -> "agama.Potential":
@@ -39,8 +40,7 @@ def main() -> None:
     pot = build_potential()
     grid_size = 12
 
-    logging.info(f"Initializing GridChaosDetector ({grid_size}x{grid_size})...")
-
+    logger.info("Initializing GridChaosDetector (%dx%d)...", grid_size, grid_size)
     detector = GridChaosDetector(
         potential=pot,
         R_0=8.0,
@@ -90,6 +90,6 @@ def main() -> None:
 if __name__ == "__main__":
     try:
         main()
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001
         print(f"\u2717 Example failed: {exc}", file=sys.stderr)
         sys.exit(1)

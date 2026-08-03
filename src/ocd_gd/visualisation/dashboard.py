@@ -2,36 +2,34 @@
 Multi-panel diagnostic dashboard for orbit dynamics and chaos indicators.
 """
 
-from typing import Optional, Dict, Tuple, List, Any
-import numpy as np
+from typing import Any
+
 import matplotlib.pyplot as plt
+import numpy as np
+import numpy.typing as npt
 
 from .matplotlib_backend import (
-    plot_sali_mpl,
-    plot_gali_mpl,
-    plot_trajectory_2d_mpl,
-    plot_trajectory_3d_mpl,
-    plot_energy_drift_mpl,
     _handle_save_show,
+    plot_gali_mpl,
+    plot_sali_mpl,
+    plot_trajectory_3d_mpl,
 )
 from .plotly_backend import (
     plot_sali_plotly,
-    plot_gali_plotly,
     plot_trajectory_2d_plotly,
     plot_trajectory_3d_plotly,
-    plot_energy_drift_plotly,
 )
 
 
 def plot_dashboard_mpl(
-    data: Dict[str, Any],
+    data: dict[str, Any],
     sali_threshold: float = 1e-2,
     gali_threshold: float = 1e-16,
-    k_orders: Optional[List[int]] = None,
-    save_path: Optional[str] = None,
+    k_orders: list[int | None] | None = None,
+    save_path: str | None = None,
     show: bool = True,
     **kwargs,
-) -> Tuple[plt.Figure, np.ndarray]:
+) -> tuple[plt.Figure, npt.NDArray[np.float64]]:
     """Generate a 4-panel Matplotlib summary dashboard."""
     fig = plt.figure(figsize=kwargs.get("figsize", (14, 10)))
     gs = fig.add_gridspec(2, 2, hspace=0.3, wspace=0.25)
@@ -109,9 +107,9 @@ def plot_dashboard_mpl(
 
 
 def plot_dashboard_plotly(
-    data: Dict[str, np.ndarray],
+    data: dict[str, npt.NDArray[np.float64]],
     threshold: float = 1e-8,
-    save_path: Optional[str] = None,
+    save_path: str | None = None,
     show: bool = True,
     **kwargs,
 ) -> None:

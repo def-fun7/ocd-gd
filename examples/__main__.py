@@ -1,5 +1,5 @@
-import sys
 import subprocess
+import sys
 from pathlib import Path
 
 from ocd_gd._logging_config import (
@@ -39,9 +39,7 @@ def run_script(script_path: Path) -> bool:
         print("-" * 60)
 
     result = subprocess.run(
-        [sys.executable, str(script_path)],
-        capture_output=False,
-        text=True,
+        [sys.executable, str(script_path)], capture_output=False, text=True, check=False
     )
 
     if HAS_RICH:

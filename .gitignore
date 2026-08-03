@@ -23,6 +23,8 @@ data/processed/
 output/plots/diagnostics/
 output/tables/*.csv
 examples/outputs
+*.ini.masscache
+scripts/outputs
 
 *.vscode
 *.code-workspace

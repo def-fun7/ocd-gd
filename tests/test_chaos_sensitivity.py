@@ -1,7 +1,9 @@
-import agama
 from pathlib import Path
+
+import agama
 import numpy as np
 import pytest
+
 from ocd_gd.orbit_detector import OrbitChaosDetector
 
 BASE_PATH = Path(__file__).parent / "fixtures"
@@ -22,7 +24,7 @@ class TestChaosSensitivity:
 
     def test_detector_benchmark_sensitivity(self):
         """Evaluate detector sensitivity across the full benchmark set of chaotic orbits"""
-        ics, mles = load_benchmark_ics()
+        ics, _mles = load_benchmark_ics()
         mw_potential = agama.Potential(str(MW_POTENTIAL))
 
         # Run detection on all benchmark ICs
@@ -34,8 +36,8 @@ class TestChaosSensitivity:
         lyap_check = summary.lyapunov_check.flatten().astype(bool)
 
         total_orbits = sum(lyap_check)
-        sali_rate = np.sum(sali_passed) / total_orbits
-        gali_rate = np.sum(gali_passed) / total_orbits
+        np.sum(sali_passed) / total_orbits
+        np.sum(gali_passed) / total_orbits
 
         # assert sali_rate >= 0.90, f"SALI sensitivity regression: {sali_rate:.1%}"
         # assert gali_rate >= 0.95, f"GALI sensitivity regression: {gali_rate:.1%}"

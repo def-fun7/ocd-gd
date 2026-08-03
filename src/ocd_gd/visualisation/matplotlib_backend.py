@@ -2,20 +2,20 @@
 Matplotlib backend for plotting galactic orbit dynamics and chaos indicators.
 """
 
-from typing import Optional, Tuple, List, Union
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
+import numpy.typing as npt
 from matplotlib.collections import LineCollection
 
 from .utils import resolve_save_path
 
 
 def _setup_fig_ax(
-    fig: Optional[plt.Figure] = None,
-    ax: Optional[plt.Axes] = None,
-    projection: Optional[str] = None,
-    figsize: Tuple[float, float] = (7, 5),
-) -> Tuple[plt.Figure, plt.Axes]:
+    fig: plt.Figure | None = None,
+    ax: plt.Axes | None = None,
+    projection: str | None = None,
+    figsize: tuple[float, float] = (7, 5),
+) -> tuple[plt.Figure, plt.Axes]:
     """Helper utility to manage figure and axes creation across standalone/subplot contexts."""
     if ax is None:
         if fig is None:
@@ -31,7 +31,7 @@ def _setup_fig_ax(
 
 def _handle_save_show(
     fig,
-    save_path: Optional[str] = None,
+    save_path: str | None = None,
     show: bool = True,
     backend: str = "matplotlib",
     **kwargs,
@@ -46,7 +46,7 @@ def _handle_save_show(
         plt.show()
 
 
-def _format_lyap_text(lyap_data: Optional[np.ndarray]) -> Optional[str]:
+def _format_lyap_text(lyap_data: npt.NDArray[np.float64] | None) -> str | None:
     """Format AGAMA's Lyapunov array [lambda * Torb, Tchaos / Torb] cleanly."""
     if lyap_data is None:
         return None
@@ -73,19 +73,19 @@ def _format_lyap_text(lyap_data: Optional[np.ndarray]) -> Optional[str]:
 # 1. SALI vs Time
 # ==============================================================================
 def plot_sali_mpl(
-    t: np.ndarray,
-    sali: np.ndarray,
-    threshold: Optional[float] = 1e-8,
-    is_chaotic: Optional[bool] = None,
-    detection_time: Optional[float] = None,
-    window_size_time: Optional[float] = None,
-    lyapunov: Optional[np.ndarray] = None,
-    fig: Optional[plt.Figure] = None,
-    ax: Optional[plt.Axes] = None,
-    save_path: Optional[str] = None,
+    t: npt.NDArray[np.float64],
+    sali: npt.NDArray[np.float64],
+    threshold: float | None = 1e-8,
+    is_chaotic: bool | None = None,
+    detection_time: float | None = None,
+    window_size_time: float | None = None,
+    lyapunov: npt.NDArray[np.float64] | None = None,
+    fig: plt.Figure | None = None,
+    ax: plt.Axes | None = None,
+    save_path: str | None = None,
     show: bool = True,
     **kwargs,
-) -> Tuple[plt.Figure, plt.Axes]:
+) -> tuple[plt.Figure, plt.Axes]:
     """Plot SALI vs Time on a log scale."""
     fig, ax = _setup_fig_ax(fig, ax, figsize=kwargs.get("figsize", (7, 4.5)))
 
@@ -150,9 +150,12 @@ def plot_sali_mpl(
             transform=ax.transAxes,
             fontsize=8.5,
             verticalalignment="bottom",
-            bbox=dict(
-                boxstyle="round,pad=0.4", facecolor="white", alpha=0.8, edgecolor="gray"
-            ),
+            bbox={
+                "boxstyle": "round,pad=0.4",
+                "facecolor": "white",
+                "alpha": 0.8,
+                "edgecolor": "gray",
+            },
         )
 
     ax.set_yscale("log")
@@ -173,20 +176,20 @@ def plot_sali_mpl(
 # 2. GALI vs Time
 # ==============================================================================
 def plot_gali_mpl(
-    t: np.ndarray,
-    gali: np.ndarray,
-    k_orders: Optional[List[int]] = None,
-    threshold: Optional[float] = 1e-16,
-    is_chaotic: Optional[bool] = None,
-    detection_time: Optional[float] = None,
-    window_size_time: Optional[float] = None,
-    lyapunov: Optional[np.ndarray] = None,
-    fig: Optional[plt.Figure] = None,
-    ax: Optional[plt.Axes] = None,
-    save_path: Optional[str] = None,
+    t: npt.NDArray[np.float64],
+    gali: npt.NDArray[np.float64],
+    k_orders: list[int | None] | None = None,
+    threshold: float | None = 1e-16,
+    is_chaotic: bool | None = None,
+    detection_time: float | None = None,
+    window_size_time: float | None = None,
+    lyapunov: npt.NDArray[np.float64] | None = None,
+    fig: plt.Figure | None = None,
+    ax: plt.Axes | None = None,
+    save_path: str | None = None,
     show: bool = True,
     **kwargs,
-) -> Tuple[plt.Figure, plt.Axes]:
+) -> tuple[plt.Figure, plt.Axes]:
     """Plot GALI_k vs Time on a log scale."""
     fig, ax = _setup_fig_ax(fig, ax, figsize=kwargs.get("figsize", (7, 4.5)))
 
@@ -260,9 +263,12 @@ def plot_gali_mpl(
             transform=ax.transAxes,
             fontsize=8.5,
             verticalalignment="bottom",
-            bbox=dict(
-                boxstyle="round,pad=0.4", facecolor="white", alpha=0.8, edgecolor="gray"
-            ),
+            bbox={
+                "boxstyle": "round,pad=0.4",
+                "facecolor": "white",
+                "alpha": 0.8,
+                "edgecolor": "gray",
+            },
         )
 
     ax.set_yscale("log")
@@ -283,13 +289,13 @@ def plot_gali_mpl(
 # 3. Orbit Trajectory Plot (Face-On & Edge-On)
 # ==============================================================================
 def plot_trajectory_2d_mpl(
-    pos: np.ndarray,
-    fig: Optional[plt.Figure] = None,
-    axes: Optional[Union[plt.Axes, np.ndarray]] = None,
-    save_path: Optional[str] = None,
+    pos: npt.NDArray[np.float64],
+    fig: plt.Figure | None = None,
+    axes: plt.Axes | (npt.NDArray[np.float64] | None) = None,
+    save_path: str | None = None,
     show: bool = True,
     **kwargs,
-) -> Tuple[plt.Figure, np.ndarray]:
+) -> tuple[plt.Figure, npt.NDArray[np.float64]]:
     """Plot 2D projections of the orbit: Face-On (X-Y) and Edge-On (X-Z)."""
     if axes is None:
         figsize = kwargs.get("figsize", (11, 5))
@@ -330,13 +336,13 @@ def plot_trajectory_2d_mpl(
 # 4. 3D Orbit Plot
 # ==============================================================================
 def plot_trajectory_3d_mpl(
-    pos: np.ndarray,
-    fig: Optional[plt.Figure] = None,
-    ax: Optional[plt.Axes] = None,
-    save_path: Optional[str] = None,
+    pos: npt.NDArray[np.float64],
+    fig: plt.Figure | None = None,
+    ax: plt.Axes | None = None,
+    save_path: str | None = None,
     show: bool = True,
     **kwargs,
-) -> Tuple[plt.Figure, plt.Axes]:
+) -> tuple[plt.Figure, plt.Axes]:
     """Plot 3D spatial orbit trajectory."""
     fig, ax = _setup_fig_ax(
         fig, ax, projection="3d", figsize=kwargs.get("figsize", (8, 7))
@@ -377,15 +383,15 @@ def plot_trajectory_3d_mpl(
 # 5. Phase Space Plot (Position vs Velocity)
 # ==============================================================================
 def plot_phase_space_mpl(
-    pos: np.ndarray,
-    vel: np.ndarray,
+    pos: npt.NDArray[np.float64],
+    vel: npt.NDArray[np.float64],
     plane: str = "x",
-    fig: Optional[plt.Figure] = None,
-    ax: Optional[plt.Axes] = None,
-    save_path: Optional[str] = None,
+    fig: plt.Figure | None = None,
+    ax: plt.Axes | None = None,
+    save_path: str | None = None,
     show: bool = True,
     **kwargs,
-) -> Tuple[plt.Figure, plt.Axes]:
+) -> tuple[plt.Figure, plt.Axes]:
     """
     Plot 2D phase space projection (e.g., X vs V_x, Y vs V_y, or Z vs V_z).
 
@@ -430,14 +436,14 @@ def plot_phase_space_mpl(
 # 6. Fractional Energy Drift vs Time
 # ==============================================================================
 def plot_energy_drift_mpl(
-    t: np.ndarray,
-    energy: np.ndarray,
-    fig: Optional[plt.Figure] = None,
-    ax: Optional[plt.Axes] = None,
-    save_path: Optional[str] = None,
+    t: npt.NDArray[np.float64],
+    energy: npt.NDArray[np.float64],
+    fig: plt.Figure | None = None,
+    ax: plt.Axes | None = None,
+    save_path: str | None = None,
     show: bool = True,
     **kwargs,
-) -> Tuple[plt.Figure, plt.Axes]:
+) -> tuple[plt.Figure, plt.Axes]:
     """
     Plot fractional energy conservation error: |(E(t) - E_0) / E_0| over time.
     Verifies numerical integration accuracy from AGAMA.
@@ -472,15 +478,15 @@ def plot_energy_drift_mpl(
 # 7. Color-Coded Trajectory Plot (Colored by Time or SALI)
 # ==============================================================================
 def plot_colored_trajectory_2d_mpl(
-    pos: np.ndarray,
-    c_values: np.ndarray,
+    pos: npt.NDArray[np.float64],
+    c_values: npt.NDArray[np.float64],
     c_label: str = "Time",
-    fig: Optional[plt.Figure] = None,
-    ax: Optional[plt.Axes] = None,
-    save_path: Optional[str] = None,
+    fig: plt.Figure | None = None,
+    ax: plt.Axes | None = None,
+    save_path: str | None = None,
     show: bool = True,
     **kwargs,
-) -> Tuple[plt.Figure, plt.Axes]:
+) -> tuple[plt.Figure, plt.Axes]:
     """
     Plot 2D Face-On (X-Y) trajectory colored continuously by a scalar array (e.g. Time or log(SALI)).
     """

@@ -1,9 +1,14 @@
-from numba import njit, prange
 import numpy as np
+import numpy.typing as npt
+from numba import njit, prange
 
 
 @njit(parallel=True, fastmath=True, cache=True)
-def _sali_kernel(arr: np.ndarray, idx_i: np.ndarray, idx_j: np.ndarray) -> np.ndarray:
+def _sali_kernel(
+    arr: npt.NDArray[np.float64],
+    idx_i: npt.NDArray[np.float64],
+    idx_j: npt.NDArray[np.float64],
+) -> npt.NDArray[np.float64]:
     """Compute SALI per (orbit, pair, timestep) without materializing
     full-size w1/w2 arrays — only tiny fixed-length vectors ever exist
     in memory at once.
@@ -28,6 +33,6 @@ def _sali_kernel(arr: np.ndarray, idx_i: np.ndarray, idx_j: np.ndarray) -> np.nd
                     diff_sq += df * df
                 sum_norm = np.sqrt(sum_sq)
                 diff_norm = np.sqrt(diff_sq)
-                out[orb, p, t] = sum_norm if sum_norm < diff_norm else diff_norm
+                out[orb, p, t] = min(diff_norm, sum_norm)
 
     return out

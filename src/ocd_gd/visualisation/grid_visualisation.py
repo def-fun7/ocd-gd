@@ -9,13 +9,15 @@ Kept as a standalone module (mirroring `.visualisation`) so `_grid_plotting.py`
 can dispatch to either backend the same way the rest of the package does.
 """
 
-from typing import Optional, Sequence, Tuple, Union
-import numpy as np
+from collections.abc import Sequence
+
 import matplotlib.pyplot as plt
-from matplotlib.colors import ListedColormap, to_rgb, to_hex
-from matplotlib.patches import Patch
-from matplotlib.lines import Line2D
+import numpy as np
+import numpy.typing as npt
 import plotly.graph_objects as go
+from matplotlib.colors import ListedColormap, to_hex, to_rgb
+from matplotlib.lines import Line2D
+from matplotlib.patches import Patch
 from plotly.subplots import make_subplots
 
 # =============================================================================
@@ -24,11 +26,11 @@ from plotly.subplots import make_subplots
 
 
 def _binary_grid_to_rgb(
-    grid: np.ndarray,
-    color_regular: Union[str, Tuple[float, float, float]],
-    color_chaotic: Union[str, Tuple[float, float, float]],
-    color_masked: Union[str, Tuple[float, float, float]],
-) -> np.ndarray:
+    grid: npt.NDArray[np.float64],
+    color_regular: str | tuple[float, float, float],
+    color_chaotic: str | tuple[float, float, float],
+    color_masked: str | tuple[float, float, float],
+) -> npt.NDArray[np.float64]:
     """Convert a single 0 (regular) / 1 (chaotic) / NaN (unphysical) grid into
     an (H, W, 3) RGB image array (float, range [0, 1])."""
     rgb = np.tile(np.array(to_rgb(color_masked)), (*grid.shape, 1))
@@ -38,11 +40,11 @@ def _binary_grid_to_rgb(
 
 
 def _binary_grids_to_composite_rgb(
-    sali_grid: np.ndarray,
-    gali_grid: np.ndarray,
-    lyapunov_grid: np.ndarray,
-    masked_color: Union[str, Tuple[float, float, float]] = (0.2, 0.2, 0.2),
-) -> np.ndarray:
+    sali_grid: npt.NDArray[np.float64],
+    gali_grid: npt.NDArray[np.float64],
+    lyapunov_grid: npt.NDArray[np.float64],
+    masked_color: str | tuple[float, float, float] = (0.2, 0.2, 0.2),
+) -> npt.NDArray[np.float64]:
     """Vectorized construction of the composite RGB image from three 0/1/NaN
     grids (replaces a per-cell Python double loop with array operations).
 
@@ -68,7 +70,7 @@ def _binary_grids_to_composite_rgb(
     return rgb
 
 
-def _finalize_mpl_figure(fig: plt.Figure, save_path: Optional[str], show: bool) -> None:
+def _finalize_mpl_figure(fig: plt.Figure, save_path: str | None, show: bool) -> None:
     """Shared save/show/close handling for the matplotlib chaos-map plots.
 
     Closes the figure when `show` is False so repeated calls (e.g. from
@@ -92,9 +94,7 @@ def _save_plotly_figure(fig: go.Figure, save_path: str) -> None:
         fig.write_image(save_path)
 
 
-def _finalize_plotly_figure(
-    fig: go.Figure, save_path: Optional[str], show: bool
-) -> None:
+def _finalize_plotly_figure(fig: go.Figure, save_path: str | None, show: bool) -> None:
     """Shared save/show handling for the plotly chaos-map plots."""
     if save_path:
         _save_plotly_figure(fig, save_path)
@@ -102,7 +102,7 @@ def _finalize_plotly_figure(
         fig.show()
 
 
-def _legend_proxy_traces(labels_and_colors: Sequence[Tuple[str, str]]) -> list:
+def _legend_proxy_traces(labels_and_colors: Sequence[tuple[str, str]]) -> list:
     """Build invisible marker traces solely to populate a plotly legend.
 
     `go.Image` traces (used for the actual maps) carry no legend entry, so
@@ -113,7 +113,7 @@ def _legend_proxy_traces(labels_and_colors: Sequence[Tuple[str, str]]) -> list:
             x=[None],
             y=[None],
             mode="markers",
-            marker=dict(size=10, color=to_hex(color), symbol="square"),
+            marker={"size": 10, "color": to_hex(color), "symbol": "square"},
             name=label,
             showlegend=True,
         )
@@ -121,7 +121,7 @@ def _legend_proxy_traces(labels_and_colors: Sequence[Tuple[str, str]]) -> list:
     ]
 
 
-def _line_legend_proxy_traces(labels_and_colors: Sequence[Tuple[str, str]]) -> list:
+def _line_legend_proxy_traces(labels_and_colors: Sequence[tuple[str, str]]) -> list:
     """Same as `_legend_proxy_traces` but styled as a line, for the resonance
     radius overlays (`add_vline` shapes carry no legend entry either)."""
     return [
@@ -129,7 +129,7 @@ def _line_legend_proxy_traces(labels_and_colors: Sequence[Tuple[str, str]]) -> l
             x=[None],
             y=[None],
             mode="lines",
-            line=dict(color=to_hex(color), dash="dot", width=1.5),
+            line={"color": to_hex(color), "dash": "dot", "width": 1.5},
             name=label,
             showlegend=True,
         )
@@ -165,18 +165,18 @@ def _resonance_overlay_specs(resonance_radii) -> list:
 
 
 def plot_chaos_maps_mpl(
-    sali_grid: np.ndarray,
-    gali_grid: np.ndarray,
-    lyapunov_grid: np.ndarray,
-    x_vals: np.ndarray,
-    v_x_vals: np.ndarray,
-    E_rem_vals: Optional[np.ndarray] = None,
+    sali_grid: npt.NDArray[np.float64],
+    gali_grid: npt.NDArray[np.float64],
+    lyapunov_grid: npt.NDArray[np.float64],
+    x_vals: npt.NDArray[np.float64],
+    v_x_vals: npt.NDArray[np.float64],
+    E_rem_vals: npt.NDArray[np.float64] | None = None,
     resonance_radii=None,
     cmap_colors: Sequence[str] = ("#1f4e78", "#f2c811"),  # [Regular (0), Chaotic (1)]
     masked_color: str = "#333333",  # unphysical (NaN) regions
-    save_path: Optional[str] = None,
+    save_path: str | None = None,
     show: bool = True,
-) -> Tuple[plt.Figure, np.ndarray]:
+) -> tuple[plt.Figure, npt.NDArray[np.float64]]:
     """Plot SALI, GALI, and Lyapunov 2D chaos maps side-by-side (1x3).
 
     Uses a clean, unified legend instead of a colorbar since each map is a
@@ -274,16 +274,16 @@ def plot_chaos_maps_mpl(
 
 
 def plot_chaos_maps_plotly(
-    sali_grid: np.ndarray,
-    gali_grid: np.ndarray,
-    lyapunov_grid: np.ndarray,
-    x_vals: np.ndarray,
-    v_x_vals: np.ndarray,
-    E_rem_vals: Optional[np.ndarray] = None,
+    sali_grid: npt.NDArray[np.float64],
+    gali_grid: npt.NDArray[np.float64],
+    lyapunov_grid: npt.NDArray[np.float64],
+    x_vals: npt.NDArray[np.float64],
+    v_x_vals: npt.NDArray[np.float64],
+    E_rem_vals: npt.NDArray[np.float64] | None = None,
     resonance_radii=None,
     cmap_colors: Sequence[str] = ("#1f4e78", "#f2c811"),
     masked_color: str = "#333333",
-    save_path: Optional[str] = None,
+    save_path: str | None = None,
     show: bool = True,
 ) -> go.Figure:
     """Plotly counterpart of `plot_chaos_maps_mpl`.
@@ -324,7 +324,7 @@ def plot_chaos_maps_plotly(
                     x=x_vals,
                     y=v_zvc,
                     mode="lines",
-                    line=dict(color="red", dash="dash", width=1.5),
+                    line={"color": "red", "dash": "dash", "width": 1.5},
                     name="Zero-Velocity Curve",
                     showlegend=(col == 1),
                 ),
@@ -336,7 +336,7 @@ def plot_chaos_maps_plotly(
                     x=x_vals,
                     y=-v_zvc,
                     mode="lines",
-                    line=dict(color="red", dash="dash", width=1.5),
+                    line={"color": "red", "dash": "dash", "width": 1.5},
                     showlegend=False,
                 ),
                 row=1,
@@ -344,10 +344,16 @@ def plot_chaos_maps_plotly(
             )
         for radius, _, color in resonance_specs:
             fig.add_vline(
-                x=radius, line=dict(color=color, dash="dot", width=1.3), row=1, col=col
+                x=radius,
+                line={"color": color, "dash": "dot", "width": 1.3},
+                row=1,
+                col=col,
             )
             fig.add_vline(
-                x=-radius, line=dict(color=color, dash="dot", width=1.3), row=1, col=col
+                x=-radius,
+                line={"color": color, "dash": "dot", "width": 1.3},
+                row=1,
+                col=col,
             )
 
     legend_labels = [
@@ -374,17 +380,17 @@ def plot_chaos_maps_plotly(
 
 
 def plot_composite_chaos_map_mpl(
-    sali_grid: np.ndarray,
-    gali_grid: np.ndarray,
-    lyapunov_grid: np.ndarray,
-    x_vals: np.ndarray,
-    v_x_vals: np.ndarray,
-    E_rem_vals: Optional[np.ndarray] = None,
+    sali_grid: npt.NDArray[np.float64],
+    gali_grid: npt.NDArray[np.float64],
+    lyapunov_grid: npt.NDArray[np.float64],
+    x_vals: npt.NDArray[np.float64],
+    v_x_vals: npt.NDArray[np.float64],
+    E_rem_vals: npt.NDArray[np.float64] | None = None,
     resonance_radii=None,
-    masked_color: Tuple[float, float, float] = (0.2, 0.2, 0.2),
-    save_path: Optional[str] = None,
+    masked_color: tuple[float, float, float] = (0.2, 0.2, 0.2),
+    save_path: str | None = None,
     show: bool = True,
-) -> Tuple[plt.Figure, plt.Axes]:
+) -> tuple[plt.Figure, plt.Axes]:
     """Overlay SALI, GALI, and Lyapunov indicators into a single RGB composite
     chaos map.
 
@@ -470,15 +476,15 @@ def plot_composite_chaos_map_mpl(
 
 
 def plot_composite_chaos_map_plotly(
-    sali_grid: np.ndarray,
-    gali_grid: np.ndarray,
-    lyapunov_grid: np.ndarray,
-    x_vals: np.ndarray,
-    v_x_vals: np.ndarray,
-    E_rem_vals: Optional[np.ndarray] = None,
+    sali_grid: npt.NDArray[np.float64],
+    gali_grid: npt.NDArray[np.float64],
+    lyapunov_grid: npt.NDArray[np.float64],
+    x_vals: npt.NDArray[np.float64],
+    v_x_vals: npt.NDArray[np.float64],
+    E_rem_vals: npt.NDArray[np.float64] | None = None,
     resonance_radii=None,
-    masked_color: Tuple[float, float, float] = (0.2, 0.2, 0.2),
-    save_path: Optional[str] = None,
+    masked_color: tuple[float, float, float] = (0.2, 0.2, 0.2),
+    save_path: str | None = None,
     show: bool = True,
 ) -> go.Figure:
     """Plotly counterpart of `plot_composite_chaos_map_mpl` — see its
@@ -505,7 +511,7 @@ def plot_composite_chaos_map_plotly(
                 x=x_vals,
                 y=v_zvc,
                 mode="lines",
-                line=dict(color="red", dash="dash", width=1.5),
+                line={"color": "red", "dash": "dash", "width": 1.5},
                 name="Zero-Velocity Curve",
             )
         )
@@ -514,14 +520,14 @@ def plot_composite_chaos_map_plotly(
                 x=x_vals,
                 y=-v_zvc,
                 mode="lines",
-                line=dict(color="red", dash="dash", width=1.5),
+                line={"color": "red", "dash": "dash", "width": 1.5},
                 showlegend=False,
             )
         )
 
     for radius, _, color in resonance_specs:
-        fig.add_vline(x=radius, line=dict(color=color, dash="dot", width=1.3))
-        fig.add_vline(x=-radius, line=dict(color=color, dash="dot", width=1.3))
+        fig.add_vline(x=radius, line={"color": color, "dash": "dot", "width": 1.3})
+        fig.add_vline(x=-radius, line={"color": color, "dash": "dot", "width": 1.3})
 
     legend_labels = [
         ("Regular Orbit (All 0)", (0.12, 0.31, 0.47)),

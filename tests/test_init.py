@@ -1,6 +1,7 @@
 """Tests for OrbitChaosDetector initialization and integration triggers."""
 
 from unittest.mock import MagicMock, patch
+
 import numpy as np
 import pytest
 

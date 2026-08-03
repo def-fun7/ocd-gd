@@ -1,6 +1,7 @@
 """Tests for index validation and sliced retrieval methods in OrbitChaosDetector."""
 
 from unittest.mock import MagicMock, patch
+
 import numpy as np
 import pytest
 

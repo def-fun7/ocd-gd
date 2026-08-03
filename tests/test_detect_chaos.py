@@ -1,6 +1,7 @@
 """Tests for chaos classification and report generation in OrbitChaosDetector."""
 
 from unittest.mock import MagicMock, patch
+
 import numpy as np
 import pytest
 

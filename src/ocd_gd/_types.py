@@ -5,9 +5,11 @@ Kept separate from the detector logic since these are plain structured
 containers with no behavior of their own.
 """
 
-from typing import NamedTuple
 from dataclasses import dataclass
+from typing import NamedTuple
+
 import numpy as np
+import numpy.typing as npt
 from astropy.table import QTable
 
 
@@ -27,22 +29,22 @@ class IntegrationCriteria:
 class ChaosSummary(NamedTuple):
     """Structured container holding processed summary chaos classifications."""
 
-    gali_check: np.ndarray
-    gali_time: np.ndarray
-    sali_check: np.ndarray
-    sali_time: np.ndarray
-    lyapunov_check: np.ndarray
-    lyapunov_time: np.ndarray
+    gali_check: npt.NDArray[np.float64]
+    gali_time: npt.NDArray[np.float64]
+    sali_check: npt.NDArray[np.float64]
+    sali_time: npt.NDArray[np.float64]
+    lyapunov_check: npt.NDArray[np.float64]
+    lyapunov_time: npt.NDArray[np.float64]
 
 
 class ChaosFullReport(NamedTuple):
     """Complete diagnostic bundle containing summaries alongside raw arrays."""
 
     summary: ChaosSummary
-    timestamps: np.ndarray
-    gali_array: np.ndarray
-    sali_array: np.ndarray
-    lyapunov_array: np.ndarray
+    timestamps: npt.NDArray[np.float64]
+    gali_array: npt.NDArray[np.float64]
+    sali_array: npt.NDArray[np.float64]
+    lyapunov_array: npt.NDArray[np.float64]
 
 
 class GridInitialConditions(NamedTuple):
@@ -52,11 +54,11 @@ class GridInitialConditions(NamedTuple):
     tuple with named fields.
     """
 
-    ics: np.ndarray
-    unphysical_mask: np.ndarray
-    x_vals: np.ndarray
-    v_x_vals: np.ndarray
-    E_rem_vals: np.ndarray
+    ics: npt.NDArray[np.float64]
+    unphysical_mask: npt.NDArray[np.float64]
+    x_vals: npt.NDArray[np.float64]
+    v_x_vals: npt.NDArray[np.float64]
+    E_rem_vals: npt.NDArray[np.float64]
     E_0: float
 
 
@@ -75,10 +77,10 @@ class MethodChaosStats(NamedTuple):
     n_regular: int
     n_total: int
     chaotic_fraction: float
-    chaotic_indices: np.ndarray
-    regular_indices: np.ndarray
-    chaotic_ics: np.ndarray
-    regular_ics: np.ndarray
+    chaotic_indices: npt.NDArray[np.float64]
+    regular_indices: npt.NDArray[np.float64]
+    chaotic_ics: npt.NDArray[np.float64]
+    regular_ics: npt.NDArray[np.float64]
 
 
 class ChaosAgreement(NamedTuple):

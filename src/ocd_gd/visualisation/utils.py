@@ -2,12 +2,10 @@
 Styling defaults and utility functions for visualization.
 """
 
-from typing import Dict, Any
-import matplotlib.pyplot as plt
-
-import os
 from pathlib import Path
-from typing import Optional, Tuple
+from typing import Any
+
+import matplotlib.pyplot as plt
 
 # Global tracking for export directories
 _OUTPUT_DIRS = {
@@ -17,7 +15,7 @@ _OUTPUT_DIRS = {
 }
 
 
-def set_output_dir(path: str = "./plots") -> Tuple[Path, Path]:
+def set_output_dir(path: str = "./plots") -> tuple[Path, Path]:
     """Set default base directory for plot exports and create backend subfolders.
 
     Returns
@@ -39,7 +37,7 @@ def set_output_dir(path: str = "./plots") -> Tuple[Path, Path]:
     return mpl_dir, plotly_dir
 
 
-def resolve_save_path(save_path: Optional[str], backend: str) -> Optional[str]:
+def resolve_save_path(save_path: str | None, backend: str) -> str | None:
     """Helper to route relative save filenames into designated backend folders."""
     if save_path is None:
         return None
@@ -56,20 +54,44 @@ def resolve_save_path(save_path: Optional[str], backend: str) -> Optional[str]:
 
 
 # Default style parameters across Matplotlib plots
-MPL_STYLE_DEFAULTS: Dict[str, Any] = {
+MPL_STYLE_DEFAULTS: dict[str, Any] = {
+    # Figure properties
     "figure.facecolor": "white",
+    "figure.dpi": 150,
+    "figure.figsize": (8, 6),
+    "savefig.dpi": 600,
+    # Axes & spine styling
     "axes.facecolor": "white",
+    "axes.linewidth": 0.8,
+    "axes.labelsize": 12,
+    "axes.titlesize": 13,
     "axes.grid": True,
-    "grid.linestyle": ":",
-    "grid.alpha": 0.5,
+    # Fonts
     "font.family": "sans-serif",
     "font.size": 10,
-    "axes.labelsize": 11,
-    "axes.titlesize": 12,
-    "xtick.labelsize": 9,
-    "ytick.labelsize": 9,
-    "legend.fontsize": 9,
-    "figure.dpi": 150,
+    # Ticks
+    "xtick.labelsize": 12,
+    "ytick.labelsize": 12,
+    "xtick.direction": "in",
+    "ytick.direction": "in",
+    "xtick.major.size": 5,
+    "ytick.major.size": 5,
+    "xtick.major.width": 0.8,
+    "ytick.major.width": 0.8,
+    "xtick.minor.size": 3,
+    "ytick.minor.size": 3,
+    "xtick.minor.width": 0.6,
+    "ytick.minor.width": 0.6,
+    # Grid
+    "grid.linestyle": "--",
+    "grid.alpha": 0.25,
+    # Legend
+    "legend.fontsize": 10,
+    "legend.title_fontsize": 10,
+    # Lines, markers, and errorbars
+    "lines.linewidth": 1.0,
+    "lines.markersize": 6,
+    "errorbar.capsize": 5,
 }
 
 

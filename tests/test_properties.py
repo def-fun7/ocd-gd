@@ -1,6 +1,7 @@
 """Tests for public properties and lazy-loading cache layers in OrbitChaosDetector."""
 
 from unittest.mock import MagicMock, patch
+
 import numpy as np
 import pytest
 

@@ -6,7 +6,8 @@ procedure (locate the physical (x, v_x) region at fixed energy, then build a
 dense grid inside it) with no dependency on the detector class itself.
 """
 
-from typing import Any, Optional, Tuple
+from typing import Any
+
 import numpy as np
 
 from ._types import GridInitialConditions
@@ -89,8 +90,8 @@ def _generate_grid_ics(
     z_0: float,
     v_y0_frac: float,
     v_z0_frac: float,
-    E_0: Optional[float] = None,
-    x_search_range: Tuple[float, float] = (-10.0, 10.0),
+    E_0: float | None = None,
+    x_search_range: tuple[float, float] = (-10.0, 10.0),
     grid_size: int = 10,
     search_resolution: int = 1000,
 ) -> GridInitialConditions:

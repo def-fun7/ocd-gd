@@ -2,8 +2,8 @@
 Plotly backend for interactive visualization of galactic orbit dynamics and chaos indicators.
 """
 
-from typing import Optional, List, Union
 import numpy as np
+import numpy.typing as npt
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
@@ -12,7 +12,7 @@ from .utils import resolve_save_path
 
 def _handle_save_show(
     fig: go.Figure,
-    save_path: Optional[str] = None,
+    save_path: str | None = None,
     backend: str = "plotly",
     show: bool = True,
     **kwargs,
@@ -36,13 +36,13 @@ def _handle_save_show(
 # 1. SALI vs Time
 # ==============================================================================
 def plot_sali_plotly(
-    t: np.ndarray,
-    sali: np.ndarray,
-    threshold: Optional[float] = 1e-8,
-    is_chaotic: Optional[bool] = None,
-    detection_time: Optional[float] = None,
-    window_size_time: Optional[float] = None,
-    save_path: Optional[str] = None,
+    t: npt.NDArray[np.float64],
+    sali: npt.NDArray[np.float64],
+    threshold: float | None = 1e-8,
+    is_chaotic: bool | None = None,
+    detection_time: float | None = None,
+    window_size_time: float | None = None,
+    save_path: str | None = None,
     show: bool = True,
     **kwargs,
 ) -> go.Figure:
@@ -58,7 +58,7 @@ def plot_sali_plotly(
             y=sali,
             mode="lines",
             name=name,
-            line=dict(color=color, width=kwargs.get("width", 2)),
+            line={"color": color, "width": kwargs.get("width", 2)},
         )
     )
 
@@ -114,10 +114,10 @@ def plot_sali_plotly(
 # 2. GALI vs Time
 # ==============================================================================
 def plot_gali_plotly(
-    t: np.ndarray,
-    gali: np.ndarray,
-    k_orders: Optional[List[int]] = None,
-    save_path: Optional[str] = None,
+    t: npt.NDArray[np.float64],
+    gali: npt.NDArray[np.float64],
+    k_orders: list[int | None] | None = None,
+    save_path: str | None = None,
     show: bool = True,
     **kwargs,
 ) -> go.Figure:
@@ -127,7 +127,7 @@ def plot_gali_plotly(
     if gali.ndim == 1:
         name = f"GALI_{k_orders[0]}" if k_orders else "GALI"
         fig.add_trace(
-            go.Scatter(x=t, y=gali, mode="lines", name=name, line=dict(width=2))
+            go.Scatter(x=t, y=gali, mode="lines", name=name, line={"width": 2})
         )
     else:
         num_k = gali.shape[1]
@@ -139,7 +139,7 @@ def plot_gali_plotly(
             )
             fig.add_trace(
                 go.Scatter(
-                    x=t, y=gali[:, i], mode="lines", name=lbl, line=dict(width=2)
+                    x=t, y=gali[:, i], mode="lines", name=lbl, line={"width": 2}
                 )
             )
 
@@ -161,8 +161,8 @@ def plot_gali_plotly(
 # 3. Orbit Trajectory Plot (Face-On & Edge-On Side-by-Side)
 # ==============================================================================
 def plot_trajectory_2d_plotly(
-    pos: np.ndarray,
-    save_path: Optional[str] = None,
+    pos: npt.NDArray[np.float64],
+    save_path: str | None = None,
     show: bool = True,
     **kwargs,
 ) -> go.Figure:
@@ -182,7 +182,7 @@ def plot_trajectory_2d_plotly(
     # Face-On
     fig.add_trace(
         go.Scatter(
-            x=x, y=y, mode="lines", name="Face-On", line=dict(color=color, width=1)
+            x=x, y=y, mode="lines", name="Face-On", line={"color": color, "width": 1}
         ),
         row=1,
         col=1,
@@ -190,7 +190,7 @@ def plot_trajectory_2d_plotly(
     # Edge-On
     fig.add_trace(
         go.Scatter(
-            x=x, y=z, mode="lines", name="Edge-On", line=dict(color=color, width=1)
+            x=x, y=z, mode="lines", name="Edge-On", line={"color": color, "width": 1}
         ),
         row=1,
         col=2,
@@ -218,8 +218,8 @@ def plot_trajectory_2d_plotly(
 # 4. 3D Orbit Plot
 # ==============================================================================
 def plot_trajectory_3d_plotly(
-    pos: np.ndarray,
-    save_path: Optional[str] = None,
+    pos: npt.NDArray[np.float64],
+    save_path: str | None = None,
     show: bool = True,
     **kwargs,
 ) -> go.Figure:
@@ -236,7 +236,7 @@ def plot_trajectory_3d_plotly(
             z=z,
             mode="lines",
             name="Trajectory",
-            line=dict(color=color, width=3),
+            line={"color": color, "width": 3},
         )
     )
 
@@ -248,7 +248,7 @@ def plot_trajectory_3d_plotly(
                 z=[z[0]],
                 mode="markers",
                 name="Start",
-                marker=dict(color="green", size=6),
+                marker={"color": "green", "size": 6},
             )
         )
         fig.add_trace(
@@ -258,18 +258,18 @@ def plot_trajectory_3d_plotly(
                 z=[z[-1]],
                 mode="markers",
                 name="End",
-                marker=dict(color="red", size=6),
+                marker={"color": "red", "size": 6},
             )
         )
 
     fig.update_layout(
         title=kwargs.get("title", "3D Orbit Trajectory"),
-        scene=dict(
-            xaxis_title="X",
-            yaxis_title="Y",
-            zaxis_title="Z",
-            aspectmode="data",
-        ),
+        scene={
+            "xaxis_title": "X",
+            "yaxis_title": "Y",
+            "zaxis_title": "Z",
+            "aspectmode": "data",
+        },
         template=kwargs.get("template", "plotly_white"),
         width=kwargs.get("fig_width", 800),
         height=kwargs.get("fig_height", 700),
@@ -283,10 +283,10 @@ def plot_trajectory_3d_plotly(
 # 5. Phase Space Plot (Position vs Velocity)
 # ==============================================================================
 def plot_phase_space_plotly(
-    pos: np.ndarray,
-    vel: np.ndarray,
+    pos: npt.NDArray[np.float64],
+    vel: npt.NDArray[np.float64],
     plane: str = "x",
-    save_path: Optional[str] = None,
+    save_path: str | None = None,
     show: bool = True,
     **kwargs,
 ) -> go.Figure:
@@ -305,11 +305,11 @@ def plot_phase_space_plotly(
             y=v,
             mode="markers",
             name=f"{plane.upper()} Phase Space",
-            marker=dict(
-                color=color,
-                size=kwargs.get("size", 3),
-                opacity=kwargs.get("opacity", 0.6),
-            ),
+            marker={
+                "color": color,
+                "size": kwargs.get("size", 3),
+                "opacity": kwargs.get("opacity", 0.6),
+            },
         )
     )
 
@@ -332,9 +332,9 @@ def plot_phase_space_plotly(
 # 6. Fractional Energy Drift vs Time
 # ==============================================================================
 def plot_energy_drift_plotly(
-    t: np.ndarray,
-    energy: np.ndarray,
-    save_path: Optional[str] = None,
+    t: npt.NDArray[np.float64],
+    energy: npt.NDArray[np.float64],
+    save_path: str | None = None,
     show: bool = True,
     **kwargs,
 ) -> go.Figure:
@@ -351,7 +351,7 @@ def plot_energy_drift_plotly(
             y=drift,
             mode="lines",
             name="|(E(t) - E₀) / E₀|",
-            line=dict(color=color, width=kwargs.get("width", 2)),
+            line={"color": color, "width": kwargs.get("width", 2)},
         )
     )
 
@@ -375,10 +375,10 @@ def plot_energy_drift_plotly(
 # 7. Color-Coded Trajectory Plot (Colored by Time or SALI)
 # ==============================================================================
 def plot_colored_trajectory_2d_plotly(
-    pos: np.ndarray,
-    c_values: np.ndarray,
+    pos: npt.NDArray[np.float64],
+    c_values: npt.NDArray[np.float64],
     c_label: str = "Time",
-    save_path: Optional[str] = None,
+    save_path: str | None = None,
     show: bool = True,
     **kwargs,
 ) -> go.Figure:
@@ -393,14 +393,14 @@ def plot_colored_trajectory_2d_plotly(
             x=x,
             y=y,
             mode="lines+markers",
-            marker=dict(
-                size=2,
-                color=c_values,
-                colorscale=colorscale,
-                colorbar=dict(title=c_label),
-                showscale=True,
-            ),
-            line=dict(color="rgba(150,150,150,0.3)", width=1),
+            marker={
+                "size": 2,
+                "color": c_values,
+                "colorscale": colorscale,
+                "colorbar": {"title": c_label},
+                "showscale": True,
+            },
+            line={"color": "rgba(150,150,150,0.3)", "width": 1},
         )
     )
 
@@ -408,7 +408,7 @@ def plot_colored_trajectory_2d_plotly(
         title=kwargs.get("title", f"Trajectory Colored by {c_label}"),
         xaxis_title="X",
         yaxis_title="Y",
-        xaxis=dict(scaleanchor="y", scaleratio=1),
+        xaxis={"scaleanchor": "y", "scaleratio": 1},
         template=kwargs.get("template", "plotly_white"),
         width=kwargs.get("fig_width", 800),
         height=kwargs.get("fig_height", 650),

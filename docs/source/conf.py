@@ -15,8 +15,8 @@ sys.path.insert(
 )
 
 project = "ocd-gd"
-copyright = "2026, def-fun7"
-author = "def-fun7"
+copyright = "2026, Asad Arshad"
+author = "Asad Arshad"
 release = "0.1.0"
 
 # -- General configuration ---------------------------------------------------

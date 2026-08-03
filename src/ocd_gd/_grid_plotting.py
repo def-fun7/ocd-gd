@@ -9,7 +9,7 @@ the host class provides `chaos_grids`, `x_grid`, `vx_grid`,
 available via `OrbitChaosDetector`'s own `_OrbitPlottingMixin`).
 """
 
-from typing import Any, Optional
+from typing import Any
 
 from .visualisation import (
     plot_chaos_maps_mpl,
@@ -24,8 +24,8 @@ class _GridChaosPlottingMixin:
 
     def plot_chaos_map(
         self,
-        backend: Optional[str] = None,
-        save_path: Optional[str] = None,
+        backend: str | None = None,
+        save_path: str | None = None,
         show: bool = True,
         show_resonances: bool = True,
         **kwargs,
@@ -66,8 +66,8 @@ class _GridChaosPlottingMixin:
 
     def plot_composite_chaos_map(
         self,
-        backend: Optional[str] = None,
-        save_path: Optional[str] = None,
+        backend: str | None = None,
+        save_path: str | None = None,
         show: bool = True,
         show_resonances: bool = True,
         **kwargs,
@@ -95,9 +95,9 @@ class _GridChaosPlottingMixin:
 
     def save_chaos_maps(
         self,
-        side_by_side_path: Optional[str] = None,
-        composite_path: Optional[str] = None,
-        backend: Optional[str] = None,
+        side_by_side_path: str | None = None,
+        composite_path: str | None = None,
+        backend: str | None = None,
         **kwargs,
     ) -> None:
         """Save the side-by-side and/or composite chaos maps to disk without

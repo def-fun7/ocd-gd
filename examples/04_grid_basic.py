@@ -5,14 +5,19 @@ Demonstrates GridChaosDetector grid generation, physical cell filtering,
 lazy-loaded chaos_grids arrays, and coordinate/index lookup methods without plotting.
 """
 
-import sys
 import logging
-import numpy as np
-import agama
+import sys
 
+import agama
+import numpy as np
+
+from ocd_gd._logging_config import (
+    print_banner,
+    print_dataframe_table,
+    print_kv_table,
+    setup_logging,
+)
 from ocd_gd.grid_detector import GridChaosDetector
-from ocd_gd._logging_config import setup_logging
-from ocd_gd._logging_config import print_banner, print_kv_table, print_dataframe_table
 
 
 def build_potential() -> "agama.Potential":
@@ -50,7 +55,7 @@ def main() -> None:
     )
 
     # 3. Access Reshaped Chaos Grids
-    sali_grid, gali_grid, lyap_grid = detector.chaos_grids
+    sali_grid, _gali_grid, _lyap_grid = detector.chaos_grids
 
     # Count physical (valid float) vs unphysical (NaN) cells
     n_total = grid_size * grid_size
@@ -115,6 +120,6 @@ def main() -> None:
 if __name__ == "__main__":
     try:
         main()
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001
         print(f"\u2717 Example failed: {exc}", file=sys.stderr)
         sys.exit(1)

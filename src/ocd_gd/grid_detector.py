@@ -6,15 +6,17 @@ grid-shaped chaos-map visualizations on top of OrbitChaosDetector.
 """
 
 import time
-from typing import Any, Dict, Optional, Tuple
+from typing import Any
+
 import numpy as np
+import numpy.typing as npt
 from astropy.table import QTable
 
-from .orbit_detector import OrbitChaosDetector
-from ._grid_ics import _generate_grid_ics, _circular_velocity, _reference_energy
+from ._grid_ics import _circular_velocity, _generate_grid_ics, _reference_energy
 from ._grid_plotting import _GridChaosPlottingMixin
-from ._resonance import ResonanceRadii, compute_resonance_radii
 from ._logging_config import get_logger
+from ._resonance import ResonanceRadii, compute_resonance_radii
+from .orbit_detector import OrbitChaosDetector
 
 logger = get_logger(__name__)
 
@@ -39,9 +41,9 @@ class GridChaosDetector(_GridChaosPlottingMixin, OrbitChaosDetector):
         z_0: float = 0.1,
         v_y0_frac: float = 0.2,
         v_z0_frac: float = 0.02,
-        E_0: Optional[float] = None,
+        E_0: float | None = None,
         grid_size: int = 10,
-        x_search_range: Tuple[float, float] = (-10.0, 10.0),
+        x_search_range: tuple[float, float] = (-10.0, 10.0),
         search_resolution: int = 1000,
         omega: float = 0.0,
         iter_time: float = 10.0,
@@ -128,11 +130,13 @@ class GridChaosDetector(_GridChaosPlottingMixin, OrbitChaosDetector):
         self.x_grid = grid_info.x_vals
         self.vx_grid = grid_info.v_x_vals
         self.energy_remainder = grid_info.E_rem_vals
-        self._chaos_grids_cache: Optional[Tuple[np.ndarray, np.ndarray, np.ndarray]] = (
-            None
-        )
-        self._orbit_idx_lookup_cache: Optional[np.ndarray] = None
-        self._resonance_radii_cache: Optional[ResonanceRadii] = None
+        self._chaos_grids_cache: tuple[
+            npt.NDArray[np.float64],
+            npt.NDArray[np.float64],
+            npt.NDArray[np.float64] | None,
+        ] = None
+        self._orbit_idx_lookup_cache: npt.NDArray[np.float64] | None = None
+        self._resonance_radii_cache: ResonanceRadii | None = None
 
         # Only physically valid grid cells get integrated — skips wasted
         # agama.orbit() work on cells already known to violate the energy
@@ -166,7 +170,11 @@ class GridChaosDetector(_GridChaosPlottingMixin, OrbitChaosDetector):
             keep_raw_deviations=keep_raw_deviations,
         )
 
-    def _compute_chaos_grids(self) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    def _compute_chaos_grids(
+        self,
+    ) -> tuple[
+        npt.NDArray[np.float64], npt.NDArray[np.float64], npt.NDArray[np.float64]
+    ]:
         """Reshape SALI/GALI/Lyapunov chaos checks into (grid_size, grid_size)
         maps, masking unphysical grid cells as NaN.
 
@@ -202,7 +210,11 @@ class GridChaosDetector(_GridChaosPlottingMixin, OrbitChaosDetector):
         )
 
     @property
-    def chaos_grids(self) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    def chaos_grids(
+        self,
+    ) -> tuple[
+        npt.NDArray[np.float64], npt.NDArray[np.float64], npt.NDArray[np.float64]
+    ]:
         """Lazy-loaded (sali_grid, gali_grid, lyapunov_grid) maps, each shaped
         (grid_size, grid_size) with unphysical cells set to NaN."""
         if self._chaos_grids_cache is None:
@@ -210,7 +222,7 @@ class GridChaosDetector(_GridChaosPlottingMixin, OrbitChaosDetector):
         return self._chaos_grids_cache
 
     @property
-    def _orbit_idx_lookup(self) -> np.ndarray:
+    def _orbit_idx_lookup(self) -> npt.NDArray[np.float64]:
         """Lazy-loaded (grid_size**2,) int array mapping a flat grid index to
         its orbit_idx, or -1 for grid cells that were never integrated
         (unphysical)."""
@@ -220,7 +232,7 @@ class GridChaosDetector(_GridChaosPlottingMixin, OrbitChaosDetector):
             self._orbit_idx_lookup_cache = lookup
         return self._orbit_idx_lookup_cache
 
-    def orbit_idx_at(self, row: int, col: int) -> Optional[int]:
+    def orbit_idx_at(self, row: int, col: int) -> int | None:
         """Return the orbit_idx for grid cell (row, col), or None if that
         cell was unphysical and was never integrated.
 
@@ -239,14 +251,14 @@ class GridChaosDetector(_GridChaosPlottingMixin, OrbitChaosDetector):
         idx = self._orbit_idx_lookup[flat]
         return None if idx == -1 else int(idx)
 
-    def grid_position_of(self, orbit_idx: int) -> Tuple[int, int]:
+    def grid_position_of(self, orbit_idx: int) -> tuple[int, int]:
         """Return the (row, col) grid position an orbit_idx corresponds to —
         the inverse of `orbit_idx_at`. `row` indexes v_x, `col` indexes x."""
         self._validate_index(orbit_idx)
         flat = self._physical_indices[orbit_idx]
         return divmod(int(flat), self.grid_size)
 
-    def grid_coordinates_of(self, orbit_idx: int) -> Tuple[float, float]:
+    def grid_coordinates_of(self, orbit_idx: int) -> tuple[float, float]:
         """Return the (x, v_x) physical coordinates an orbit_idx corresponds
         to, rather than its raw (row, col) grid position."""
         row, col = self.grid_position_of(orbit_idx)
@@ -262,12 +274,12 @@ class GridChaosDetector(_GridChaosPlottingMixin, OrbitChaosDetector):
             self._resonance_radii_cache = compute_resonance_radii(self.pot, self.omega)
         return self._resonance_radii_cache
 
-    def metadata_row(self, extra: Optional[Dict[str, Any]] = None) -> QTable:
+    def metadata_row(self, extra: dict[str, Any | None] | None = None) -> QTable:
         """Extends `OrbitChaosDetector.metadata_row` with grid-specific
         parameters (R_0, E_0, grid geometry, transverse velocity fractions).
         See the base method for the `extra` parameter and general behavior.
         """
-        grid_columns: Dict[str, Any] = {
+        grid_columns: dict[str, Any] = {
             "R_0": self.R_0,
             "E_0": self.E_0,
             "y_0": self.y_0,

@@ -1,10 +1,15 @@
-# Examples Changelog
+# Examples CHANGELOG
 
 Chronological log of additions, updates, API shifts, and structural reorganizations within the `examples/` directory.
 
 ---
 
 ## [Unreleased]
+
+### 2026-08-03 Updates
+
+- **Fixed** remove the `_to_scalar` call in `./02_single_orbit_chaos_check.py` from `lyapunov`, after typings update to `py310+`.
+- **Updated `README.md` for examples:** added the date column for examples, added the section for data folder contents
 
 ### 2026-08-02 — Writing Basic example suite (with rich-formated-cli) along with README and CHANGELOG
 

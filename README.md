@@ -98,9 +98,9 @@ Comprehensive guides, API references, and interactive tutorials are available on
 
 ### 🚀 Quick Links
 
-- **[Getting Started Guide](https://ocd-gd.readthedocs.io/en/latest/getting_started.html)** — Installation, Agama potential setup, and first orbit integration.
+- **[Getting Started Guide](https://ocd-gd.readthedocs.io/en/latest/quickstart.html)** — Installation, Agama potential setup, and first orbit integration.
 - **[Example Gallery](https://ocd-gd.readthedocs.io/en/latest/examples/index.html)** — Executable recipes ranging from single orbit SALI/GALI checks to 2D grid chaos mapping.
-- **[API Reference](https://ocd-gd.readthedocs.io/en/latest/api/index.html)** — Detailed docstrings and signatures for `OrbitChaosDetector`, `GridChaosDetector`, and visualization mixins.
+- **[API Reference](https://ocd-gd.readthedocs.io/en/latest/modules.html)** — Detailed docstrings and signatures for `OrbitChaosDetector`, `GridChaosDetector`, and visualization mixins.
 
 ### 💻 Running Examples Locally
 

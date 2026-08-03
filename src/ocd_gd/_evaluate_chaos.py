@@ -6,17 +6,17 @@ specifically identifying when a system metric falls below a given threshold
 and sustains that behavior over a specified rolling window.
 """
 
-from typing import Tuple, Union
 import numpy as np
+import numpy.typing as npt
 
 
 def evaluate_chaos(
-    metric_arr: np.ndarray,
-    time_arr: np.ndarray,
+    metric_arr: npt.NDArray[np.float64],
+    time_arr: npt.NDArray[np.float64],
     threshold: float = 1e-12,
     separate: bool = False,
     window_size: int = 10,
-) -> Tuple[np.ndarray, np.ndarray]:
+) -> tuple[npt.NDArray[np.float64], npt.NDArray[np.float64]]:
     """... (docstring unchanged) ..."""
     time_flat = time_arr.ravel()
     n_time_steps = metric_arr.shape[-1]

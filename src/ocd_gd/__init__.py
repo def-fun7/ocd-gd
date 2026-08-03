@@ -5,30 +5,30 @@ A package for evaluating orbit integration data, checking convergence,
 and detecting chaotic vs. regular dynamical behavior using SALI/GALI metrics.
 """
 
-from .orbit_detector import OrbitChaosDetector
-from .grid_detector import GridChaosDetector
+from ._logging_config import setup_logging
+from ._resonance import ResonanceRadii
 from ._types import (
-    IntegrationCriteria,
-    ChaosSummary,
-    ChaosFullReport,
-    ChaosSurveySummary,
-    MethodChaosStats,
     ChaosAgreement,
+    ChaosFullReport,
+    ChaosSummary,
+    ChaosSurveySummary,
+    IntegrationCriteria,
+    MethodChaosStats,
     chaos_summary_row,
 )
-from ._resonance import ResonanceRadii
-from ._logging_config import setup_logging
+from .grid_detector import GridChaosDetector
+from .orbit_detector import OrbitChaosDetector
 
 __all__ = [
-    "OrbitChaosDetector",
+    "ChaosAgreement",
+    "ChaosFullReport",
+    "ChaosSummary",
+    "ChaosSurveySummary",
     "GridChaosDetector",
     "IntegrationCriteria",
-    "ChaosSummary",
-    "ChaosFullReport",
-    "ChaosSurveySummary",
     "MethodChaosStats",
-    "ChaosAgreement",
-    "chaos_summary_row",
+    "OrbitChaosDetector",
     "ResonanceRadii",
+    "chaos_summary_row",
     "setup_logging",
 ]

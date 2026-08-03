@@ -1,9 +1,10 @@
-import sys
 import logging
+import sys
+
 import agama
 
+from ocd_gd._logging_config import print_banner, print_kv_table, setup_logging
 from ocd_gd.orbit_detector import OrbitChaosDetector
-from ocd_gd._logging_config import setup_logging, print_banner, print_kv_table
 
 
 def build_potential() -> "agama.Potential":
@@ -62,6 +63,6 @@ def main() -> None:
 if __name__ == "__main__":
     try:
         main()
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001
         print(f"\u2717 Example failed: {exc}", file=sys.stderr)
         sys.exit(1)

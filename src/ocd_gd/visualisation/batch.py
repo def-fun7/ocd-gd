@@ -2,36 +2,37 @@
 Batch visualization module for comparing multiple orbits simultaneously.
 """
 
-from typing import List, Optional, Tuple, Union
 import math
-import numpy as np
-import matplotlib.pyplot as plt
 
-from .matplotlib_backend import plot_sali_mpl, plot_gali_mpl, _handle_save_show
+import matplotlib.pyplot as plt
+import numpy as np
+import numpy.typing as npt
+
+from .matplotlib_backend import _handle_save_show, plot_gali_mpl, plot_sali_mpl
 
 
 def plot_sali_batch_mpl(
-    t: np.ndarray,
-    sali_array: np.ndarray,
-    orbit_indices: Optional[List[int]] = None,
-    sali_checks: Optional[np.ndarray] = None,
-    sali_times: Optional[np.ndarray] = None,
-    lyapunov_array: Optional[np.ndarray] = None,
+    t: npt.NDArray[np.float64],
+    sali_array: npt.NDArray[np.float64],
+    orbit_indices: list[int] | None = None,
+    sali_checks: npt.NDArray[np.float64] | None = None,
+    sali_times: npt.NDArray[np.float64] | None = None,
+    lyapunov_array: npt.NDArray[np.float64] | None = None,
     threshold: float = 1e-2,
-    window_size_time: Optional[float] = None,
+    window_size_time: float | None = None,
     max_per_page: int = 10,
-    save_path: Optional[str] = None,
+    save_path: str | None = None,
     show: bool = True,
     **kwargs,
-) -> List[plt.Figure]:
+) -> list[plt.Figure]:
     """
     Plot grid of SALI vs Time graphs for multiple orbits. Paginated if total orbits > max_per_page.
 
     Parameters
     ----------
-    t : np.ndarray
+    t : npt.NDArray[np.float64]
         Time array.
-    sali_array : np.ndarray
+    sali_array : npt.NDArray[np.float64]
         Full SALI array of shape (N_orbits, ...).
     orbit_indices : list of int, optional
         Target orbit indices to plot. Defaults to all orbits in sali_array.
@@ -118,20 +119,20 @@ def plot_sali_batch_mpl(
 
 
 def plot_gali_batch_mpl(
-    t: np.ndarray,
-    gali_array: np.ndarray,
-    orbit_indices: Optional[List[int]] = None,
-    gali_checks: Optional[np.ndarray] = None,
-    gali_times: Optional[np.ndarray] = None,
-    lyapunov_array: Optional[np.ndarray] = None,
+    t: npt.NDArray[np.float64],
+    gali_array: npt.NDArray[np.float64],
+    orbit_indices: list[int] | None = None,
+    gali_checks: npt.NDArray[np.float64] | None = None,
+    gali_times: npt.NDArray[np.float64] | None = None,
+    lyapunov_array: npt.NDArray[np.float64] | None = None,
     threshold: float = 1e-16,
-    window_size_time: Optional[float] = None,
-    k_orders: Optional[List[int]] = None,
+    window_size_time: float | None = None,
+    k_orders: list[int] | None = None,
     max_per_page: int = 10,
-    save_path: Optional[str] = None,
+    save_path: str | None = None,
     show: bool = True,
     **kwargs,
-) -> List[plt.Figure]:
+) -> list[plt.Figure]:
     """
     Plot grid of GALI vs Time graphs for multiple orbits. Paginated if total orbits > max_per_page.
     """
@@ -211,25 +212,25 @@ def plot_gali_batch_mpl(
 
 
 def plot_sali_gali_dual_batch_mpl(
-    t: np.ndarray,
-    sali_array: np.ndarray,
-    gali_array: np.ndarray,
-    orbit_indices: Optional[List[int]] = None,
-    sali_checks: Optional[np.ndarray] = None,
-    sali_times: Optional[np.ndarray] = None,
-    gali_checks: Optional[np.ndarray] = None,
-    gali_times: Optional[np.ndarray] = None,
-    lyapunov_array: Optional[np.ndarray] = None,
+    t: npt.NDArray[np.float64],
+    sali_array: npt.NDArray[np.float64],
+    gali_array: npt.NDArray[np.float64],
+    orbit_indices: list[int] | None = None,
+    sali_checks: npt.NDArray[np.float64 | None] = None,
+    sali_times: npt.NDArray[np.float64 | None] = None,
+    gali_checks: npt.NDArray[np.float64 | None] = None,
+    gali_times: npt.NDArray[np.float64 | None] = None,
+    lyapunov_array: npt.NDArray[np.float64 | None] = None,
     sali_threshold: float = 1e-2,
     gali_threshold: float = 1e-16,
-    sali_window_time: Optional[float] = None,
-    gali_window_time: Optional[float] = None,
-    k_orders: Optional[List[int]] = None,
+    sali_window_time: float | None = None,
+    gali_window_time: float | None = None,
+    k_orders: list[int | None] | None = None,
     max_orbits_per_page: int = 5,
-    save_path: Optional[str] = None,
+    save_path: str | None = None,
     show: bool = True,
     **kwargs,
-) -> List[plt.Figure]:
+) -> list[plt.Figure]:
     """
     Plot side-by-side SALI (left) and GALI (right) for multiple orbits in a batch.
 

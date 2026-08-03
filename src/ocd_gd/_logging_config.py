@@ -97,6 +97,7 @@ def print_banner(title: str, subtitle: str = "") -> None:
         )
         console.print(Panel.fit(content, border_style="cyan"))
     else:
+        log = get_logger(__name__)
         full_title = f"{title} - {subtitle}" if subtitle else title
         log.info("==================================================")
         log.info("  %s", full_title)
@@ -117,6 +118,8 @@ def print_kv_table(
             table.add_row(str(key), str(val))
         console.print(table)
     else:
+        log = get_logger(__name__)
+
         log.info("┌── %s", title)
         for key, val in data.items():
             log.info("│ %-22s : %s", key, val)
@@ -138,6 +141,8 @@ def print_dataframe_table(
             table.add_row(*[str(cell) for cell in row])
         console.print(table)
     else:
+        log = get_logger(__name__)
+
         log.info("=== %s ===", title)
         log.info(" | ".join(headers))
         log.info("-" * 40)

@@ -1,6 +1,7 @@
 """Tests for internal mathematical helper functions of OrbitChaosDetector."""
 
 from unittest.mock import MagicMock, patch
+
 import numpy as np
 import pytest
 

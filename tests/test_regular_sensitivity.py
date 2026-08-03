@@ -1,7 +1,9 @@
-import agama
 from pathlib import Path
+
+import agama
 import numpy as np
 import pytest
+
 from ocd_gd.orbit_detector import OrbitChaosDetector
 
 BASE_PATH = Path(__file__).parent / "fixtures"
@@ -27,7 +29,7 @@ class TestRegularSensitivity:
         """
         Evaluate detector performance on regular orbits
         """
-        ics, mles = load_regular_benchmark_ics()
+        ics, _mles = load_regular_benchmark_ics()
         mw_potential = agama.Potential(str(MW_POTENTIAL))
 
         # Run detection on all regular benchmark ICs

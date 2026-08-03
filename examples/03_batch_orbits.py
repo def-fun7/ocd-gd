@@ -5,14 +5,20 @@ Demonstrates running OrbitChaosDetector on a batch of initial conditions
 and extracting population-level chaos statistics with chaos_summary().
 """
 
-import sys
 import logging
-import numpy as np
-import agama
+import sys
 
+import agama
+import numpy as np
+import numpy.typing as npt
+
+from ocd_gd._logging_config import (
+    print_banner,
+    print_dataframe_table,
+    print_kv_table,
+    setup_logging,
+)
 from ocd_gd.orbit_detector import OrbitChaosDetector
-from ocd_gd._logging_config import setup_logging
-from ocd_gd._logging_config import print_banner, print_kv_table, print_dataframe_table
 
 
 def build_potential() -> "agama.Potential":
@@ -27,7 +33,7 @@ def build_potential() -> "agama.Potential":
     )
 
 
-def generate_batch_ics(num_orbits: int = 5) -> np.ndarray:
+def generate_batch_ics(num_orbits: int = 5) -> npt.NDArray[np.float64]:
     """Generate initial conditions with varying radial distances."""
     radii = np.linspace(2.0, 10.0, num_orbits)
     ics = []
@@ -108,6 +114,6 @@ def main() -> None:
 if __name__ == "__main__":
     try:
         main()
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001
         print(f"\u2717 Example failed: {exc}", file=sys.stderr)
         sys.exit(1)

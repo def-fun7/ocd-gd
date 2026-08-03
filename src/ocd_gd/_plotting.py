@@ -11,29 +11,32 @@ class provides `_validate_index`, `_resolve_backend`, `detect_chaos`,
 and `gali_window_size`.
 """
 
-from typing import Any, Callable, List, Optional, Tuple, Union
-import numpy as np
+from collections.abc import Callable
+from typing import Any
+
 import matplotlib.pyplot as plt
+import numpy as np
+import numpy.typing as npt
 import plotly.graph_objects as go
 
 from .visualisation import (
-    plot_sali_mpl,
-    plot_sali_plotly,
-    plot_gali_mpl,
-    plot_gali_plotly,
-    plot_trajectory_2d_mpl,
-    plot_trajectory_2d_plotly,
-    plot_trajectory_3d_mpl,
-    plot_trajectory_3d_plotly,
-    plot_phase_space_mpl,
-    plot_phase_space_plotly,
     plot_colored_trajectory_2d_mpl,
     plot_colored_trajectory_2d_plotly,
     plot_dashboard_mpl,
     plot_dashboard_plotly,
     plot_gali_batch_mpl,
+    plot_gali_mpl,
+    plot_gali_plotly,
+    plot_phase_space_mpl,
+    plot_phase_space_plotly,
     plot_sali_batch_mpl,
     plot_sali_gali_dual_batch_mpl,
+    plot_sali_mpl,
+    plot_sali_plotly,
+    plot_trajectory_2d_mpl,
+    plot_trajectory_2d_plotly,
+    plot_trajectory_3d_mpl,
+    plot_trajectory_3d_plotly,
 )
 
 
@@ -48,7 +51,7 @@ class _OrbitPlottingMixin:
         self,
         mpl_fn: Callable[..., Any],
         plotly_fn: Callable[..., Any],
-        backend: Optional[str],
+        backend: str | None,
         *args: Any,
         **kwargs: Any,
     ) -> Any:
@@ -68,7 +71,9 @@ class _OrbitPlottingMixin:
         return self.timestamps[1] - self.timestamps[0]
 
     @staticmethod
-    def _detection_info(check: np.ndarray, time_val: np.ndarray) -> Tuple[bool, float]:
+    def _detection_info(
+        check: npt.NDArray[np.float64], time_val: npt.NDArray[np.float64]
+    ) -> tuple[bool, float]:
         """Reduce a chaos-check/detection-time pair to a plain (bool, float).
 
         `check` and `time_val` may either be scalars (single-orbit lookup) or
@@ -89,11 +94,11 @@ class _OrbitPlottingMixin:
         self,
         orbit_idx: int = 0,
         all_pairs: bool = False,
-        backend: Optional[str] = None,
-        save_path: Optional[str] = None,
+        backend: str | None = None,
+        save_path: str | None = None,
         show: bool = True,
         **kwargs,
-    ) -> Union[Tuple[plt.Figure, plt.Axes], go.Figure]:
+    ) -> tuple[plt.Figure, plt.Axes] | go.Figure:
         """Plot SALI vs Time for a target orbit.
 
         Parameters
@@ -148,12 +153,12 @@ class _OrbitPlottingMixin:
     def plot_gali(
         self,
         orbit_idx: int = 0,
-        k_orders: Optional[List[int]] = None,
-        backend: Optional[str] = None,
-        save_path: Optional[str] = None,
+        k_orders: list[int | None] | None = None,
+        backend: str | None = None,
+        save_path: str | None = None,
         show: bool = True,
         **kwargs,
-    ) -> Union[Tuple[plt.Figure, plt.Axes], go.Figure]:
+    ) -> tuple[plt.Figure, plt.Axes] | go.Figure:
         """Plot GALI vs Time for a target orbit.
 
         Parameters
@@ -206,11 +211,11 @@ class _OrbitPlottingMixin:
     def plot_trajectory_2d(
         self,
         orbit_idx: int = 0,
-        backend: Optional[str] = None,
-        save_path: Optional[str] = None,
+        backend: str | None = None,
+        save_path: str | None = None,
         show: bool = True,
         **kwargs,
-    ) -> Union[Tuple[plt.Figure, np.ndarray], go.Figure]:
+    ) -> tuple[plt.Figure, npt.NDArray[np.float64]] | go.Figure:
         """Plot Face-On (X-Y) and Edge-On (X-Z) 2D orbit projections."""
         self._validate_index(orbit_idx)
         pos = self.trajectories[orbit_idx][:, :3]
@@ -228,11 +233,11 @@ class _OrbitPlottingMixin:
     def plot_trajectory_3d(
         self,
         orbit_idx: int = 0,
-        backend: Optional[str] = None,
-        save_path: Optional[str] = None,
+        backend: str | None = None,
+        save_path: str | None = None,
         show: bool = True,
         **kwargs,
-    ) -> Union[Tuple[plt.Figure, plt.Axes], go.Figure]:
+    ) -> tuple[plt.Figure, plt.Axes] | go.Figure:
         """Plot 3D spatial orbit path."""
         self._validate_index(orbit_idx)
         pos = self.trajectories[orbit_idx][:, :3]
@@ -251,11 +256,11 @@ class _OrbitPlottingMixin:
         self,
         orbit_idx: int = 0,
         plane: str = "x",
-        backend: Optional[str] = None,
-        save_path: Optional[str] = None,
+        backend: str | None = None,
+        save_path: str | None = None,
         show: bool = True,
         **kwargs,
-    ) -> Union[Tuple[plt.Figure, plt.Axes], go.Figure]:
+    ) -> tuple[plt.Figure, plt.Axes] | go.Figure:
         """Plot 2D phase space scatter projection (Position vs Velocity)."""
         self._validate_index(orbit_idx)
         pos = self.trajectories[orbit_idx][:, :3]
@@ -277,11 +282,11 @@ class _OrbitPlottingMixin:
         self,
         orbit_idx: int = 0,
         color_by: str = "time",
-        backend: Optional[str] = None,
-        save_path: Optional[str] = None,
+        backend: str | None = None,
+        save_path: str | None = None,
         show: bool = True,
         **kwargs,
-    ) -> Union[Tuple[plt.Figure, plt.Axes], go.Figure]:
+    ) -> tuple[plt.Figure, plt.Axes] | go.Figure:
         """Plot 2D Face-On trajectory colored dynamically by time or SALI."""
         self._validate_index(orbit_idx)
         pos = self.trajectories[orbit_idx][:, :3]
@@ -309,11 +314,11 @@ class _OrbitPlottingMixin:
     def plot_dashboard(
         self,
         orbit_idx: int = 0,
-        backend: Optional[str] = None,
-        save_path: Optional[str] = None,
+        backend: str | None = None,
+        save_path: str | None = None,
         show: bool = True,
         **kwargs,
-    ) -> Union[Tuple[plt.Figure, np.ndarray], None]:
+    ) -> tuple[plt.Figure, npt.NDArray[np.float64]] | None:
         """Plot a multi-panel diagnostic dashboard summarizing trajectory and chaos metrics."""
         self._validate_index(orbit_idx)
 
@@ -372,12 +377,12 @@ class _OrbitPlottingMixin:
 
     def plot_sali_batch(
         self,
-        orbit_indices: Optional[List[int]] = None,
+        orbit_indices: list[int | None] | None = None,
         max_per_page: int = 10,
-        save_path: Optional[str] = None,
+        save_path: str | None = None,
         show: bool = True,
         **kwargs,
-    ) -> List[plt.Figure]:
+    ) -> list[plt.Figure]:
         """Plot a grid of SALI vs Time plots for multiple orbits (paginated).
 
         Parameters
@@ -409,13 +414,13 @@ class _OrbitPlottingMixin:
 
     def plot_gali_batch(
         self,
-        orbit_indices: Optional[List[int]] = None,
-        k_orders: Optional[List[int]] = None,
+        orbit_indices: list[int | None] | None = None,
+        k_orders: list[int | None] | None = None,
         max_per_page: int = 10,
-        save_path: Optional[str] = None,
+        save_path: str | None = None,
         show: bool = True,
         **kwargs,
-    ) -> List[plt.Figure]:
+    ) -> list[plt.Figure]:
         """Plot a grid of GALI vs Time plots for multiple orbits (paginated)."""
         chaos_report = self.detect_chaos(check_only=True)
         dt = self._get_dt()
@@ -438,13 +443,13 @@ class _OrbitPlottingMixin:
 
     def plot_sali_gali_batch(
         self,
-        orbit_indices: Optional[List[int]] = None,
-        k_orders: Optional[List[int]] = None,
+        orbit_indices: list[int | None] | None = None,
+        k_orders: list[int | None] | None = None,
         max_orbits_per_page: int = 5,
-        save_path: Optional[str] = None,
+        save_path: str | None = None,
         show: bool = True,
         **kwargs,
-    ) -> List[plt.Figure]:
+    ) -> list[plt.Figure]:
         """Plot side-by-side SALI (left) and GALI (right) for a batch of orbits.
 
         Parameters

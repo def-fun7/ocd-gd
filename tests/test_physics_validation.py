@@ -1,13 +1,16 @@
 """Integration tests checking chaos indicators against known analytical physics."""
 
+from pathlib import Path
+
+import agama
 import numpy as np
 import pytest
-import agama
 
 from ocd_gd.orbit_detector import OrbitChaosDetector
 
 # Enable units in Agama (Kpc, Msun, km/s)
 agama.setUnits(length=1, mass=1, velocity=1)
+BASE_PATH = Path(__file__).parent / "fixtures"
 
 
 @pytest.fixture(scope="module")
@@ -26,7 +29,7 @@ def spherical_potential():
 @pytest.fixture(scope="module")
 def triaxial_potential():
     """Triaxial Ferrers potential — highly chaotic regime in central regions."""
-    return agama.Potential("data/potentials/MWPotentialHunter24_full.ini")
+    return agama.Potential(str(BASE_PATH / "MWPotentialHunter24_full.ini"))
 
 
 class TestPhysicalPotentials:

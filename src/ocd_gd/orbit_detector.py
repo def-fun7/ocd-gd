@@ -7,24 +7,25 @@ Lyapunov exponents.
 """
 
 import time
-from typing import Any, Dict, Optional, Tuple, Union
-import numpy as np
-from astropy.table import QTable
+from typing import Any
 
 import agama
+import numpy as np
+import numpy.typing as npt
+from astropy.table import QTable
 
 from ._evaluate_chaos import evaluate_chaos
+from ._logging_config import get_logger
+from ._plotting import _OrbitPlottingMixin
 from ._sali_kernel import _sali_kernel
 from ._types import (
-    IntegrationCriteria,
-    ChaosSummary,
-    ChaosFullReport,
-    ChaosSurveySummary,
-    MethodChaosStats,
     ChaosAgreement,
+    ChaosFullReport,
+    ChaosSummary,
+    ChaosSurveySummary,
+    IntegrationCriteria,
+    MethodChaosStats,
 )
-from ._plotting import _OrbitPlottingMixin
-from ._logging_config import get_logger
 
 logger = get_logger(__name__)
 
@@ -89,7 +90,7 @@ class OrbitChaosDetector(_OrbitPlottingMixin):
         """
 
         # 1. Configuration Attributes
-        self.ic: np.ndarray = np.atleast_2d(ic)
+        self.ic: npt.NDArray[np.float64] = np.atleast_2d(ic)
         self.pot: Any = pot
         self.omega: float = omega
         self.num_orbits: int = len(self.ic)
@@ -105,16 +106,16 @@ class OrbitChaosDetector(_OrbitPlottingMixin):
         self.keep_raw_deviations: bool = keep_raw_deviations
 
         # 2. Raw Cached Simulation Data (Private)
-        self._time_arr: Optional[np.ndarray] = None
-        self._traj_arr: Optional[np.ndarray] = None
-        self._dev_arr: Optional[np.ndarray] = None
-        self._lyap: Optional[np.ndarray] = None
+        self._time_arr: npt.NDArray[np.float64] | None = None
+        self._traj_arr: npt.NDArray[np.float64] | None = None
+        self._dev_arr: npt.NDArray[np.float64] | None = None
+        self._lyap: npt.NDArray[np.float64] | None = None
 
         # 3. Lazy Derived Attributes / Cache Layer
-        self._dev_arr_normalized: Optional[np.ndarray] = None
-        self._sali_arr: Optional[np.ndarray] = None
-        self._gali_arr: Optional[np.ndarray] = None
-        self._chaos_results_cache: Optional[Tuple[np.ndarray, ...]] = None
+        self._dev_arr_normalized: npt.NDArray[np.float64] | None = None
+        self._sali_arr: npt.NDArray[np.float64] | None = None
+        self._gali_arr: npt.NDArray[np.float64] | None = None
+        self._chaos_results_cache: tuple[npt.NDArray[np.float64], ... | None] = None
 
         # Automatically kick off the heavy simulation on creation
         _sali_kernel(np.array([[[[1]]]]), np.array([0]), np.array([1]))
@@ -149,7 +150,7 @@ class OrbitChaosDetector(_OrbitPlottingMixin):
             "Finished integrating %d orbit(s) in %.3fs", self.num_orbits, elapsed
         )
 
-    def _normalize_deviation_vectors(self) -> np.ndarray:
+    def _normalize_deviation_vectors(self) -> npt.NDArray[np.float64]:
         """Clean and unit-normalize deviation vectors safely.
 
         Behavior depends on `self.keep_raw_deviations`:
@@ -178,7 +179,7 @@ class OrbitChaosDetector(_OrbitPlottingMixin):
 
         return dev
 
-    def _compute_sali(self) -> np.ndarray:
+    def _compute_sali(self) -> npt.NDArray[np.float64]:
         """Internal computation for smaller alignment index.
 
         Delegates to a Numba-jitted kernel that loops over the 15 (i, j)
@@ -196,7 +197,7 @@ class OrbitChaosDetector(_OrbitPlottingMixin):
         )
         return result
 
-    def _compute_gali(self) -> np.ndarray:
+    def _compute_gali(self) -> npt.NDArray[np.float64]:
         """Internal computation for generalized alignment index.
 
         GALI is the product of the singular values of the deviation-vector
@@ -234,36 +235,36 @@ class OrbitChaosDetector(_OrbitPlottingMixin):
         )
 
     @property
-    def timestamps(self) -> Optional[np.ndarray]:
+    def timestamps(self) -> npt.NDArray[np.float64] | None:
         """Get the full integration time array."""
         return self._time_arr[0]
 
     @property
-    def trajectories(self) -> Optional[np.ndarray]:
+    def trajectories(self) -> npt.NDArray[np.float64] | None:
         """Get the integrated phase space trajectory paths."""
         return self._traj_arr
 
     @property
-    def lyapunov_exponents(self) -> Optional[np.ndarray]:
+    def lyapunov_exponents(self) -> npt.NDArray[np.float64] | None:
         """Get calculated Lyapunov exponents for the system paths."""
         return self._lyap
 
     @property
-    def deviation_vectors(self) -> np.ndarray:
+    def deviation_vectors(self) -> npt.NDArray[np.float64]:
         """Lazy-loaded property for normalized deviation vectors."""
         if self._dev_arr_normalized is None:
             self._dev_arr_normalized = self._normalize_deviation_vectors()
         return self._dev_arr_normalized
 
     @property
-    def sali_array(self) -> np.ndarray:
+    def sali_array(self) -> npt.NDArray[np.float64]:
         """Lazy-loaded property for the entire batch SALI matrix."""
         if self._sali_arr is None:
             self._sali_arr = self._compute_sali()
         return self._sali_arr
 
     @property
-    def gali_array(self) -> np.ndarray:
+    def gali_array(self) -> npt.NDArray[np.float64]:
         """Lazy-loaded property for the entire batch GALI matrix."""
         if self._gali_arr is None:
             self._gali_arr = self._compute_gali()
@@ -273,7 +274,7 @@ class OrbitChaosDetector(_OrbitPlottingMixin):
     # PUBLIC ACCESS METHODS
     # =========================================================================
 
-    def _validate_index(self, orbit_idx: Optional[int]) -> None:
+    def _validate_index(self, orbit_idx: int | None) -> None:
         """Ensure provided lookup index is within bounds."""
         if orbit_idx is not None and (orbit_idx < 0 or orbit_idx >= self.num_orbits):
             raise IndexError(
@@ -281,7 +282,7 @@ class OrbitChaosDetector(_OrbitPlottingMixin):
                 f"{self.num_orbits} integrated orbits."
             )
 
-    def _resolve_backend(self, backend_override: Optional[str] = None) -> str:
+    def _resolve_backend(self, backend_override: str | None = None) -> str:
         """Determine backend priority: method argument > instance property."""
         chosen = backend_override if backend_override else self.plotting_backend
         chosen = chosen.lower()
@@ -291,17 +292,17 @@ class OrbitChaosDetector(_OrbitPlottingMixin):
             )
         return chosen
 
-    def get_trajectory(self, orbit_idx: Optional[int] = None) -> np.ndarray:
+    def get_trajectory(self, orbit_idx: int | None = None) -> npt.NDArray[np.float64]:
         """Return the full trajectory or specific targeted orbit index data."""
         self._validate_index(orbit_idx)
         return self.trajectories if orbit_idx is None else self.trajectories[orbit_idx]
 
-    def get_sali(self, orbit_idx: Optional[int] = None) -> np.ndarray:
+    def get_sali(self, orbit_idx: int | None = None) -> npt.NDArray[np.float64]:
         """Return SALI calculation sequences filtered down to target orbit."""
         self._validate_index(orbit_idx)
         return self.sali_array if orbit_idx is None else self.sali_array[orbit_idx]
 
-    def get_gali(self, orbit_idx: Optional[int] = None) -> np.ndarray:
+    def get_gali(self, orbit_idx: int | None = None) -> npt.NDArray[np.float64]:
         """Return GALI calculation sequences filtered down to target orbit."""
         self._validate_index(orbit_idx)
         return self.gali_array if orbit_idx is None else self.gali_array[orbit_idx]
@@ -312,14 +313,14 @@ class OrbitChaosDetector(_OrbitPlottingMixin):
 
     def detect_chaos(
         self,
-        orbit_idx: Optional[int] = None,
+        orbit_idx: int | None = None,
         separate_sali: bool = False,
         check_only: bool = True,
-        sali_threshold_override: Optional[float] = None,
-        gali_threshold_override: Optional[float] = None,
-        sali_window_override: Optional[float] = None,
-        gali_window_override: Optional[float] = None,
-    ) -> Union[ChaosSummary, ChaosFullReport]:
+        sali_threshold_override: float | None = None,
+        gali_threshold_override: float | None = None,
+        sali_window_override: float | None = None,
+        gali_window_override: float | None = None,
+    ) -> ChaosSummary | ChaosFullReport:
         """Detect system deviations to distinguish chaotic from regular paths.
 
         Parameters
@@ -458,7 +459,7 @@ class OrbitChaosDetector(_OrbitPlottingMixin):
     # SURVEY SUMMARY
     # =========================================================================
 
-    def _method_stats(self, check: np.ndarray) -> MethodChaosStats:
+    def _method_stats(self, check: npt.NDArray[np.float64]) -> MethodChaosStats:
         """Build a MethodChaosStats block for one indicator's 0/1 check array."""
         check_bool = np.asarray(check).astype(bool)
         chaotic_indices = np.where(check_bool)[0]
@@ -532,7 +533,7 @@ class OrbitChaosDetector(_OrbitPlottingMixin):
     # RUN METADATA
     # =========================================================================
 
-    def metadata_row(self, extra: Optional[Dict[str, Any]] = None) -> QTable:
+    def metadata_row(self, extra: dict[str, Any | None] | None = None) -> QTable:
         """Build a single-row astropy QTable of this run's integration and
         chaos-detection settings (from `criteria`), plus any extra columns
         the caller supplies.
@@ -553,7 +554,7 @@ class OrbitChaosDetector(_OrbitPlottingMixin):
             the caller supplies them explicitly.
         """
         criteria = self.criteria
-        columns: Dict[str, Any] = {
+        columns: dict[str, Any] = {
             "num_orbits": [self.num_orbits],
             "iter_time": [criteria.iter_time],
             "gali_threshold": [criteria.gali_threshold],

@@ -9,8 +9,10 @@ from `potential.force`/`potential.potential` alone (the same primitives
 no assumption about rotation curves being available as a separate API.
 """
 
-from typing import Any, NamedTuple, Optional, Tuple
+from typing import Any, NamedTuple
+
 import numpy as np
+import numpy.typing as npt
 
 
 class ResonanceRadii(NamedTuple):
@@ -21,12 +23,14 @@ class ResonanceRadii(NamedTuple):
     resonant with.
     """
 
-    corotation: Optional[float]
-    inner_lindblad: Optional[float]
-    outer_lindblad: Optional[float]
+    corotation: float | None
+    inner_lindblad: float | None
+    outer_lindblad: float | None
 
 
-def _circular_velocity_curve(potential: Any, r_vals: np.ndarray) -> np.ndarray:
+def _circular_velocity_curve(
+    potential: Any, r_vals: npt.NDArray[np.float64]
+) -> npt.NDArray[np.float64]:
     """Circular velocity v_circ(R) at each radius, evaluated along the
     x-axis (y=z=0)."""
     pos = np.column_stack([r_vals, np.zeros_like(r_vals), np.zeros_like(r_vals)])
@@ -34,12 +38,16 @@ def _circular_velocity_curve(potential: Any, r_vals: np.ndarray) -> np.ndarray:
     return np.sqrt(r_vals * np.abs(force[:, 0]))
 
 
-def _angular_velocity_curve(potential: Any, r_vals: np.ndarray) -> np.ndarray:
+def _angular_velocity_curve(
+    potential: Any, r_vals: npt.NDArray[np.float64]
+) -> npt.NDArray[np.float64]:
     """Circular angular velocity Omega_circ(R) = v_circ(R) / R."""
     return _circular_velocity_curve(potential, r_vals) / r_vals
 
 
-def _epicyclic_frequency_curve(potential: Any, r_vals: np.ndarray) -> np.ndarray:
+def _epicyclic_frequency_curve(
+    potential: Any, r_vals: npt.NDArray[np.float64]
+) -> npt.NDArray[np.float64]:
     """Epicyclic frequency kappa(R) via the standard relation
     kappa^2 = R d(Omega^2)/dR + 4 Omega^2, using a numerical derivative of
     Omega_circ(R) over the same r_vals grid.
@@ -50,7 +58,9 @@ def _epicyclic_frequency_curve(potential: Any, r_vals: np.ndarray) -> np.ndarray
     return np.sqrt(np.maximum(kappa_sq, 0.0))
 
 
-def _first_root(r_vals: np.ndarray, diff: np.ndarray) -> Optional[float]:
+def _first_root(
+    r_vals: npt.NDArray[np.float64], diff: npt.NDArray[np.float64]
+) -> float | None:
     """Linear-interpolate the first sign change in `diff` over `r_vals`, or
     None if `diff` never changes sign (no resonance in the search range)."""
     sign_changes = np.where(np.diff(np.sign(diff)))[0]
@@ -64,7 +74,7 @@ def compute_resonance_radii(
     potential: Any,
     omega_pattern: float,
     m: int = 2,
-    r_search_range: Tuple[float, float] = (0.1, 30.0),
+    r_search_range: tuple[float, float] = (0.1, 30.0),
     search_resolution: int = 2000,
 ) -> ResonanceRadii:
     """Locate the corotation radius and inner/outer Lindblad radii for a
