@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Added the functions by `ocd_gd._logging_config` to `__init__.py` and renamed it to `_terminal_config.py`
 - Script `scripts/make_composite_potentials.py` to generate a composite AGAMA potential (disk, bar, and central black hole) driven by two parameters (`Q_b` for bar strength and `frac_M_bh` for central black hole mass fraction), including JSON save/load functionality for sweep runs.
 - Modular display module (`src/ocd_gd/_logging_config_.py`) supporting graceful fallbacks when `rich` is not installed, alongside a basic `logging` setup for main classes.
 - Automated test runner (`examples/__main__.py`) for suite execution and reporting.

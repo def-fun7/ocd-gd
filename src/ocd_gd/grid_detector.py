@@ -14,7 +14,7 @@ from astropy.table import QTable
 
 from ._grid_ics import _circular_velocity, _generate_grid_ics, _reference_energy
 from ._grid_plotting import _GridChaosPlottingMixin
-from ._logging_config import get_logger
+from ._terminal_config import get_logger
 from ._resonance import ResonanceRadii, compute_resonance_radii
 from .orbit_detector import OrbitChaosDetector
 

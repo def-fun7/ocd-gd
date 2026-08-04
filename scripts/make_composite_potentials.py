@@ -37,7 +37,7 @@ import agama
 import numpy
 import scipy.optimize
 
-from ocd_gd._logging_config import (
+from ocd_gd._terminal_config import (
     get_logger,
     print_banner,
     print_dataframe_table,

@@ -1,12 +1,12 @@
 """
-Centralized logging configuration for the old_gd package.
+Centralized logging configuration for the ocd_gd package.
 
-Provides a single named package logger (`old_gd`) that every module pulls
+Provides a single named package logger (`ocd_gd`) that every module pulls
 a child logger from, plus a convenience `setup_logging()` function for
 users who want to actually see the output.
 
 Library code should never force its own handlers/format onto whoever
-imports it, so a `NullHandler` is attached by default — importing old_gd
+imports it, so a `NullHandler` is attached by default — importing ocd_gd
 produces no console output and no "No handlers could be found" warnings
 (standard practice, see
 https://docs.python.org/3/howto/logging.html#library-config). If the user
@@ -59,7 +59,7 @@ def setup_logging(
     library itself) if you want old_gd's log messages to actually print
     somewhere:
 
-        from ocd_gd._logging_config import setup_logging
+        from ocd_gd._terminal_config import setup_logging
         setup_logging()
 
     Parameters

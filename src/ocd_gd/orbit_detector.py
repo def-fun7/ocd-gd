@@ -15,7 +15,7 @@ import numpy.typing as npt
 from astropy.table import QTable
 
 from ._evaluate_chaos import evaluate_chaos
-from ._logging_config import get_logger
+from ._terminal_config import get_logger
 from ._plotting import _OrbitPlottingMixin
 from ._sali_kernel import _sali_kernel
 from ._types import (

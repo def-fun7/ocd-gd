@@ -11,7 +11,7 @@ import sys
 import agama
 import numpy as np
 
-from ocd_gd._logging_config import print_banner, print_kv_table, setup_logging
+from ocd_gd import print_banner, print_kv_table, setup_logging
 from ocd_gd.orbit_detector import OrbitChaosDetector
 
 
