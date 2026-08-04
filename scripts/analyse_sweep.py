@@ -28,7 +28,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from astropy.table import QTable
 
-from ocd_gd._logging_config import (
+from ocd_gd import (
     get_logger,
     print_banner,
     print_kv_table,

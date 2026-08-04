@@ -39,7 +39,7 @@ import numpy
 import scipy.optimize
 from _cli_common import add_clear_cache_arg, add_qb_fbh_args
 
-from ocd_gd._logging_config import (
+from ocd_gd import (
     get_logger,
     print_banner,
     print_dataframe_table,

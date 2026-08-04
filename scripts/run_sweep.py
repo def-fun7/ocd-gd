@@ -64,7 +64,7 @@ from astropy.table import QTable, vstack
 from build_potential import clearCache, load_composite_potential, makeCompositePotential
 
 from ocd_gd import GridChaosDetector
-from ocd_gd._logging_config import (
+from ocd_gd import (
     get_logger,
     print_banner,
     print_dataframe_table,
