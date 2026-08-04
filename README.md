@@ -31,7 +31,7 @@ The repository includes a cross-platform shell script that detects your operatin
 chmod +x scripts/setup-env.sh
 
 # Run the automated setup
-./scripts/setup-env.sh
+./setup.sh
 ```
 
 ### Option B: Manual Setup by Package Manager
