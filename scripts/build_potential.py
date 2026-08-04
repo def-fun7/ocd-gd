@@ -29,13 +29,15 @@ whichever paper/table you finally cite.
 Author: <your name>
 """
 
-import os
+import argparse
 import json
+import os
 from pathlib import Path
 
 import agama
 import numpy
 import scipy.optimize
+from _cli_common import add_clear_cache_arg, add_qb_fbh_args
 
 from ocd_gd._logging_config import (
     get_logger,
@@ -403,34 +405,33 @@ def clearCache(base_dir=BASE_DIR):
         log.info("No cached files found in %s.", base_dir)
 
 
+def _build_arg_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        description="Build composite Milky-Way-like potentials for a Q_b x f_bh grid."
+    )
+    add_qb_fbh_args(parser)
+    add_clear_cache_arg(parser)
+    return parser
+
+
 # ----------------------------------------------------------------------------
 # MAIN: only runs when this script is executed directly, not on import
 # ----------------------------------------------------------------------------
 if __name__ == "__main__":
-    import sys
+    args = _build_arg_parser().parse_args()
 
     setup_logging()  # only the top-level script should call this, not the library code above
     print_banner(
         "Composite MW-like potential builder", "Disk + Bar (Ferrers) + CBH grid"
     )
 
-    if "--clear-cache" in sys.argv:
+    if args.clear_cache:
         clearCache()
-
-    # example grid -- adjust to taste
-    Qb_values = [
-        0.1,
-        0.2,
-    ]
-    fbh_values = [
-        0.0,
-        0.005,
-    ]
 
     rows = []
     potentials = {}
-    for Qb in Qb_values:
-        for f_bh in fbh_values:
+    for Qb in args.qb:
+        for f_bh in args.fbh:
             pot, fname = makeCompositePotential(Qb, f_bh)
             potentials[(Qb, f_bh)] = pot
             rows.append([Qb, f_bh, fname])

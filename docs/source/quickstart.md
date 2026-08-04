@@ -28,7 +28,7 @@ If you prefer uv on macOS (via Homebrew) or Linux:
 ```bash
 # 1. Run the automated setup script to configure C++ dependencies & paths
 
-./scripts/setup-env.sh
+./setup.sh
 
 # 2. Sync virtual environment dependencies and install ocd-gd in editable mode
 
