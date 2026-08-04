@@ -9,7 +9,7 @@ python examples/01_single_orbit_setup.py
 or all examples can be run by one command,
 
 ```bash
-python examples
+python -m examples
 ```
 
 > **Changelog Notice:** Any modification or addition to scripts in this folder **must** be logged in [CHANGELOG.md](CHANGELOG.md) alongside updates to this README file.
@@ -38,6 +38,6 @@ All the required data files, `.ini` files for custom potentials and `.npz` files
 
 ### Potentials
 
-| #   | Date          | File                           | Source                                                                                                                                                       | About                                    |
-| :-- | :------------ | :----------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------- |
-| 01  | 20 July, 2026 | `MWPotentialHunter24_full.ini` | generated from [agama/py/example_mw_potential_hunter24.py](https://github.com/GalacticDynamics-Oxford/Agama/blob/master/py/example_mw_potential_hunter24.py) | full potential with a bar but no spirals |
+| #   | Date         | File                           | Source                                                                                                                                                       | About                                    |
+| :-- | :----------- | :----------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------- |
+| 01  | 20 July 2026 | `MWPotentialHunter24_full.ini` | generated from [agama/py/example_mw_potential_hunter24.py](https://github.com/GalacticDynamics-Oxford/Agama/blob/master/py/example_mw_potential_hunter24.py) | full potential with a bar but no spirals |
