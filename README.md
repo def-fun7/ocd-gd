@@ -108,8 +108,15 @@ You can explore and run the full executable example suite locally:
 
 ```bash
 # Run the automated test runner across all examples
-python examples
+python -m examples
 
 # Or execute a specific topic script
 python examples/05_grid_chaos_map_plot.py
 ```
+
+---
+
+> **Changelog Reference:**
+>
+> - Core package updates: [`CHANGELOG.md`](CHANGELOG.md)
+> - Example suite updates: [`examples/CHANGELOG.md`](examples/CHANGELOG.md)
