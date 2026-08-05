@@ -9,6 +9,13 @@ Kept as a standalone module (mirroring `.visualisation`) so `_grid_plotting.py`
 can dispatch to either backend the same way the rest of the package does.
 """
 
+__all__ = [
+    "plot_chaos_maps_mpl",
+    "plot_chaos_maps_plotly",
+    "plot_composite_chaos_map_mpl",
+    "plot_composite_chaos_map_plotly",
+]
+
 from collections.abc import Sequence
 
 import matplotlib.pyplot as plt

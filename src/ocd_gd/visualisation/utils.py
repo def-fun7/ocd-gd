@@ -2,6 +2,8 @@
 Styling defaults and utility functions for visualization.
 """
 
+__all__ = ["set_output_dir", "set_publication_style"]
+
 from pathlib import Path
 from typing import Any
 

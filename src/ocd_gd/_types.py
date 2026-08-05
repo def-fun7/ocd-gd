@@ -5,6 +5,17 @@ Kept separate from the detector logic since these are plain structured
 containers with no behavior of their own.
 """
 
+__all__ = [
+    "IntegrationCriteria",
+    "ChaosSummary",
+    "ChaosFullReport",
+    "GridInitialConditions",
+    "MethodChaosStats",
+    "ChaosAgreement",
+    "ChaosSurveySummary",
+    "chaos_summary_row",
+]
+
 from dataclasses import dataclass
 from typing import NamedTuple
 

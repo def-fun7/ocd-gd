@@ -5,6 +5,8 @@ Builds a 2D (x, v_x) grid of initial conditions at fixed energy and layers
 grid-shaped chaos-map visualizations on top of OrbitChaosDetector.
 """
 
+__all__ = ["GridChaosDetector"]
+
 import time
 from typing import Any
 

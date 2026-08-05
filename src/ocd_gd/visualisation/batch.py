@@ -2,6 +2,12 @@
 Batch visualization module for comparing multiple orbits simultaneously.
 """
 
+__all__ = [
+    "plot_sali_batch_mpl",
+    "plot_gali_batch_mpl",
+    "plot_sali_gali_dual_batch_mpl",
+]
+
 import math
 
 import matplotlib.pyplot as plt

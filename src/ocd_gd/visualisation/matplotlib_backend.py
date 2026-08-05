@@ -2,6 +2,16 @@
 Matplotlib backend for plotting galactic orbit dynamics and chaos indicators.
 """
 
+__all__ = [
+    "plot_colored_trajectory_2d_mpl",
+    "plot_energy_drift_mpl",
+    "plot_gali_mpl",
+    "plot_phase_space_mpl",
+    "plot_sali_mpl",
+    "plot_trajectory_2d_mpl",
+    "plot_trajectory_3d_mpl",
+]
+
 import matplotlib.pyplot as plt
 import numpy as np
 import numpy.typing as npt

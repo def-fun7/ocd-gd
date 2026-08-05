@@ -6,6 +6,14 @@ procedure (locate the physical (x, v_x) region at fixed energy, then build a
 dense grid inside it) with no dependency on the detector class itself.
 """
 
+__all__ = [
+    "_validate_grid_params",
+    "_circular_velocity",
+    "_reference_energy",
+    "_generate_grid_ics",
+]
+
+
 from typing import Any
 
 import numpy as np

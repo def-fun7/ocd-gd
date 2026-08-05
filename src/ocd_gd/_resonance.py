@@ -9,6 +9,8 @@ from `potential.force`/`potential.potential` alone (the same primitives
 no assumption about rotation curves being available as a separate API.
 """
 
+__all__ = ["ResonanceRadii", "compute_resonance_radii"]
+
 from typing import Any, NamedTuple
 
 import numpy as np

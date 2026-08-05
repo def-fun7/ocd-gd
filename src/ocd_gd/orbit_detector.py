@@ -6,6 +6,8 @@ via Small Alignment Index (SALI), Generalized Alignment Index (GALI), and
 Lyapunov exponents.
 """
 
+__all__ = ["OrbitChaosDetector"]
+
 import time
 from typing import Any
 
@@ -17,7 +19,7 @@ from astropy.table import QTable
 from ._evaluate_chaos import evaluate_chaos
 from ._terminal_config import get_logger
 from ._plotting import _OrbitPlottingMixin
-from ._sali_kernel import _sali_kernel
+from .sali_kernel import sali_kernel
 from ._types import (
     ChaosAgreement,
     ChaosFullReport,
@@ -118,7 +120,7 @@ class OrbitChaosDetector(_OrbitPlottingMixin):
         self._chaos_results_cache: tuple[npt.NDArray[np.float64], ... | None] = None
 
         # Automatically kick off the heavy simulation on creation
-        _sali_kernel(np.array([[[[1]]]]), np.array([0]), np.array([1]))
+        sali_kernel(np.array([[[[1]]]]), np.array([0]), np.array([1]))
         self._integrate_orbits()
 
     def _integrate_orbits(self) -> None:
@@ -190,7 +192,7 @@ class OrbitChaosDetector(_OrbitPlottingMixin):
         start = time.perf_counter()
         arr = np.ascontiguousarray(self.deviation_vectors)
         idx_i, idx_j = np.triu_indices(6, k=1)
-        result = _sali_kernel(arr, idx_i.astype(np.int64), idx_j.astype(np.int64))
+        result = sali_kernel(arr, idx_i.astype(np.int64), idx_j.astype(np.int64))
         elapsed = time.perf_counter() - start
         logger.info(
             "Finished computing SALI for %d orbit(s) in %.3fs", self.num_orbits, elapsed

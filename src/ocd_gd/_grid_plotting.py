@@ -9,6 +9,8 @@ the host class provides `chaos_grids`, `x_grid`, `vx_grid`,
 available via `OrbitChaosDetector`'s own `_OrbitPlottingMixin`).
 """
 
+__all__ = ["_GridChaosPlottingMixin"]
+
 from typing import Any
 
 from .visualisation import (

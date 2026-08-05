@@ -13,6 +13,16 @@ https://docs.python.org/3/howto/logging.html#library-config). If the user
 wants to see the log messages, they call `setup_logging()` themselves.
 """
 
+__all__ = [
+    "HAS_RICH",
+    "console",
+    "get_logger",
+    "setup_logging",
+    "print_banner",
+    "print_kv_table",
+    "print_dataframe_table",
+]
+
 import logging
 
 try:

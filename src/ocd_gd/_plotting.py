@@ -11,6 +11,8 @@ class provides `_validate_index`, `_resolve_backend`, `detect_chaos`,
 and `gali_window_size`.
 """
 
+__all__ = ["_OrbitPlottingMixin"]
+
 from collections.abc import Callable
 from typing import Any
 

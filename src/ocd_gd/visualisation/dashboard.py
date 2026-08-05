@@ -2,6 +2,8 @@
 Multi-panel diagnostic dashboard for orbit dynamics and chaos indicators.
 """
 
+__all__ = ["plot_dashboard_mpl", "plot_dashboard_plotly"]
+
 from typing import Any
 
 import matplotlib.pyplot as plt

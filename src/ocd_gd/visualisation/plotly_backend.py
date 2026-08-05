@@ -2,6 +2,16 @@
 Plotly backend for interactive visualization of galactic orbit dynamics and chaos indicators.
 """
 
+__all__ = [
+    "plot_colored_trajectory_2d_plotly",
+    "plot_energy_drift_plotly",
+    "plot_gali_plotly",
+    "plot_phase_space_plotly",
+    "plot_sali_plotly",
+    "plot_trajectory_2d_plotly",
+    "plot_trajectory_3d_plotly",
+]
+
 import numpy as np
 import numpy.typing as npt
 import plotly.graph_objects as go
@@ -138,9 +148,7 @@ def plot_gali_plotly(
                 else f"GALI_{i+2}"
             )
             fig.add_trace(
-                go.Scatter(
-                    x=t, y=gali[:, i], mode="lines", name=lbl, line={"width": 2}
-                )
+                go.Scatter(x=t, y=gali[:, i], mode="lines", name=lbl, line={"width": 2})
             )
 
     fig.update_layout(

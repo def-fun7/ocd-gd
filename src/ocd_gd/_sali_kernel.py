@@ -1,10 +1,12 @@
+__all__["sali_kernel"]
+
 import numpy as np
 import numpy.typing as npt
 from numba import njit, prange
 
 
 @njit(parallel=True, fastmath=True, cache=True)
-def _sali_kernel(
+def sali_kernel(
     arr: npt.NDArray[np.float64],
     idx_i: npt.NDArray[np.float64],
     idx_j: npt.NDArray[np.float64],

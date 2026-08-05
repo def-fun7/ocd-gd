@@ -31,7 +31,7 @@ geometry, etc.) extended with:
 
 On parallelism: this does NOT use numba. Numba's `@njit(parallel=True)` /
 `prange` accelerates a tight numeric loop *inside one jitted function* --
-that's what `_sali_kernel` (in `orbit_detector.py`) already uses it for. A
+that's what `sali_kernel` (in `orbit_detector.py`) already uses it for. A
 sweep run is the opposite shape of problem: each one is dominated by
 non-numeric work numba can't touch in nopython mode -- calling into
 agama's C++ orbit integrator, file I/O for cached bar masses / JSON
