@@ -97,7 +97,7 @@ def load_composite_potential(filepath):
 # ----------------------------------------------------------------------------
 # 1. DISK POTENTIAL
 # ----------------------------------------------------------------------------
-def makeDiskPotential(mass=800.0, scaleRadius=3.0, scaleHeight=0.3):
+def makeDiskPotential(mass=8e10, scaleRadius=3.0, scaleHeight=0.3):
     """
     Axisymmetric Miyamoto-Nagai disk, used as the fixed stellar background.
 
@@ -357,7 +357,6 @@ def makeCompositePotential(
     # Convention B: f_bh = M_bh / (M_baryon + M_bh)  =>  M_bh = M_baryon * f_bh/(1-f_bh)
     M_bh = M_baryon * f_bh / (1.0 - f_bh)
     bhPot, bh_pot_params = makeCBHPotential(M_bh, scaleRadius=bhScaleRadius)
-    print(bh_pot_params, disk_pot_params, bar_pot_params)
     composite = agama.Potential(diskPot, barPot, bhPot)
     if outFilename is None:
         outFilename = str(BASE_DIR / (f"composite_Qb{Qb:.3f}_fbh{f_bh:.4f}.json"))

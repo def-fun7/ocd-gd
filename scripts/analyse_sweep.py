@@ -23,7 +23,7 @@ from typing import Any
 
 import matplotlib
 
-matplotlib.use("Agg")  # headless-safe; this script always saves to a file
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 from astropy.table import QTable

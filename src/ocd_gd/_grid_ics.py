@@ -163,7 +163,6 @@ def _generate_grid_ics(
 
     # 2. Build dense 1D probe points along x to find turning points
     x_scan = np.linspace(x_search_range[0], x_search_range[1], search_resolution)
-
     # AGAMA expects an (N, 3) position array [x, y, z]
     pos_scan = np.column_stack(
         [x_scan, np.full_like(x_scan, y_0), np.full_like(x_scan, z_0)]

@@ -59,6 +59,9 @@ from typing import Any
 
 import agama
 import numpy as np
+import matplotlib
+
+matplotlib.use("Agg")
 from _cli_common import add_clear_cache_arg, add_qb_fbh_args
 from astropy.table import QTable, vstack
 from build_potential import clearCache, load_composite_potential, makeCompositePotential
@@ -225,7 +228,10 @@ def _chaos_fraction_columns(chaos_summary: Any) -> dict[str, Any]:
 
 
 def _execute_run(
-    i: int, run: SweepRun, grid_kwargs: dict[str, Any]
+    i: int,
+    run: SweepRun,
+    grid_kwargs: dict[str, Any],
+    chaos_map_dir: Path | None = None,
 ) -> tuple[int, QTable | None, dict[str, Any] | None]:
     """Run one sweep entry to completion: resolve its potential, build the
     `GridChaosDetector`, and produce its metadata row.
@@ -241,13 +247,23 @@ def _execute_run(
         t0 = time.perf_counter()
         detector = GridChaosDetector(pot, **merged_grid_kwargs)
         chaos_summary = detector.chaos_summary()
-        elapsed = time.perf_counter() - t0
-
         extra = {
             **meta_from_spec,
             **_chaos_fraction_columns(chaos_summary),
             **run.label,
         }
+        if chaos_map_dir is not None:
+            chaos_map_dir.mkdir(parents=True, exist_ok=True)
+            original_path = Path(extra["potential_source"])
+            chaos_map_filename = (
+                original_path.stem.replace("composite", "chaos_map") + ".png"
+            )
+            chaos_map_path = f"{chaos_map_dir}/{chaos_map_filename}"
+            detector.save_chaos_maps(composite_path=chaos_map_path)
+            log.info(f"chaos map saved at {chaos_map_path}")
+            extra["chaos_map_path"] = str(chaos_map_path)
+        elapsed = time.perf_counter() - t0
+
         extra["run_index"] = i
         extra["wall_time_s"] = elapsed
         return i, detector.metadata_row(extra=extra), None
@@ -282,6 +298,7 @@ def _write_checkpoint(rows: list[QTable], checkpoint_path: Path) -> None:
 def run_sweep(
     runs: Sequence[SweepRun | PotentialSpec],
     grid_kwargs: dict[str, Any] | None = None,
+    chaos_map_dir: str | Path | None = None,
     on_error: str = "raise",
     checkpoint_path: str | Path | None = None,
     resume: bool = False,
@@ -401,7 +418,7 @@ def run_sweep(
     if n_jobs <= 1:
         for i, run in pending:
             log.info("Sweep run %d/%d: building GridChaosDetector ...", i + 1, n_total)
-            _, row, error = _execute_run(i, run, grid_kwargs)
+            _, row, error = _execute_run(i, run, grid_kwargs, chaos_map_dir)
             _handle_result(i, row, error)
     else:
         log.info(
@@ -413,7 +430,8 @@ def run_sweep(
             max_workers=n_jobs, initializer=_init_worker_logging
         ) as pool:
             futures = [
-                pool.submit(_execute_run, i, run, grid_kwargs) for i, run in pending
+                pool.submit(_execute_run, i, run, grid_kwargs, chaos_map_dir)
+                for i, run in pending
             ]
             for future in as_completed(futures):
                 i, row, error = future.result()
@@ -552,9 +570,6 @@ if __name__ == "__main__":
     print_banner("GridChaosDetector sweep runner", "Q_b x f_bh grid")
 
     if args.clear_cache:
-        # Clears build_potential.py's .ini/.masscache files (scripts/outputs/),
-        # forcing every potential in this sweep to be rebuilt/recalibrated from
-        # scratch rather than reusing a cached bar mass. Does not touch --output.
         clearCache()
 
     grid_kwargs = {
@@ -563,7 +578,7 @@ if __name__ == "__main__":
         "iter_time": args.iter_time,
     }
     runs = qb_fbh_grid_runs(Qb_values=args.qb, fbh_values=args.fbh)
-
+    chaos_map_dir = BASE_DIR / "chaos_maps"
     results = run_sweep(
         runs,
         grid_kwargs=grid_kwargs,
@@ -571,6 +586,7 @@ if __name__ == "__main__":
         checkpoint_path=args.output,
         resume=args.resume,
         n_jobs=args.n_jobs,
+        chaos_map_dir=chaos_map_dir,
     )
 
     summarize_sweep(results)

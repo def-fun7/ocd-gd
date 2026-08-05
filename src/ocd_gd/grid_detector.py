@@ -8,7 +8,7 @@ grid-shaped chaos-map visualizations on top of OrbitChaosDetector.
 __all__ = ["GridChaosDetector"]
 
 import time
-from typing import Any
+from typing import Any, Literal
 
 import numpy as np
 import numpy.typing as npt
@@ -17,7 +17,7 @@ from astropy.table import QTable
 from ._grid_ics import _circular_velocity, _generate_grid_ics, _reference_energy
 from ._grid_plotting import _GridChaosPlottingMixin
 from ._terminal_config import get_logger
-from ._resonance import ResonanceRadii, compute_resonance_radii
+from ._resonance import ResonanceRadii, compute_resonance_radii, x_search_range_from_olr
 from ._units import AgamaUnits
 from .orbit_detector import OrbitChaosDetector
 
@@ -34,6 +34,7 @@ _GRID_METADATA_FIELD_UNITS: dict[str, str | None] = {
     "v_z0_frac": None,
     "grid_size": None,
     "omega": "frequency",
+    "circular_velocity": "velocity",
 }
 
 
@@ -89,7 +90,7 @@ class GridChaosDetector(_GridChaosPlottingMixin, OrbitChaosDetector):
         v_z0_frac: float = 0.02,
         E_0: float | None = None,
         grid_size: int = 10,
-        x_search_range: tuple[float, float] = (-10.0, 10.0),
+        x_search_range: tuple[float, float] | Literal["auto"] = (-10.0, 10.0),
         search_resolution: int = 1000,
         omega: float = 0.0,
         iter_time: float = 10.0,
@@ -157,6 +158,15 @@ class GridChaosDetector(_GridChaosPlottingMixin, OrbitChaosDetector):
             omega,
         )
         grid_gen_start = time.perf_counter()
+        if x_search_range == "auto":
+            resolved_range = x_search_range_from_olr(potential, omega)
+            if resolved_range is None:
+                raise ValueError(
+                    "x_search_range='auto' needs a resolvable OLR, which requires "
+                    "omega != 0 and a root found by compute_resonance_radii -- "
+                    "pass an explicit (lo, hi) tuple instead."
+                )
+            x_search_range = resolved_range
         grid_info = _generate_grid_ics(
             potential=potential,
             R_0=R_0,
@@ -172,7 +182,6 @@ class GridChaosDetector(_GridChaosPlottingMixin, OrbitChaosDetector):
         logger.info(
             "Finished generating grid in %.3fs", time.perf_counter() - grid_gen_start
         )
-
         self.grid_size = grid_size
         self.R_0 = R_0
         self.E_0 = grid_info.E_0
@@ -354,6 +363,9 @@ class GridChaosDetector(_GridChaosPlottingMixin, OrbitChaosDetector):
             "v_z0_frac": self.v_z0_frac,
             "grid_size": self.grid_size,
             "omega": self.omega,
+            "circular_velocity": self.circular_velocity(
+                potential=self.pot, R_0=self.R_0
+            ),
         }
         grid_columns = {
             name: self._tag_unit(name, value, _GRID_METADATA_FIELD_UNITS)

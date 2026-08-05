@@ -66,7 +66,7 @@ class AgamaUnits:
         instance = cls(
             length=length * u.kpc,
             velocity=velocity * (u.km / u.s),
-            mass=mass * (1e10 * u.Msun),
+            mass=mass * u.Msun,
         )
         global _CURRENT_UNITS
         _CURRENT_UNITS = instance
