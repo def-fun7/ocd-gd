@@ -11,7 +11,7 @@ from pathlib import Path
 
 import agama
 
-from ocd_gd._logging_config import print_banner, print_kv_table, setup_logging
+from ocd_gd import print_banner, print_kv_table, setup_logging
 from ocd_gd.grid_detector import GridChaosDetector
 
 BASE_OUTPUT_PATH = Path(__file__).parent / "outputs"

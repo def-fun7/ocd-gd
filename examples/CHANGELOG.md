@@ -18,6 +18,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- Updated examples 01-05 with updated import from ocd_gd for print functions, instead of from `ocd_gd._logging_config`
 - Updated `05_grid_chaos_map_plot.py` to use `_GridChaosPlottingMixin.save_chaos_maps()` and `plot_composite_chaos_map()` matching updated mixin signature (`cmap_colors`, `masked_color`, `show_resonances`).
 - Updated `examples/README.md` to include a date column for examples and documentation for the `data/` folder contents.
 

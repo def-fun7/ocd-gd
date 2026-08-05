@@ -11,7 +11,7 @@ import sys
 import agama
 import numpy as np
 
-from ocd_gd._logging_config import (
+from ocd_gd import (
     print_banner,
     print_dataframe_table,
     print_kv_table,

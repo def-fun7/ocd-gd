@@ -12,7 +12,7 @@ import agama
 import numpy as np
 import numpy.typing as npt
 
-from ocd_gd._logging_config import (
+from ocd_gd import (
     print_banner,
     print_dataframe_table,
     print_kv_table,

@@ -34,7 +34,7 @@ Examples assume `ocd_gd` is available as `src.ocd_gd` from the repository root (
 
 ## Data
 
-All the required data files, `.ini` files for custom potentials and `.npz` files for initial conditions arrays, are added in separate folders in the data. Following table list the sources of these files.
+All the required data files, `.ini` files for custom potentials and `.npz` files for initial conditions arrays, are added in separate folders in the data. Following table list the sources of these files,
 
 ### Potentials
 

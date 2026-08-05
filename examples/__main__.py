@@ -2,7 +2,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-from ocd_gd._logging_config import (
+from ocd_gd import (
     HAS_RICH,
     console,
     print_banner,
