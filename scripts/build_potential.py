@@ -346,10 +346,6 @@ def makeCompositePotential(
     diskPot, disk_pot_params = makeDiskPotential(**diskParams)
     barPot, bar_pot_params = makeBarPotential(Qb, diskPot=diskPot, **barShape)
 
-    omega, R_corotation = omega_for_corotation_ratio(
-        potential=barPot, a_bar=bar_pot_params["scaleRadius"]
-    )
-
     M_disk = diskPot.totalMass()
     M_bar = barPot.totalMass()
     M_baryon = M_disk + M_bar
@@ -360,6 +356,9 @@ def makeCompositePotential(
     composite = agama.Potential(diskPot, barPot, bhPot)
     if outFilename is None:
         outFilename = str(BASE_DIR / (f"composite_Qb{Qb:.3f}_fbh{f_bh:.4f}.json"))
+    omega, R_corotation = omega_for_corotation_ratio(
+        potential=composite, a_bar=bar_pot_params["scaleRadius"]
+    )
     metadata = {
         "Qb": f"{Qb:.3f}",
         "f_bh": f"{f_bh:.4f}",

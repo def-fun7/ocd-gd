@@ -12,7 +12,6 @@ no assumption about rotation curves being available as a separate API.
 __all__ = [
     "ResonanceRadii",
     "compute_resonance_radii",
-    "x_search_range_from_olr",
     "CorotationSetup",
     "omega_for_corotation_ratio",
 ]
@@ -130,26 +129,6 @@ def compute_resonance_radii(
         inner_lindblad=inner_lindblad,
         outer_lindblad=outer_lindblad,
     )
-
-
-def x_search_range_from_olr(
-    potential: Any, omega: float, margin: float = 1.2
-) -> tuple[float, float] | None:
-    """(-margin*R_OLR, margin*R_OLR), sized off the outer Lindblad radius
-    rather than a fixed guess -- the OLR marks roughly where the bar's
-    resonant influence on radial orbits ends, so it's a natural physical
-    scale for how far out `x_search_range` needs to reach to find every
-    turning point GridChaosDetector's energy grid could produce.
-
-    Returns None if omega == 0 or no OLR root was found (see
-    compute_resonance_radii) -- the caller decides the fallback in that
-    case, since "no OLR" isn't necessarily an error (e.g. omega=0 runs
-    are deliberate and have no resonance structure to anchor to).
-    """
-    radii = compute_resonance_radii(potential, omega)
-    if radii.outer_lindblad is None:
-        return None
-    return (-margin * radii.outer_lindblad, margin * radii.outer_lindblad)
 
 
 class CorotationSetup(NamedTuple):

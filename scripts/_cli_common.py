@@ -17,14 +17,14 @@ def add_qb_fbh_args(parser: argparse.ArgumentParser) -> None:
         "--qb",
         type=float,
         nargs="+",
-        default=[0.1],
+        default=[0.3, 0.5],
         help="Bar-torque strength Q_b value(s) to sweep over (default: 0.1 0.2).",
     )
     parser.add_argument(
         "--fbh",
         type=float,
         nargs="+",
-        default=[0.1],
+        default=[0.0, 0.1],
         help="Central-mass fraction f_bh value(s) to sweep over (default: 0.0 0.005).",
     )
 
