@@ -6,7 +6,7 @@ specifically identifying when a system metric falls below a given threshold
 and sustains that behavior over a specified rolling window.
 """
 
-__all__ - ["evaluate_chaos"]
+__all__ = ["evaluate_chaos"]
 
 import numpy as np
 import numpy.typing as npt

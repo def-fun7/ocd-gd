@@ -18,9 +18,51 @@ from ._grid_ics import _circular_velocity, _generate_grid_ics, _reference_energy
 from ._grid_plotting import _GridChaosPlottingMixin
 from ._terminal_config import get_logger
 from ._resonance import ResonanceRadii, compute_resonance_radii
+from ._units import AgamaUnits
 from .orbit_detector import OrbitChaosDetector
 
 logger = get_logger(__name__)
+
+# Same purpose as orbit_detector.py's _METADATA_FIELD_UNITS, for the
+# grid-specific columns this class adds on top of the base class's.
+_GRID_METADATA_FIELD_UNITS: dict[str, str | None] = {
+    "R_0": "length",
+    "E_0": "energy",
+    "y_0": "length",
+    "z_0": "length",
+    "v_y0_frac": None,
+    "v_z0_frac": None,
+    "grid_size": None,
+    "omega": "frequency",
+}
+
+
+def _scatter_to_grid(
+    values: npt.NDArray[Any],
+    physical_indices: npt.NDArray[np.intp],
+    grid_size: int,
+    fill: Any,
+) -> npt.NDArray[Any]:
+    """Scatter a length-n_physical-orbits array back into a full
+    (grid_size, grid_size) grid at each orbit's original flat grid
+    position (`physical_indices`), filling every unphysical (never
+    integrated) cell with `fill`.
+
+    Shared by every per-orbit -> per-grid-cell map this class builds
+    (chaos checks, orbit family, ...) so the scatter/reshape logic lives
+    in exactly one place. No transpose is applied here or by any caller:
+    `_generate_grid_ics` builds `ics` from `np.meshgrid(x_vals, v_x_vals)`
+    (default 'xy' indexing), which already lays the flattened array out as
+    row = v_x index, column = x index -- exactly the (row=y, col=x)
+    orientation `imshow`/`Heatmap`/`Image` expect. Transposing would
+    rotate any resulting map 90 degrees relative to the x-axis-indexed
+    zero-velocity curve overlay.
+    """
+    n_cells = grid_size**2
+    dtype = np.result_type(values, np.asarray(fill))
+    full = np.full(n_cells, fill, dtype=dtype)
+    full[physical_indices] = values
+    return full.reshape(grid_size, grid_size)
 
 
 class GridChaosDetector(_GridChaosPlottingMixin, OrbitChaosDetector):
@@ -32,7 +74,9 @@ class GridChaosDetector(_GridChaosPlottingMixin, OrbitChaosDetector):
     parent class — `detect_chaos`, `get_sali`, `plot_sali`, etc. all work
     unchanged, indexed by the flattened grid order. This class adds the
     grid-generation step plus `plot_chaos_map` / `plot_composite_chaos_map` /
-    `save_chaos_maps` (see `_GridChaosPlottingMixin` in `_grid_plotting.py`).
+    `save_chaos_maps` (see `_GridChaosPlottingMixin` in `_grid_plotting.py`),
+    and the grid-shaped counterpart of the base class's `orbit_family`:
+    `family_grid` (see `_scatter_to_grid` above).
     """
 
     def __init__(
@@ -57,6 +101,7 @@ class GridChaosDetector(_GridChaosPlottingMixin, OrbitChaosDetector):
         max_num_steps: int = 100000000,
         plotting_backend: str = "matplotlib",
         keep_raw_deviations: bool = False,
+        units: AgamaUnits | None = None,
     ) -> None:
         """Generate a grid of initial conditions at fixed energy, then
         integrate and analyze them via `OrbitChaosDetector`.
@@ -97,12 +142,19 @@ class GridChaosDetector(_GridChaosPlottingMixin, OrbitChaosDetector):
         keep_raw_deviations :
             Forwarded to `OrbitChaosDetector.__init__` — see its docstring
             for details.
+        units : AgamaUnits, optional
+            Forwarded to `OrbitChaosDetector.__init__`. Used here to tag
+            `R_0`, `E_0`, `y_0`, `z_0`, and `omega` as physical `Quantity`
+            columns in `metadata_row()` -- see
+            `orbit_detector._METADATA_FIELD_UNITS`'s docstring for the
+            fallback behavior when it's left as None.
         """
         logger.info(
-            "Generating %dx%d (x, v_x) grid of initial conditions at R_0=%.4g ...",
+            "Generating %dx%d (x, v_x) grid of initial conditions at R_0=%.4g and omega=%.4g ...",
             grid_size,
             grid_size,
             R_0,
+            omega,
         )
         grid_gen_start = time.perf_counter()
         grid_info = _generate_grid_ics(
@@ -137,6 +189,7 @@ class GridChaosDetector(_GridChaosPlottingMixin, OrbitChaosDetector):
             npt.NDArray[np.float64],
             npt.NDArray[np.float64] | None,
         ] = None
+        self._family_grid_cache: npt.NDArray[np.str_] | None = None
         self._orbit_idx_lookup_cache: npt.NDArray[np.float64] | None = None
         self._resonance_radii_cache: ResonanceRadii | None = None
 
@@ -170,6 +223,7 @@ class GridChaosDetector(_GridChaosPlottingMixin, OrbitChaosDetector):
             max_num_steps=max_num_steps,
             plotting_backend=plotting_backend,
             keep_raw_deviations=keep_raw_deviations,
+            units=units,
         )
 
     def _compute_chaos_grids(
@@ -178,37 +232,26 @@ class GridChaosDetector(_GridChaosPlottingMixin, OrbitChaosDetector):
         npt.NDArray[np.float64], npt.NDArray[np.float64], npt.NDArray[np.float64]
     ]:
         """Reshape SALI/GALI/Lyapunov chaos checks into (grid_size, grid_size)
-        maps, masking unphysical grid cells as NaN.
+        maps via `_scatter_to_grid`, masking unphysical grid cells as NaN.
 
         `detect_chaos()` only ever ran on the physical orbits (see
         `_physical_indices` in `__init__`), so its check arrays are compact —
-        one entry per integrated orbit, not per grid cell. This scatters them
-        back into full grid_size**2-length arrays at their original flat grid
-        positions before reshaping, leaving every unphysical cell as NaN.
-
-        No transpose is applied: `_generate_grid_ics` builds `ics` from
-        `np.meshgrid(x_vals, v_x_vals)` (default 'xy' indexing), which already
-        lays the flattened array out as row = v_x index, column = x index —
-        exactly the (row=y, col=x) orientation `imshow`/`Heatmap`/`Image`
-        expect. Transposing here would rotate the map 90 degrees relative to
-        the x-axis-indexed zero-velocity curve overlay.
+        one entry per integrated orbit, not per grid cell.
         """
         summary = self.detect_chaos()
-        n_cells = self.grid_size**2
-
-        sali = np.full(n_cells, np.nan)
-        gali = np.full(n_cells, np.nan)
-        lyap = np.full(n_cells, np.nan)
-
-        sali[self._physical_indices] = summary.sali_check
-        gali[self._physical_indices] = summary.gali_check
-        lyap[self._physical_indices] = summary.lyapunov_check
-
-        shape = (self.grid_size, self.grid_size)
         return (
-            sali.reshape(shape),
-            gali.reshape(shape),
-            lyap.reshape(shape),
+            _scatter_to_grid(
+                summary.sali_check, self._physical_indices, self.grid_size, fill=np.nan
+            ),
+            _scatter_to_grid(
+                summary.gali_check, self._physical_indices, self.grid_size, fill=np.nan
+            ),
+            _scatter_to_grid(
+                summary.lyapunov_check,
+                self._physical_indices,
+                self.grid_size,
+                fill=np.nan,
+            ),
         )
 
     @property
@@ -222,6 +265,23 @@ class GridChaosDetector(_GridChaosPlottingMixin, OrbitChaosDetector):
         if self._chaos_grids_cache is None:
             self._chaos_grids_cache = self._compute_chaos_grids()
         return self._chaos_grids_cache
+
+    @property
+    def family_grid(self) -> npt.NDArray[np.str_]:
+        """Lazy-loaded (grid_size, grid_size) box/loop family map (see
+        `OrbitChaosDetector.orbit_family`), scattered back into grid shape
+        via `_scatter_to_grid`. Unphysical grid cells are labeled
+        `"unphysical"` rather than left as NaN, since a string column has
+        no NaN to fall back to.
+        """
+        if self._family_grid_cache is None:
+            self._family_grid_cache = _scatter_to_grid(
+                self.orbit_family,
+                self._physical_indices,
+                self.grid_size,
+                fill="unphysical",
+            )
+        return self._family_grid_cache
 
     @property
     def _orbit_idx_lookup(self) -> npt.NDArray[np.float64]:
@@ -238,11 +298,13 @@ class GridChaosDetector(_GridChaosPlottingMixin, OrbitChaosDetector):
         """Return the orbit_idx for grid cell (row, col), or None if that
         cell was unphysical and was never integrated.
 
-        `row` indexes v_x and `col` indexes x — matching `chaos_grids`' axes
-        (`chaos_grids[0][row, col]` is the SALI check for the orbit this
+        `row` indexes v_x and `col` indexes x — matching `chaos_grids`'/
+        `family_grid`'s axes (`chaos_grids[0][row, col]` is the SALI check,
+        `family_grid[row, col]` is the box/loop label, for the orbit this
         returns). Use the returned orbit_idx with any inherited orbit_idx-
-        based method: `get_sali`, `get_gali`, `get_trajectory`, `plot_sali`,
-        `plot_gali`, `detect_chaos(orbit_idx=...)`, etc.
+        based method: `get_sali`, `get_gali`, `get_family`,
+        `get_trajectory`, `plot_sali`, `plot_gali`, `detect_chaos(orbit_idx=...)`,
+        etc.
         """
         if not (0 <= row < self.grid_size and 0 <= col < self.grid_size):
             raise IndexError(
@@ -278,10 +340,12 @@ class GridChaosDetector(_GridChaosPlottingMixin, OrbitChaosDetector):
 
     def metadata_row(self, extra: dict[str, Any | None] | None = None) -> QTable:
         """Extends `OrbitChaosDetector.metadata_row` with grid-specific
-        parameters (R_0, E_0, grid geometry, transverse velocity fractions).
+        parameters (R_0, E_0, grid geometry, transverse velocity fractions),
+        tagged as physical `Quantity` columns where applicable (see
+        `_GRID_METADATA_FIELD_UNITS` and `OrbitChaosDetector._tag_unit`).
         See the base method for the `extra` parameter and general behavior.
         """
-        grid_columns: dict[str, Any] = {
+        raw_grid_columns: dict[str, Any] = {
             "R_0": self.R_0,
             "E_0": self.E_0,
             "y_0": self.y_0,
@@ -290,6 +354,10 @@ class GridChaosDetector(_GridChaosPlottingMixin, OrbitChaosDetector):
             "v_z0_frac": self.v_z0_frac,
             "grid_size": self.grid_size,
             "omega": self.omega,
+        }
+        grid_columns = {
+            name: self._tag_unit(name, value, _GRID_METADATA_FIELD_UNITS)
+            for name, value in raw_grid_columns.items()
         }
         merged_extra = {**grid_columns, **(extra or {})}
         return super().metadata_row(extra=merged_extra)

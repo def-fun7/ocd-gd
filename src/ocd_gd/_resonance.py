@@ -9,12 +9,19 @@ from `potential.force`/`potential.potential` alone (the same primitives
 no assumption about rotation curves being available as a separate API.
 """
 
-__all__ = ["ResonanceRadii", "compute_resonance_radii"]
+__all__ = [
+    "ResonanceRadii",
+    "compute_resonance_radii",
+    "CorotationSetup",
+    "omega_for_corotation_ratio",
+]
 
 from typing import Any, NamedTuple
 
 import numpy as np
 import numpy.typing as npt
+
+from ._grid_ics import _circular_velocity
 
 
 class ResonanceRadii(NamedTuple):
@@ -122,3 +129,34 @@ def compute_resonance_radii(
         inner_lindblad=inner_lindblad,
         outer_lindblad=outer_lindblad,
     )
+
+
+class CorotationSetup(NamedTuple):
+    """Omega and R_0 for a GridChaosDetector centered on corotation."""
+
+    omega: float
+    R_corotation: float
+
+
+def omega_for_corotation_ratio(
+    potential: Any, a_bar: float, ratio: float = 1.2
+) -> CorotationSetup:
+    """Omega_bar and R_corotation such that corotation lands at `ratio * a_bar`.
+
+    Corotation is where the pattern speed equals the local circular
+    orbital frequency: Omega_bar = v_circ(R_CR) / R_CR. Picking R_CR
+    directly as `ratio * a_bar` (the standard "fast bar" convention --
+    R_CR/a_bar ~= 1.2 is fast, gtrsim 1.4 is slow) makes Omega_bar a
+    direct evaluation of the potential's circular velocity curve at that
+    one radius, not an implicit equation -- no root-finding needed.
+
+    Returns both `omega` and `R_corotation` (rather than just `omega`)
+    since a typical use is feeding both straight into GridChaosDetector:
+    `GridChaosDetector(pot, R_0=R_corotation, omega=omega, ...)` centers
+    the grid's orbits, and the energy derived from them (when `E_0` is
+    left as None), directly on the resonance region being studied.
+    """
+    R_CR = ratio * a_bar
+    v_circ = _circular_velocity(potential, R_CR)
+    omega = v_circ / R_CR
+    return CorotationSetup(omega=omega, R_corotation=R_CR)

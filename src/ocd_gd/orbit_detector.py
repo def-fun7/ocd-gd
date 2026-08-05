@@ -17,9 +17,10 @@ import numpy.typing as npt
 from astropy.table import QTable
 
 from ._evaluate_chaos import evaluate_chaos
+from ._family_check import FamilyStats, classify_box_loop, summarize_family
 from ._terminal_config import get_logger
 from ._plotting import _OrbitPlottingMixin
-from .sali_kernel import sali_kernel
+from ._sali_kernel import sali_kernel
 from ._types import (
     ChaosAgreement,
     ChaosFullReport,
@@ -28,8 +29,24 @@ from ._types import (
     IntegrationCriteria,
     MethodChaosStats,
 )
+from ._units import AgamaUnits, tag_unit
 
 logger = get_logger(__name__)
+
+# Which physical "kind" (see AgamaUnits.unit_for) each metadata_row field
+# is expressed in, so metadata_row can tag it as a Quantity rather than a
+# bare float. None/absent = dimensionless (thresholds, window sizes,
+# counts, tolerances -- configuration knobs, not physical quantities).
+_METADATA_FIELD_UNITS: dict[str, str | None] = {
+    "num_orbits": None,
+    "iter_time": "time",
+    "gali_threshold": None,
+    "sali_threshold": None,
+    "gali_window_size": None,
+    "sali_window_size": None,
+    "accuracy": None,
+    "max_num_steps": None,
+}
 
 
 class OrbitChaosDetector(_OrbitPlottingMixin):
@@ -38,7 +55,14 @@ class OrbitChaosDetector(_OrbitPlottingMixin):
     Handles single or batch initial conditions seamlessly using vectorized
     computations and lazy evaluation properties. All `plot_*` methods are
     provided by `_OrbitPlottingMixin` (see `_plotting.py`); this class holds
-    the integration, chaos-computation, and lookup logic.
+    the integration, chaos-computation, family-classification, and lookup
+    logic.
+
+    Besides chaos detection (`detect_chaos`/`chaos_summary`), this class
+    also exposes a cheap orbit-family label via `orbit_family`/
+    `family_summary` (box vs. loop, from the sign of the in-plane angular
+    momentum -- see `_family_check.py`), reusing the same trajectory data
+    with no extra integration.
     """
 
     def __init__(
@@ -55,6 +79,7 @@ class OrbitChaosDetector(_OrbitPlottingMixin):
         max_num_steps: int = 100000000,
         plotting_backend: str = "matplotlib",
         keep_raw_deviations: bool = False,
+        units: AgamaUnits | None = None,
     ) -> None:
         """Initialize detector and automatically run orbit integrations.
 
@@ -89,6 +114,14 @@ class OrbitChaosDetector(_OrbitPlottingMixin):
             normalisation happens in place on `self._dev_arr` directly, avoiding
             an extra full-size array copy — recommended for large batches
             (thousands of orbits) where memory is the binding constraint.
+        units : AgamaUnits, optional
+            Unit system to tag physical `metadata_row()` columns (`iter_time`,
+            and in `GridChaosDetector`, `R_0`/`E_0`/`omega`/...) with real
+            astropy units. If None (default), falls back to
+            `AgamaUnits.current()` -- the most recent `AgamaUnits.from_setup(...)`
+            call in this process, or None if that utility was never used, in
+            which case metadata columns stay bare floats (unchanged from
+            before this parameter existed).
         """
 
         # 1. Configuration Attributes
@@ -106,6 +139,9 @@ class OrbitChaosDetector(_OrbitPlottingMixin):
         self.max_num_steps: int = int(max_num_steps)
         self.plotting_backend: str = plotting_backend.lower()
         self.keep_raw_deviations: bool = keep_raw_deviations
+        self.units: AgamaUnits | None = (
+            units if units is not None else AgamaUnits.current()
+        )
 
         # 2. Raw Cached Simulation Data (Private)
         self._time_arr: npt.NDArray[np.float64] | None = None
@@ -118,6 +154,7 @@ class OrbitChaosDetector(_OrbitPlottingMixin):
         self._sali_arr: npt.NDArray[np.float64] | None = None
         self._gali_arr: npt.NDArray[np.float64] | None = None
         self._chaos_results_cache: tuple[npt.NDArray[np.float64], ... | None] = None
+        self._orbit_family_cache: npt.NDArray[np.str_] | None = None
 
         # Automatically kick off the heavy simulation on creation
         sali_kernel(np.array([[[[1]]]]), np.array([0]), np.array([1]))
@@ -272,6 +309,24 @@ class OrbitChaosDetector(_OrbitPlottingMixin):
             self._gali_arr = self._compute_gali()
         return self._gali_arr
 
+    @property
+    def orbit_family(self) -> npt.NDArray[np.str_]:
+        """Lazy-loaded per-orbit box/loop classification (see
+        `_family_check.classify_box_loop`) -- `"loop"` if the orbit's
+        in-plane angular momentum L_z(t) keeps one sign for the whole
+        integration, `"box"` if it flips sign (never settles into
+        circulating one way).
+
+        Cheap: reuses the already-integrated `self.trajectories`, no new
+        integration. Coarse: only distinguishes box vs. loop, not which
+        resonance family a loop orbit belongs to (e.g. x1 vs x2 near the
+        ILR) -- that needs frequency analysis of the trajectory and isn't
+        implemented here (see `_family_check.py`'s module docstring).
+        """
+        if self._orbit_family_cache is None:
+            self._orbit_family_cache = classify_box_loop(self.trajectories)
+        return self._orbit_family_cache
+
     # =========================================================================
     # PUBLIC ACCESS METHODS
     # =========================================================================
@@ -294,6 +349,15 @@ class OrbitChaosDetector(_OrbitPlottingMixin):
             )
         return chosen
 
+    def _tag_unit(self, name: str, value: Any, lookup: dict[str, str | None]) -> Any:
+        """Attach a physical unit to a raw Agama-unit metadata value, if
+        one is known for `name` (via `lookup`) and this detector has an
+        `AgamaUnits` to convert with. Returns `value` unchanged otherwise
+        -- e.g. no `AgamaUnits.from_setup(...)` was ever called in this
+        process, so columns fall back to the previous bare-float
+        behavior."""
+        return tag_unit(self.units, name, value, lookup)
+
     def get_trajectory(self, orbit_idx: int | None = None) -> npt.NDArray[np.float64]:
         """Return the full trajectory or specific targeted orbit index data."""
         self._validate_index(orbit_idx)
@@ -308,6 +372,13 @@ class OrbitChaosDetector(_OrbitPlottingMixin):
         """Return GALI calculation sequences filtered down to target orbit."""
         self._validate_index(orbit_idx)
         return self.gali_array if orbit_idx is None else self.gali_array[orbit_idx]
+
+    def get_family(
+        self, orbit_idx: int | None = None
+    ) -> npt.NDArray[np.str_] | np.str_:
+        """Return the box/loop classification, optionally for one orbit."""
+        self._validate_index(orbit_idx)
+        return self.orbit_family if orbit_idx is None else self.orbit_family[orbit_idx]
 
     # =========================================================================
     # CORE ANALYSIS METHOD
@@ -410,7 +481,7 @@ class OrbitChaosDetector(_OrbitPlottingMixin):
         lyap_time = self._lyap[:, 1]
         is_nan = np.isnan(lyap_array)
         lyap_check = np.where(lyap_array <= 0.1, 0, 1).astype(float)
-        lyap_check[is_nan] = 0
+        lyap_check[is_nan] = np.nan
 
         if orbit_idx is not None:
             gali_c = gali_check[orbit_idx]
@@ -463,7 +534,7 @@ class OrbitChaosDetector(_OrbitPlottingMixin):
 
     def _method_stats(self, check: npt.NDArray[np.float64]) -> MethodChaosStats:
         """Build a MethodChaosStats block for one indicator's 0/1 check array."""
-        check_bool = np.nan_to_num(check, nan=0.0).astype(bool)
+        check_bool = np.asarray(check).astype(bool)
         chaotic_indices = np.where(check_bool)[0]
         regular_indices = np.where(~check_bool)[0]
         n_chaotic = len(chaotic_indices)
@@ -531,6 +602,14 @@ class OrbitChaosDetector(_OrbitPlottingMixin):
             agreement=agreement,
         )
 
+    def family_summary(self) -> FamilyStats:
+        """Summarize box/loop classification across every integrated
+        orbit: counts, fractions, and indices per family (see
+        `orbit_family`). Mirrors `chaos_summary()`'s shape, so the two can
+        be combined by the caller (e.g. a "loop AND regular" fraction).
+        """
+        return summarize_family(self.orbit_family)
+
     # =========================================================================
     # RUN METADATA
     # =========================================================================
@@ -547,6 +626,13 @@ class OrbitChaosDetector(_OrbitPlottingMixin):
         `Quantity` objects — QTable handles both, so unit-aware columns
         (e.g. `bh_mass=1e6 * u.Msun`) work directly.
 
+        Fields with a known physical meaning (currently just `iter_time`;
+        `GridChaosDetector.metadata_row` adds more) are tagged as
+        `Quantity` columns using `self.units` (see `AgamaUnits`) rather
+        than left as bare Agama-unit floats -- provided `self.units` is
+        set (see the `units` parameter on `__init__`). If it's not, these
+        columns stay bare floats, exactly as before this existed.
+
         Parameters
         ----------
         extra : dict, optional
@@ -556,15 +642,19 @@ class OrbitChaosDetector(_OrbitPlottingMixin):
             the caller supplies them explicitly.
         """
         criteria = self.criteria
+        raw_columns: dict[str, Any] = {
+            "num_orbits": self.num_orbits,
+            "iter_time": criteria.iter_time,
+            "gali_threshold": criteria.gali_threshold,
+            "sali_threshold": criteria.sali_threshold,
+            "gali_window_size": criteria.gali_window_size,
+            "sali_window_size": criteria.sali_window_size,
+            "accuracy": criteria.accuracy,
+            "max_num_steps": criteria.max_num_steps,
+        }
         columns: dict[str, Any] = {
-            "num_orbits": [self.num_orbits],
-            "iter_time": [criteria.iter_time],
-            "gali_threshold": [criteria.gali_threshold],
-            "sali_threshold": [criteria.sali_threshold],
-            "gali_window_size": [criteria.gali_window_size],
-            "sali_window_size": [criteria.sali_window_size],
-            "accuracy": [criteria.accuracy],
-            "max_num_steps": [criteria.max_num_steps],
+            name: [self._tag_unit(name, value, _METADATA_FIELD_UNITS)]
+            for name, value in raw_columns.items()
         }
         if extra:
             for key, value in extra.items():

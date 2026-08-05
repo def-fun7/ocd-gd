@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 """
 Analyze / plot results from a GridChaosDetector sweep (run_sweep.py).
 

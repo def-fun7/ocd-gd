@@ -1,4 +1,4 @@
-__all__["sali_kernel"]
+__all__ = ["sali_kernel"]
 
 import numpy as np
 import numpy.typing as npt

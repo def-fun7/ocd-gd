@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 """
 Build a composite toy Milky-Way-like potential made of three components:
     1. an axisymmetric stellar Disk       (Miyamoto-Nagai)
@@ -40,6 +40,8 @@ import scipy.optimize
 from _cli_common import add_clear_cache_arg, add_qb_fbh_args
 
 from ocd_gd import (
+    CorotationSetup,
+    omega_for_corotation_ratio,
     get_logger,
     print_banner,
     print_dataframe_table,
@@ -344,6 +346,10 @@ def makeCompositePotential(
     diskPot, disk_pot_params = makeDiskPotential(**diskParams)
     barPot, bar_pot_params = makeBarPotential(Qb, diskPot=diskPot, **barShape)
 
+    omega, R_corotation = omega_for_corotation_ratio(
+        potential=barPot, a_bar=bar_pot_params["scaleRadius"]
+    )
+
     M_disk = diskPot.totalMass()
     M_bar = barPot.totalMass()
     M_baryon = M_disk + M_bar
@@ -356,12 +362,14 @@ def makeCompositePotential(
     if outFilename is None:
         outFilename = str(BASE_DIR / (f"composite_Qb{Qb:.3f}_fbh{f_bh:.4f}.json"))
     metadata = {
-        "composite_Qb": f"{Qb:.3f}",
+        "Qb": f"{Qb:.3f}",
         "f_bh": f"{f_bh:.4f}",
         "M_disk": f"{M_disk:.2f}",
         "M_bar": f"{M_bar:.2f}",
         "M_bh": f"{M_bh:.4f}",
         "M_total": "%.2f" % (M_baryon + M_bh),
+        "omega": f"{omega}",
+        "R_Corotation": f"{R_corotation}",
         "output file": outFilename,
     }
     save_potential_config(

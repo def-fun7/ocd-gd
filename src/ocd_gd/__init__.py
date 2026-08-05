@@ -15,7 +15,12 @@ __all__ = [
     "IntegrationCriteria",
     "MethodChaosStats",
     "ResonanceRadii",
+    "CorotationSetup",
+    "omega_for_corotation_ratio",
     "chaos_summary_row",
+    "AgamaUnits",
+    "tag_unit" "FamilyStats",
+    "get_logger",
     "setup_logging",
     "print_banner",
     "print_dataframe_table",
@@ -25,6 +30,7 @@ __all__ = [
 ]
 
 from ._terminal_config import (
+    get_logger,
     setup_logging,
     print_banner,
     print_dataframe_table,
@@ -32,7 +38,7 @@ from ._terminal_config import (
     HAS_RICH,
     console,
 )
-from ._resonance import ResonanceRadii
+from ._resonance import ResonanceRadii, omega_for_corotation_ratio, CorotationSetup
 from ._types import (
     ChaosAgreement,
     ChaosFullReport,
@@ -42,5 +48,9 @@ from ._types import (
     MethodChaosStats,
     chaos_summary_row,
 )
+
+from ._units import AgamaUnits, tag_unit
+from ._family_check import FamilyStats
+
 from .grid_detector import GridChaosDetector
 from .orbit_detector import OrbitChaosDetector

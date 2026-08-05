@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 """
 Sweep runner for GridChaosDetector.
 
@@ -63,14 +63,25 @@ from _cli_common import add_clear_cache_arg, add_qb_fbh_args
 from astropy.table import QTable, vstack
 from build_potential import clearCache, load_composite_potential, makeCompositePotential
 
-from ocd_gd import GridChaosDetector
 from ocd_gd import (
+    AgamaUnits,
+    tag_unit,
+    GridChaosDetector,
     get_logger,
     print_banner,
     print_dataframe_table,
     print_kv_table,
     setup_logging,
 )
+
+CURRENT_UNITS = AgamaUnits.from_setup(length=1, mass=1, velocity=1)
+
+_POTENTIAL_METADATA_UNITS: dict[str, str | None] = {
+    "M_disk": "mass",
+    "M_bar": "mass",
+    "M_bh": "mass",
+    "M_total": "mass",
+}
 
 log = get_logger(__name__)
 
@@ -116,25 +127,37 @@ def _normalize_potential_metadata(metadata: dict[str, Any]) -> dict[str, Any]:
     """Turn the string-valued metadata block written by
     `build_potential.save_potential_config` (e.g. `{"composite_Qb": "0.100",
     "f_bh": "0.0000", "M_bh": "0.0000", ...}`) into float-valued sweep
-    columns with consistent names (`Qb` rather than `composite_Qb`), so
+    columns with consistent names, so
     downstream analysis (`analyze_sweep.py`) doesn't need to know about
     that formatting quirk.
     """
-    rename = {"composite_Qb": "Qb"}
+    rename = {"R_Corotation": "R_0"}
     skip = {"output file"}
+    corotation_keys = {"omega", "R_Corotation"}
+
+    corotation_spec: dict[str, float] = {}
     out: dict[str, Any] = {}
     for key, value in metadata.items():
         if key in skip:
             continue
         name = rename.get(key, key)
         try:
-            out[name] = float(value)
+            value = float(value)
+            value = tag_unit(
+                AgamaUnits.current(), name, value, _POTENTIAL_METADATA_UNITS
+            )
         except (TypeError, ValueError):
+            pass
+        if key in corotation_keys:
+            corotation_spec[name] = value
+        else:
             out[name] = value
-    return out
+    return out, corotation_spec
 
 
-def _resolve_potential(spec: PotentialSpec) -> tuple[agama.Potential, dict[str, Any]]:
+def _resolve_potential(
+    spec: PotentialSpec,
+) -> tuple[agama.Potential, dict[str, Any], dict[str, float]]:
     """Turn one `PotentialSpec` into `(agama.Potential, extra_metadata)`.
 
     `extra_metadata` is whatever's known about the potential's construction
@@ -144,13 +167,13 @@ def _resolve_potential(spec: PotentialSpec) -> tuple[agama.Potential, dict[str, 
     built is recoverable from the object alone.
     """
     if isinstance(spec, agama.Potential):
-        return spec, {}
+        return spec, {}, {}
 
     if isinstance(spec, (str, Path)):
         pot, metadata = load_composite_potential(str(spec))
-        extra = _normalize_potential_metadata(metadata)
+        extra, corotationSpec = _normalize_potential_metadata(metadata)
         extra["potential_source"] = str(spec)
-        return pot, extra
+        return pot, extra, corotationSpec
 
     if isinstance(spec, dict):
         if "Qb" not in spec or "f_bh" not in spec:
@@ -164,9 +187,9 @@ def _resolve_potential(spec: PotentialSpec) -> tuple[agama.Potential, dict[str, 
         # hand-assembling a smaller dict here -- keeps this branch's columns
         # (M_disk/M_bar/M_bh/M_total/...) identical to the path-spec branch.
         _, metadata = load_composite_potential(fname)
-        extra = _normalize_potential_metadata(metadata)
+        extra, corotationSpec = _normalize_potential_metadata(metadata)
         extra["potential_source"] = fname
-        return pot, extra
+        return pot, extra, corotationSpec
 
     raise TypeError(
         "potential must be an agama.Potential, a path to a JSON config, or "
@@ -212,8 +235,8 @@ def _execute_run(
     submitted to a `ProcessPoolExecutor` by `run_sweep(..., n_jobs > 1)`.
     """
     try:
-        pot, meta_from_spec = _resolve_potential(run.potential)
-        merged_grid_kwargs = {**grid_kwargs, **run.grid_overrides}
+        pot, meta_from_spec, corotationSpec = _resolve_potential(run.potential)
+        merged_grid_kwargs = {**grid_kwargs, **run.grid_overrides, **corotationSpec}
 
         t0 = time.perf_counter()
         detector = GridChaosDetector(pot, **merged_grid_kwargs)
