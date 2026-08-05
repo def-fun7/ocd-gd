@@ -408,7 +408,7 @@ class OrbitChaosDetector(_OrbitPlottingMixin):
         lyap_time = self._lyap[:, 1]
         is_nan = np.isnan(lyap_array)
         lyap_check = np.where(lyap_array <= 0.1, 0, 1).astype(float)
-        lyap_check[is_nan] = np.nan
+        lyap_check[is_nan] = 0
 
         if orbit_idx is not None:
             gali_c = gali_check[orbit_idx]
@@ -461,7 +461,7 @@ class OrbitChaosDetector(_OrbitPlottingMixin):
 
     def _method_stats(self, check: npt.NDArray[np.float64]) -> MethodChaosStats:
         """Build a MethodChaosStats block for one indicator's 0/1 check array."""
-        check_bool = np.asarray(check).astype(bool)
+        check_bool = np.nan_to_num(check, nan=0.0).astype(bool)
         chaotic_indices = np.where(check_bool)[0]
         regular_indices = np.where(~check_bool)[0]
         n_chaotic = len(chaotic_indices)
