@@ -10,6 +10,8 @@ __all__ = [
     "plot_colored_trajectory_2d_plotly",
     "plot_composite_chaos_map_mpl",
     "plot_composite_chaos_map_plotly",
+    "plot_consensus_chaos_map_mpl",
+    "plot_consensus_chaos_map_plotly",
     # Dashboards & Utils
     "plot_dashboard_mpl",
     "plot_dashboard_plotly",
@@ -45,13 +47,17 @@ from .dashboard import (
     plot_dashboard_mpl,
     plot_dashboard_plotly,
 )
-from .grid_visualisation import (
+from .grid_mpl_backend import (
     plot_chaos_maps_mpl,
-    plot_chaos_maps_plotly,
     plot_composite_chaos_map_mpl,
-    plot_composite_chaos_map_plotly,
+    plot_consensus_chaos_map_mpl,
 )
-from .matplotlib_backend import (
+from .grid_plotly_backend import (
+    plot_chaos_maps_plotly,
+    plot_composite_chaos_map_plotly,
+    plot_consensus_chaos_map_plotly,
+)
+from .mpl_backend import (
     plot_colored_trajectory_2d_mpl,
     plot_energy_drift_mpl,
     plot_gali_mpl,

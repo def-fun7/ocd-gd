@@ -24,7 +24,10 @@ def add_qb_fbh_args(parser: argparse.ArgumentParser) -> None:
         "--fbh",
         type=float,
         nargs="+",
-        default=[0.0, 0.1],
+        default=[
+            0.0,
+            0.1,
+        ],
         help="Central-mass fraction f_bh value(s) to sweep over (default: 0.0 0.005).",
     )
 

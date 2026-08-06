@@ -12,12 +12,17 @@ __all__ = [
     "plot_trajectory_3d_plotly",
 ]
 
+
 import numpy as np
 import numpy.typing as npt
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
 from .utils import resolve_save_path
+
+# ==============================================================================
+# Simple SALI, GALI plots [Helpers]
+# ==============================================================================
 
 
 def _handle_save_show(

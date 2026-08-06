@@ -75,6 +75,7 @@ from ocd_gd import (
     print_dataframe_table,
     print_kv_table,
     setup_logging,
+    set_publication_style,
 )
 
 CURRENT_UNITS = AgamaUnits.from_setup(length=1, mass=1, velocity=1)
@@ -87,7 +88,7 @@ _POTENTIAL_METADATA_UNITS: dict[str, str | None] = {
 }
 
 log = get_logger(__name__)
-
+# set_publication_style()
 BASE_DIR = Path(__file__).resolve().parent / "outputs"
 BASE_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -255,13 +256,21 @@ def _execute_run(
         if chaos_map_dir is not None:
             chaos_map_dir.mkdir(parents=True, exist_ok=True)
             original_path = Path(extra["potential_source"])
-            chaos_map_filename = (
-                original_path.stem.replace("composite", "chaos_map") + ".png"
+            cons_chaos_map_filename = (
+                original_path.stem.replace("composite", "cons_chaos_map") + ".png"
             )
-            chaos_map_path = f"{chaos_map_dir}/{chaos_map_filename}"
-            detector.save_chaos_maps(composite_path=chaos_map_path)
-            log.info(f"chaos map saved at {chaos_map_path}")
-            extra["chaos_map_path"] = str(chaos_map_path)
+            comp_chaos_map_filename = (
+                original_path.stem.replace("composite", "comp_chaos_map") + ".png"
+            )
+            side_chaos_map_filename = (
+                original_path.stem.replace("composite", "side_chaos_map") + ".png"
+            )
+            detector.save_chaos_maps(
+                composite_path=f"{chaos_map_dir}/{comp_chaos_map_filename}",
+                consensus_path=f"{chaos_map_dir}/{cons_chaos_map_filename}",
+                side_by_side_path=f"{chaos_map_dir}/{side_chaos_map_filename}",
+                theme="magma",
+            )
         elapsed = time.perf_counter() - t0
 
         extra["run_index"] = i

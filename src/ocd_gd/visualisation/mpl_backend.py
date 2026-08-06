@@ -12,12 +12,18 @@ __all__ = [
     "plot_trajectory_3d_mpl",
 ]
 
-import matplotlib.pyplot as plt
+
 import numpy as np
 import numpy.typing as npt
+import matplotlib.pyplot as plt
 from matplotlib.collections import LineCollection
 
+
 from .utils import resolve_save_path
+
+# ==============================================================================
+# Simple SALI, GALI plots [Helpers]
+# ==============================================================================
 
 
 def _setup_fig_ax(

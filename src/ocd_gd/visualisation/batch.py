@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import numpy.typing as npt
 
-from .matplotlib_backend import _handle_save_show, plot_gali_mpl, plot_sali_mpl
+from .mpl_backend import _handle_save_show, plot_gali_mpl, plot_sali_mpl
 
 
 def plot_sali_batch_mpl(

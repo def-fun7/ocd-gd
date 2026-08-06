@@ -18,6 +18,8 @@ from .visualisation import (
     plot_chaos_maps_plotly,
     plot_composite_chaos_map_mpl,
     plot_composite_chaos_map_plotly,
+    plot_consensus_chaos_map_mpl,
+    plot_consensus_chaos_map_plotly,
 )
 
 
@@ -30,6 +32,7 @@ class _GridChaosPlottingMixin:
         save_path: str | None = None,
         show: bool = True,
         show_resonances: bool = True,
+        show_family_boundary: bool = True,
         **kwargs,
     ) -> Any:
         """Plot SALI, GALI, and Lyapunov chaos maps side-by-side over the grid.
@@ -61,6 +64,7 @@ class _GridChaosPlottingMixin:
             v_x_vals=self.vx_grid,
             E_rem_vals=self.energy_remainder,
             resonance_radii=self.resonance_radii if show_resonances else None,
+            orbit_family_grid=self.family_grid if show_family_boundary else None,
             save_path=save_path,
             show=show,
             **kwargs,
@@ -72,6 +76,7 @@ class _GridChaosPlottingMixin:
         save_path: str | None = None,
         show: bool = True,
         show_resonances: bool = True,
+        show_family_boundary: bool = True,
         **kwargs,
     ) -> Any:
         """Plot a single RGB composite overlay of the SALI/GALI/Lyapunov maps.
@@ -90,6 +95,35 @@ class _GridChaosPlottingMixin:
             v_x_vals=self.vx_grid,
             E_rem_vals=self.energy_remainder,
             resonance_radii=self.resonance_radii if show_resonances else None,
+            orbit_family_grid=self.family_grid if show_family_boundary else None,
+            save_path=save_path,
+            show=show,
+            **kwargs,
+        )
+
+    def plot_consensus_chaos_map(
+        self,
+        backend: str | None = None,
+        save_path: str | None = None,
+        show: bool = True,
+        show_resonances: bool = True,
+        show_family_boundary: bool = True,
+        **kwargs,
+    ) -> Any:
+        """Plot a single consensus map (0 to 3 chaos indicators fired)."""
+        sali_grid, gali_grid, lyap_grid = self.chaos_grids
+        return self._dispatch_plot(
+            plot_consensus_chaos_map_mpl,
+            plot_consensus_chaos_map_plotly,
+            backend,
+            sali_grid=sali_grid,
+            gali_grid=gali_grid,
+            lyapunov_grid=lyap_grid,
+            x_vals=self.x_grid,
+            v_x_vals=self.vx_grid,
+            E_rem_vals=self.energy_remainder,
+            resonance_radii=self.resonance_radii if show_resonances else None,
+            orbit_family_grid=self.family_grid if show_family_boundary else None,
             save_path=save_path,
             show=show,
             **kwargs,
@@ -99,6 +133,7 @@ class _GridChaosPlottingMixin:
         self,
         side_by_side_path: str | None = None,
         composite_path: str | None = None,
+        consensus_path: str | None = None,
         backend: str | None = None,
         **kwargs,
     ) -> None:
@@ -121,4 +156,8 @@ class _GridChaosPlottingMixin:
         if composite_path is not None:
             self.plot_composite_chaos_map(
                 backend=backend, save_path=composite_path, show=False, **kwargs
+            )
+        if consensus_path is not None:
+            self.plot_consensus_chaos_map(
+                backend=backend, save_path=consensus_path, show=False, **kwargs
             )

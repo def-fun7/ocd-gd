@@ -19,7 +19,8 @@ __all__ = [
     "omega_for_corotation_ratio",
     "chaos_summary_row",
     "AgamaUnits",
-    "tag_unit" "FamilyStats",
+    "tag_unit",
+    "FamilyStats",
     "get_logger",
     "setup_logging",
     "print_banner",
@@ -27,6 +28,8 @@ __all__ = [
     "print_kv_table",
     "HAS_RICH",
     "console",
+    "set_output_dir",
+    "set_publication_style",
 ]
 
 from ._terminal_config import (
@@ -48,6 +51,8 @@ from ._types import (
     MethodChaosStats,
     chaos_summary_row,
 )
+
+from .visualisation import set_output_dir, set_publication_style
 
 from ._units import AgamaUnits, tag_unit
 from ._family_check import FamilyStats
