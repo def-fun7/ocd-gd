@@ -270,7 +270,14 @@ def plot_chaos_maps_mpl(
     """
     th = get_theme(theme)
     grid_size_y, grid_size_x = sali_grid.shape
-    extent = [x_vals[0], x_vals[-1], v_x_vals[0], v_x_vals[-1]]
+    dx = x_vals[1] - x_vals[0]
+    dy = v_x_vals[1] - v_x_vals[0]
+    extent = [
+        x_vals[0] - dx / 2,
+        x_vals[-1] + dx / 2,
+        v_x_vals[0] - dy / 2,
+        v_x_vals[-1] + dy / 2,
+    ]
 
     cmap = ListedColormap([th.color_regular, th.color_chaotic])
     cmap.set_bad(color=th.color_masked)
@@ -377,7 +384,14 @@ def plot_composite_chaos_map_mpl(
     th = get_theme(theme)
     rgb_map = _binary_grids_to_composite_rgb(sali_grid, gali_grid, lyapunov_grid, th)
     grid_shape = sali_grid.shape
-    extent = [x_vals[0], x_vals[-1], v_x_vals[0], v_x_vals[-1]]
+    dx = x_vals[1] - x_vals[0]
+    dy = v_x_vals[1] - v_x_vals[0]
+    extent = [
+        x_vals[0] - dx / 2,
+        x_vals[-1] + dx / 2,
+        v_x_vals[0] - dy / 2,
+        v_x_vals[-1] + dy / 2,
+    ]
     v_zvc = _compute_zvc(E_rem_vals)
     resonance_specs = _resonance_overlay_specs(resonance_radii, th)
     family_field = _family_boundary_field(orbit_family_grid)
@@ -442,7 +456,14 @@ def plot_consensus_chaos_map_mpl(
     th = get_theme(theme)
     consensus_grid = _compute_consensus_grid(sali_grid, gali_grid, lyapunov_grid)
     grid_shape = sali_grid.shape
-    extent = [x_vals[0], x_vals[-1], v_x_vals[0], v_x_vals[-1]]
+    dx = x_vals[1] - x_vals[0]
+    dy = v_x_vals[1] - v_x_vals[0]
+    extent = [
+        x_vals[0] - dx / 2,
+        x_vals[-1] + dx / 2,
+        v_x_vals[0] - dy / 2,
+        v_x_vals[-1] + dy / 2,
+    ]
 
     v_zvc = _compute_zvc(E_rem_vals)
     resonance_specs = _resonance_overlay_specs(resonance_radii, th)

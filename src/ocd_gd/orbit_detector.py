@@ -481,7 +481,7 @@ class OrbitChaosDetector(_OrbitPlottingMixin):
         lyap_time = self._lyap[:, 1]
         is_nan = np.isnan(lyap_array)
         lyap_check = np.where(lyap_array <= 0.1, 0, 1).astype(float)
-        lyap_check[is_nan] = 0
+        lyap_check[is_nan] = np.nan
 
         if orbit_idx is not None:
             gali_c = gali_check[orbit_idx]
@@ -533,20 +533,34 @@ class OrbitChaosDetector(_OrbitPlottingMixin):
     # =========================================================================
 
     def _method_stats(self, check: npt.NDArray[np.float64]) -> MethodChaosStats:
-        """Build a MethodChaosStats block for one indicator's 0/1 check array."""
-        check_bool = np.nan_to_num(check, nan=0.0).astype(bool)
-        chaotic_indices = np.where(check_bool)[0]
-        regular_indices = np.where(~check_bool)[0]
+        """Build a MethodChaosStats block for one indicator's check array.
+
+        `check` is expected to hold 0 (regular), 1 (chaotic), or NaN
+        (undetermined - e.g. Lyapunov integration too short). sali_check and
+        gali_check never contain NaN, so for those this reduces to the
+        previous 0/1 behavior exactly.
+        """
+        check = np.asarray(check, dtype=float)
+        is_nan = np.isnan(check)
+
+        chaotic_indices = np.where((check == 1) & ~is_nan)[0]
+        regular_indices = np.where((check == 0) & ~is_nan)[0]
+        undetermined_indices = np.where(is_nan)[0]
         n_chaotic = len(chaotic_indices)
         n_regular = len(regular_indices)
+        n_undetermined = len(undetermined_indices)
         n_total = self.num_orbits
+        n_classified = n_total - n_undetermined
+
         return MethodChaosStats(
             n_chaotic=n_chaotic,
             n_regular=n_regular,
+            n_undetermined=n_undetermined,
             n_total=n_total,
-            chaotic_fraction=n_chaotic / n_total if n_total else float("nan"),
+            chaotic_fraction=n_chaotic / n_classified if n_classified else float("nan"),
             chaotic_indices=chaotic_indices,
             regular_indices=regular_indices,
+            undetermined_indices=undetermined_indices,
             chaotic_ics=self.ic[chaotic_indices],
             regular_ics=self.ic[regular_indices],
         )
@@ -582,16 +596,28 @@ class OrbitChaosDetector(_OrbitPlottingMixin):
 
         sali_bool = np.asarray(summary.sali_check).astype(bool)
         gali_bool = np.asarray(summary.gali_check).astype(bool)
-        lyap_bool = np.asarray(summary.lyapunov_check).astype(bool)
+        lyap_raw = np.asarray(summary.lyapunov_check, dtype=float)
+        lyap_undetermined = np.isnan(lyap_raw)
+        lyap_bool = np.where(lyap_undetermined, False, lyap_raw).astype(bool)
 
-        all_agree = (sali_bool == gali_bool) & (gali_bool == lyap_bool)
+        classified = (
+            ~lyap_undetermined
+        )  # sali/gali have no NaNs, so this is the only mask needed
+
+        all_agree = (sali_bool == gali_bool) & (gali_bool == lyap_bool) & classified
+
         agreement = ChaosAgreement(
             sali_gali_agreement=float(np.mean(sali_bool == gali_bool)),
-            sali_lyapunov_agreement=float(np.mean(sali_bool == lyap_bool)),
-            gali_lyapunov_agreement=float(np.mean(gali_bool == lyap_bool)),
+            sali_lyapunov_agreement=float(
+                np.mean((sali_bool == lyap_bool)[classified])
+            ),
+            gali_lyapunov_agreement=float(
+                np.mean((gali_bool == lyap_bool)[classified])
+            ),
             all_agree_chaotic=int(np.sum(all_agree & sali_bool)),
             all_agree_regular=int(np.sum(all_agree & ~sali_bool)),
-            disagreement=int(np.sum(~all_agree)),
+            disagreement=int(np.sum(~all_agree & classified)),
+            n_undetermined=int(np.sum(lyap_undetermined)),  # add this field
         )
 
         return ChaosSurveySummary(

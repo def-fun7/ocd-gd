@@ -34,7 +34,7 @@ import numpy.typing as npt
 
 from matplotlib.colors import to_rgb
 
-from .grid_themes import ChaosMapTheme, DEFAULT_THEME, get_theme
+from .grid_themes import ChaosMapTheme, DEFAULT_THEME, get_theme, _hex_to_rgb01
 from .grid_constants import RESONANCE_LABELS, _FAMILY_BOX_LABEL, _FAMILY_LOOP_LABEL
 
 # =============================================================================
@@ -59,20 +59,9 @@ def _binary_grid_to_rgb(
 def _composite_flag_rgb(
     sali: bool, gali: bool, lyapunov: bool, theme: ChaosMapTheme
 ) -> tuple[float, float, float]:
-    """Compute exact RGB tuple for a combination of (SALI, GALI, Lyapunov) flags.
-
-    Channel mapping:
-    - Red   <- Lyapunov
-    - Green <- GALI
-    - Blue  <- SALI
-    """
-    r_base, g_base, b_base = theme.composite_base_rgb
-
-    r = theme.composite_on_r if lyapunov else r_base
-    g = theme.composite_on_g if gali else g_base
-    b = theme.composite_on_b if sali else b_base
-
-    return (r, g, b)
+    """Compute the RGB color for a combination of (SALI, GALI, Lyapunov)
+    flags, via the theme's light(regular)->dark(chaotic) vote ramp."""
+    return theme.get_state_color(sali, gali, lyapunov)
 
 
 def _binary_grids_to_composite_rgb(
@@ -82,23 +71,24 @@ def _binary_grids_to_composite_rgb(
     theme: ChaosMapTheme,
 ) -> npt.NDArray[np.float64]:
     """Construct the themed RGB composite chaos map (vectorized version of
-    `_composite_flag_rgb`)."""
+    `_composite_flag_rgb`). Each cell's color is interpolated along the
+    theme's regular->chaotic ramp by how many of the three indicators
+    (SALI, GALI, Lyapunov) flagged it chaotic."""
     shape = sali_grid.shape
     nan_mask = np.isnan(sali_grid) | np.isnan(gali_grid) | np.isnan(lyapunov_grid)
 
     s = np.nan_to_num(sali_grid, nan=0).astype(bool)
     g = np.nan_to_num(gali_grid, nan=0).astype(bool)
     l = np.nan_to_num(lyapunov_grid, nan=0).astype(bool)
-    any_flag = s | g | l
 
-    base = np.array(theme.composite_base_rgb)
-    rgb = np.tile(base, (*shape, 1))
+    n_chaotic = s.astype(np.int8) + g.astype(np.int8) + l.astype(np.int8)
 
-    r_channel = np.where(l, theme.composite_on_r, base[0])
-    g_channel = np.where(g, theme.composite_on_g, base[1])
-    b_channel = np.where(s, theme.composite_on_b, base[2])
+    lo = np.array(_hex_to_rgb01(theme.composite_regular_color))
+    hi = np.array(_hex_to_rgb01(theme.composite_chaotic_color))
 
-    rgb[any_flag] = np.stack([r_channel, g_channel, b_channel], axis=-1)[any_flag]
+    t = (n_chaotic / 3.0)[..., np.newaxis]  # shape (*grid, 1) for broadcasting
+    rgb = lo + (hi - lo) * t  # shape (*grid, 3)
+
     rgb[nan_mask] = to_rgb(theme.composite_masked_color)
     return rgb
 

@@ -225,6 +225,7 @@ def _chaos_fraction_columns(chaos_summary: Any) -> dict[str, Any]:
     cols["all_agree_chaotic"] = agreement.all_agree_chaotic
     cols["all_agree_regular"] = agreement.all_agree_regular
     cols["disagreement"] = agreement.disagreement
+    cols["n_undetermined"] = agreement.n_undetermined
     return cols
 
 
@@ -244,7 +245,6 @@ def _execute_run(
     try:
         pot, meta_from_spec, corotationSpec = _resolve_potential(run.potential)
         merged_grid_kwargs = {**grid_kwargs, **run.grid_overrides, **corotationSpec}
-
         t0 = time.perf_counter()
         detector = GridChaosDetector(pot, **merged_grid_kwargs)
         chaos_summary = detector.chaos_summary()

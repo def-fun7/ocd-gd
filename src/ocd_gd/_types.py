@@ -86,10 +86,12 @@ class MethodChaosStats(NamedTuple):
 
     n_chaotic: int
     n_regular: int
+    n_undetermined: int
     n_total: int
     chaotic_fraction: float
     chaotic_indices: npt.NDArray[np.float64]
     regular_indices: npt.NDArray[np.float64]
+    undetermined_indices: npt.NDArray[np.float64]
     chaotic_ics: npt.NDArray[np.float64]
     regular_ics: npt.NDArray[np.float64]
 
@@ -111,6 +113,7 @@ class ChaosAgreement(NamedTuple):
     all_agree_chaotic: int
     all_agree_regular: int
     disagreement: int
+    n_undetermined: int
 
 
 class ChaosSurveySummary(NamedTuple):
