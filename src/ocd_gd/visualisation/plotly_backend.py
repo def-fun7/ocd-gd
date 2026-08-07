@@ -53,7 +53,28 @@ def plot_sali_plotly(
     show: bool = True,
     **kwargs,
 ) -> go.Figure:
-    """Plot interactive SALI vs Time on a log scale."""
+    """Plot interactive SALI vs Time on a log scale.
+
+    Args:
+        t: Time array.
+        sali: SALI evolution array.
+        threshold: Chaos detection threshold line value. Defaults to 1e-8.
+        is_chaotic: Flag indicating if classified as chaotic. Defaults to None.
+        detection_time: Time of chaos detection. Defaults to None.
+        window_size_time: Size of the sliding detection window. Defaults to None.
+        save_path: Path to export the figure. Defaults to None.
+        show: If True, calls `fig.show()`. Defaults to True.
+        **kwargs: Additional plotting options.
+
+    Returns:
+        go.Figure: The generated Plotly figure object.
+
+    Examples:
+        >>> import numpy as np
+        >>> t = np.linspace(0, 100, 100)
+        >>> sali = np.exp(-t)
+        >>> fig = plot_sali_plotly(t, sali, show=False)
+    """
     fig = go.Figure()
 
     color = kwargs.get("color", "crimson")
@@ -116,6 +137,7 @@ def plot_sali_plotly(
     _handle_save_show(fig, save_path=save_path, show=show, **kwargs)
     return fig
 
+
 def plot_gali_plotly(
     t: npt.NDArray[np.float64],
     gali: npt.NDArray[np.float64],
@@ -124,7 +146,25 @@ def plot_gali_plotly(
     show: bool = True,
     **kwargs,
 ) -> go.Figure:
-    """Plot interactive GALI_k vs Time on a log scale."""
+    """Plot interactive GALI_k vs Time on a log scale.
+
+    Args:
+        t: Time array.
+        gali: GALI evolution array of shape (N, k) or (N,).
+        k_orders: GALI order list to plot. Defaults to None.
+        save_path: Path to export the figure. Defaults to None.
+        show: If True, calls `fig.show()`. Defaults to True.
+        **kwargs: Additional plotting options.
+
+    Returns:
+        go.Figure: The generated Plotly figure object.
+
+    Examples:
+        >>> import numpy as np
+        >>> t = np.linspace(0, 100, 100)
+        >>> gali = np.exp(-2 * t)
+        >>> fig = plot_gali_plotly(t, gali, show=False)
+    """
     fig = go.Figure()
 
     if gali.ndim == 1:
@@ -163,7 +203,22 @@ def plot_trajectory_2d_plotly(
     show: bool = True,
     **kwargs,
 ) -> go.Figure:
-    """Plot 2D projections of the orbit side-by-side: Face-On (X-Y) and Edge-On (X-Z)."""
+    """Plot 2D projections of the orbit side-by-side: Face-On (X-Y) and Edge-On (X-Z).
+
+    Args:
+        pos: Orbit trajectory position array of shape (N, 3).
+        save_path: Path to export the figure. Defaults to None.
+        show: If True, calls `fig.show()`. Defaults to True.
+        **kwargs: Additional plotting options.
+
+    Returns:
+        go.Figure: The generated Plotly figure object.
+
+    Examples:
+        >>> import numpy as np
+        >>> pos = np.random.randn(100, 3)
+        >>> fig = plot_trajectory_2d_plotly(pos, show=False)
+    """
     fig = make_subplots(
         rows=1,
         cols=2,
@@ -215,7 +270,22 @@ def plot_trajectory_3d_plotly(
     show: bool = True,
     **kwargs,
 ) -> go.Figure:
-    """Plot interactive 3D spatial orbit trajectory."""
+    """Plot interactive 3D spatial orbit trajectory.
+
+    Args:
+        pos: Orbit trajectory position array of shape (N, 3).
+        save_path: Path to export the figure. Defaults to None.
+        show: If True, calls `fig.show()`. Defaults to True.
+        **kwargs: Additional plotting options.
+
+    Returns:
+        go.Figure: The generated Plotly figure object.
+
+    Examples:
+        >>> import numpy as np
+        >>> pos = np.random.randn(100, 3)
+        >>> fig = plot_trajectory_3d_plotly(pos, show=False)
+    """
     fig = go.Figure()
 
     x, y, z = pos[:, 0], pos[:, 1], pos[:, 2]
@@ -278,7 +348,25 @@ def plot_phase_space_plotly(
     show: bool = True,
     **kwargs,
 ) -> go.Figure:
-    """Plot 2D phase space scatter projection (X vs V_x, Y vs V_y, or Z vs V_z)."""
+    """Plot 2D phase space scatter projection (X vs V_x, Y vs V_y, or Z vs V_z).
+
+    Args:
+        pos: Orbit trajectory position array of shape (N, 3).
+        vel: Orbit trajectory velocity array of shape (N, 3).
+        plane: 'x', 'y', or 'z' specifying which component axis to plot. Defaults to "x".
+        save_path: Path to export the figure. Defaults to None.
+        show: If True, calls `fig.show()`. Defaults to True.
+        **kwargs: Additional plotting options.
+
+    Returns:
+        go.Figure: The generated Plotly figure object.
+
+    Examples:
+        >>> import numpy as np
+        >>> pos = np.random.randn(100, 3)
+        >>> vel = np.random.randn(100, 3)
+        >>> fig = plot_phase_space_plotly(pos, vel, plane="x", show=False)
+    """
     fig = go.Figure()
 
     idx = {"x": 0, "y": 1, "z": 2}.get(plane.lower(), 0)
@@ -322,7 +410,24 @@ def plot_energy_drift_plotly(
     show: bool = True,
     **kwargs,
 ) -> go.Figure:
-    """Plot fractional energy conservation error: |(E(t) - E_0) / E_0| over time."""
+    """Plot fractional energy conservation error: |(E(t) - E_0) / E_0| over time.
+
+    Args:
+        t: Time array.
+        energy: Total energy evolution array.
+        save_path: Path to export the figure. Defaults to None.
+        show: If True, calls `fig.show()`. Defaults to True.
+        **kwargs: Additional plotting options.
+
+    Returns:
+        go.Figure: The generated Plotly figure object.
+
+    Examples:
+        >>> import numpy as np
+        >>> t = np.linspace(0, 100, 100)
+        >>> energy = -1.0 + 1e-6 * np.random.randn(100)
+        >>> fig = plot_energy_drift_plotly(t, energy, show=False)
+    """
     fig = go.Figure()
 
     e0 = energy[0]
@@ -354,6 +459,7 @@ def plot_energy_drift_plotly(
     _handle_save_show(fig, save_path=save_path, show=show, **kwargs)
     return fig
 
+
 def plot_colored_trajectory_2d_plotly(
     pos: npt.NDArray[np.float64],
     c_values: npt.NDArray[np.float64],
@@ -362,7 +468,25 @@ def plot_colored_trajectory_2d_plotly(
     show: bool = True,
     **kwargs,
 ) -> go.Figure:
-    """Plot 2D Face-On (X-Y) trajectory colored continuously by a scalar array."""
+    """Plot 2D Face-On (X-Y) trajectory colored continuously by a scalar array.
+
+    Args:
+        pos: Orbit trajectory position array of shape (N, 3).
+        c_values: Scalar values array of shape (N,) to map to segment colors.
+        c_label: Label for the colorbar. Defaults to "Time".
+        save_path: Path to export the figure. Defaults to None.
+        show: If True, calls `fig.show()`. Defaults to True.
+        **kwargs: Additional plotting options.
+
+    Returns:
+        go.Figure: The generated Plotly figure object.
+
+    Examples:
+        >>> import numpy as np
+        >>> pos = np.random.randn(100, 3)
+        >>> t = np.linspace(0, 100, 100)
+        >>> fig = plot_colored_trajectory_2d_plotly(pos, t, show=False)
+    """
     fig = go.Figure()
 
     x, y = pos[:, 0], pos[:, 1]

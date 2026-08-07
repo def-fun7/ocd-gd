@@ -46,6 +46,22 @@ def _lerp_rgb(
 
 @dataclass(frozen=True)
 class ChaosMapTheme:
+    """Theme bundle containing color and visual aesthetic settings for chaos-map plotting.
+
+    Attributes:
+        name: Unique string identifier for the theme.
+        display_name: Formatted name for displaying in UI/titles.
+        color_regular: Hex color representing regular orbits in individual maps.
+        color_chaotic: Hex color representing chaotic orbits in individual maps.
+        color_masked: Hex color representing masked/unphysical domains in individual maps.
+        composite_regular_color: Hex color representing fully regular orbits in the composite map.
+        composite_chaotic_color: Hex color representing fully chaotic orbits in the composite map.
+        composite_masked_color: RGB float tuple representing masked domains in the composite map.
+        zvc_color: Color string for the zero-velocity curve line.
+        resonance_colors: Dict mapping resonance keys (e.g. corotation) to their hex colors.
+        family_boundary_color: Color string for the orbit family boundary line.
+    """
+
     name: str
     display_name: str
 
@@ -65,8 +81,17 @@ class ChaosMapTheme:
         self, n_chaotic: int, n_indicators: int = 3
     ) -> tuple[float, float, float]:
         """Continuous light->dark ramp by vote count alone (0..n_indicators).
+
         Used by the composite RGB overlay, where only 'how many agreed'
-        matters, not which specific indicators."""
+        matters, not which specific indicators.
+
+        Args:
+            n_chaotic: Number of indicators flagging the orbit as chaotic.
+            n_indicators: Total number of indicators. Defaults to 3.
+
+        Returns:
+            tuple[float, float, float]: Interpolated RGB float color.
+        """
         t = n_chaotic / n_indicators
         lo = _hex_to_rgb01(self.composite_regular_color)
         hi = _hex_to_rgb01(self.composite_chaotic_color)
@@ -75,9 +100,19 @@ class ChaosMapTheme:
     def get_state_color(
         self, sali: bool, gali: bool, lyapunov: bool
     ) -> tuple[float, float, float]:
-        """One of 8 distinct shades along the same light->dark ramp, one
-        per exact (sali, gali, lyapunov) combination — monotonic in vote
-        count, but same-vote states no longer collapse onto one color."""
+        """One of 8 distinct shades along the same light->dark ramp.
+
+        One per exact (sali, gali, lyapunov) combination — monotonic in vote
+        count, but same-vote states no longer collapse onto one color.
+
+        Args:
+            sali: SALI indicator status (True if chaotic).
+            gali: GALI indicator status (True if chaotic).
+            lyapunov: Lyapunov indicator status (True if chaotic).
+
+        Returns:
+            tuple[float, float, float]: The exact state RGB float color.
+        """
         rank = _STATE_RANK[(sali, gali, lyapunov)]
         t = rank / (len(_STATE_ORDER) - 1)
         lo = _hex_to_rgb01(self.composite_regular_color)
@@ -86,18 +121,22 @@ class ChaosMapTheme:
 
     @property
     def composite_base_rgb(self) -> tuple[float, float, float]:
+        """Get the base regular color as an RGB float tuple."""
         return _hex_to_rgb01(self.composite_regular_color)
 
     @property
     def composite_on_r(self) -> float:
+        """Get the red channel of the composite chaotic color."""
         return _hex_to_rgb01(self.composite_chaotic_color)[0]
 
     @property
     def composite_on_g(self) -> float:
+        """Get the green channel of the composite chaotic color."""
         return _hex_to_rgb01(self.composite_chaotic_color)[1]
 
     @property
     def composite_on_b(self) -> float:
+        """Get the blue channel of the composite chaotic color."""
         return _hex_to_rgb01(self.composite_chaotic_color)[2]
 
 THEMES: dict[str, ChaosMapTheme] = {}
@@ -191,9 +230,26 @@ _register(
 
 
 def list_themes() -> list[str]:
+    """List names of all registered chaos-map themes.
+
+    Returns:
+        list[str]: Registered theme names.
+    """
     return list(THEMES.keys())
 
+
 def get_theme(theme: str | ChaosMapTheme) -> ChaosMapTheme:
+    """Retrieve a registered theme by name or return the theme object if already passed.
+
+    Args:
+        theme: Theme name (case-insensitive) or ChaosMapTheme object.
+
+    Returns:
+        ChaosMapTheme: The requested theme object.
+
+    Raises:
+        ValueError: If the requested theme name is not registered.
+    """
     if isinstance(theme, ChaosMapTheme):
         return theme
     try:

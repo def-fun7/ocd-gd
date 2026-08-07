@@ -91,7 +91,31 @@ def plot_sali_mpl(
     show: bool = True,
     **kwargs,
 ) -> tuple[plt.Figure, plt.Axes]:
-    """Plot SALI vs Time on a log scale."""
+    """Plot SALI vs Time on a log scale.
+
+    Args:
+        t: Time array.
+        sali: SALI evolution array.
+        threshold: Chaos detection threshold line value. Defaults to 1e-8.
+        is_chaotic: Flag indicating if classified as chaotic. Defaults to None.
+        detection_time: Time of chaos detection. Defaults to None.
+        window_size_time: Size of the sliding detection window. Defaults to None.
+        lyapunov: Lyapunov exponents/evolution data to format and show. Defaults to None.
+        fig: Matplotlib Figure object to reuse. Defaults to None.
+        ax: Matplotlib Axes object to reuse. Defaults to None.
+        save_path: Path to export the figure. Defaults to None.
+        show: If True, calls `plt.show()`. Defaults to True.
+        **kwargs: Additional plotting options.
+
+    Returns:
+        tuple[plt.Figure, plt.Axes]: The generated/updated figure and axes objects.
+
+    Examples:
+        >>> import numpy as np
+        >>> t = np.linspace(0, 100, 100)
+        >>> sali = np.exp(-t)
+        >>> fig, ax = plot_sali_mpl(t, sali, show=False)
+    """
     fig, ax = _setup_fig_ax(fig, ax, figsize=kwargs.get("figsize", (7, 4.5)))
 
     base_title = kwargs.get("title", "SALI vs Time")
@@ -186,7 +210,32 @@ def plot_gali_mpl(
     show: bool = True,
     **kwargs,
 ) -> tuple[plt.Figure, plt.Axes]:
-    """Plot GALI_k vs Time on a log scale."""
+    """Plot GALI_k vs Time on a log scale.
+
+    Args:
+        t: Time array.
+        gali: GALI evolution array of shape (N, k) or (N,).
+        k_orders: GALI order list to plot. Defaults to None.
+        threshold: Chaos detection threshold line value. Defaults to 1e-16.
+        is_chaotic: Flag indicating if classified as chaotic. Defaults to None.
+        detection_time: Time of chaos detection. Defaults to None.
+        window_size_time: Size of the sliding detection window. Defaults to None.
+        lyapunov: Lyapunov exponents/evolution data to format and show. Defaults to None.
+        fig: Matplotlib Figure object to reuse. Defaults to None.
+        ax: Matplotlib Axes object to reuse. Defaults to None.
+        save_path: Path to export the figure. Defaults to None.
+        show: If True, calls `plt.show()`. Defaults to True.
+        **kwargs: Additional plotting options.
+
+    Returns:
+        tuple[plt.Figure, plt.Axes]: The generated/updated figure and axes objects.
+
+    Examples:
+        >>> import numpy as np
+        >>> t = np.linspace(0, 100, 100)
+        >>> gali = np.exp(-2 * t)
+        >>> fig, ax = plot_gali_mpl(t, gali, show=False)
+    """
     fig, ax = _setup_fig_ax(fig, ax, figsize=kwargs.get("figsize", (7, 4.5)))
 
     base_title = kwargs.get("title", "GALI vs Time")
@@ -283,7 +332,24 @@ def plot_trajectory_2d_mpl(
     show: bool = True,
     **kwargs,
 ) -> tuple[plt.Figure, npt.NDArray[np.float64]]:
-    """Plot 2D projections of the orbit: Face-On (X-Y) and Edge-On (X-Z)."""
+    """Plot 2D projections of the orbit: Face-On (X-Y) and Edge-On (X-Z).
+
+    Args:
+        pos: Orbit trajectory position array of shape (N, 3).
+        fig: Matplotlib Figure object to reuse. Defaults to None.
+        axes: Axes object(s) to reuse. Defaults to None.
+        save_path: Path to export the figure. Defaults to None.
+        show: If True, calls `plt.show()`. Defaults to True.
+        **kwargs: Additional plotting options.
+
+    Returns:
+        tuple[plt.Figure, npt.NDArray[np.float64]]: The generated figure and axes array.
+
+    Examples:
+        >>> import numpy as np
+        >>> pos = np.random.randn(100, 3)
+        >>> fig, axes = plot_trajectory_2d_mpl(pos, show=False)
+    """
     if axes is None:
         figsize = kwargs.get("figsize", (11, 5))
         fig, axes_arr = plt.subplots(1, 2, figsize=figsize)
@@ -324,7 +390,24 @@ def plot_trajectory_3d_mpl(
     show: bool = True,
     **kwargs,
 ) -> tuple[plt.Figure, plt.Axes]:
-    """Plot 3D spatial orbit trajectory."""
+    """Plot 3D spatial orbit trajectory.
+
+    Args:
+        pos: Orbit trajectory position array of shape (N, 3).
+        fig: Matplotlib Figure object to reuse. Defaults to None.
+        ax: Matplotlib Axes object to reuse. Defaults to None.
+        save_path: Path to export the figure. Defaults to None.
+        show: If True, calls `plt.show()`. Defaults to True.
+        **kwargs: Additional plotting options.
+
+    Returns:
+        tuple[plt.Figure, plt.Axes]: The generated/updated figure and axes objects.
+
+    Examples:
+        >>> import numpy as np
+        >>> pos = np.random.randn(100, 3)
+        >>> fig, ax = plot_trajectory_3d_mpl(pos, show=False)
+    """
     fig, ax = _setup_fig_ax(
         fig, ax, projection="3d", figsize=kwargs.get("figsize", (8, 7))
     )
@@ -369,11 +452,26 @@ def plot_phase_space_mpl(
     show: bool = True,
     **kwargs,
 ) -> tuple[plt.Figure, plt.Axes]:
-    """
-    Plot 2D phase space projection (e.g., X vs V_x, Y vs V_y, or Z vs V_z).
+    """Plot 2D phase space projection (e.g., X vs V_x, Y vs V_y, or Z vs V_z).
 
-    plane : str
-        'x', 'y', or 'z' specifying which component axis to plot.
+    Args:
+        pos: Orbit trajectory position array of shape (N, 3).
+        vel: Orbit trajectory velocity array of shape (N, 3).
+        plane: 'x', 'y', or 'z' specifying which component axis to plot. Defaults to "x".
+        fig: Matplotlib Figure object to reuse. Defaults to None.
+        ax: Matplotlib Axes object to reuse. Defaults to None.
+        save_path: Path to export the figure. Defaults to None.
+        show: If True, calls `plt.show()`. Defaults to True.
+        **kwargs: Additional plotting options.
+
+    Returns:
+        tuple[plt.Figure, plt.Axes]: The generated/updated figure and axes objects.
+
+    Examples:
+        >>> import numpy as np
+        >>> pos = np.random.randn(100, 3)
+        >>> vel = np.random.randn(100, 3)
+        >>> fig, ax = plot_phase_space_mpl(pos, vel, plane="x", show=False)
     """
     fig, ax = _setup_fig_ax(fig, ax, figsize=kwargs.get("figsize", (7, 5)))
 
@@ -416,9 +514,27 @@ def plot_energy_drift_mpl(
     show: bool = True,
     **kwargs,
 ) -> tuple[plt.Figure, plt.Axes]:
-    """
-    Plot fractional energy conservation error: |(E(t) - E_0) / E_0| over time.
+    """Plot fractional energy conservation error: |(E(t) - E_0) / E_0| over time.
+
     Verifies numerical integration accuracy from AGAMA.
+
+    Args:
+        t: Time array.
+        energy: Total energy evolution array.
+        fig: Matplotlib Figure object to reuse. Defaults to None.
+        ax: Matplotlib Axes object to reuse. Defaults to None.
+        save_path: Path to export the figure. Defaults to None.
+        show: If True, calls `plt.show()`. Defaults to True.
+        **kwargs: Additional plotting options.
+
+    Returns:
+        tuple[plt.Figure, plt.Axes]: The generated/updated figure and axes objects.
+
+    Examples:
+        >>> import numpy as np
+        >>> t = np.linspace(0, 100, 100)
+        >>> energy = -1.0 + 1e-6 * np.random.randn(100)
+        >>> fig, ax = plot_energy_drift_mpl(t, energy, show=False)
     """
     fig, ax = _setup_fig_ax(fig, ax, figsize=kwargs.get("figsize", (7, 4.5)))
 
@@ -454,8 +570,28 @@ def plot_colored_trajectory_2d_mpl(
     show: bool = True,
     **kwargs,
 ) -> tuple[plt.Figure, plt.Axes]:
-    """
-    Plot 2D Face-On (X-Y) trajectory colored continuously by a scalar array (e.g. Time or log(SALI)).
+    """Plot 2D Face-On (X-Y) trajectory colored continuously by a scalar array.
+
+    E.g. colored by Time or log(SALI).
+
+    Args:
+        pos: Orbit trajectory position array of shape (N, 3).
+        c_values: Scalar values array of shape (N,) to map to segment colors.
+        c_label: Label for the colorbar. Defaults to "Time".
+        fig: Matplotlib Figure object to reuse. Defaults to None.
+        ax: Matplotlib Axes object to reuse. Defaults to None.
+        save_path: Path to export the figure. Defaults to None.
+        show: If True, calls `plt.show()`. Defaults to True.
+        **kwargs: Additional plotting options.
+
+    Returns:
+        tuple[plt.Figure, plt.Axes]: The generated/updated figure and axes objects.
+
+    Examples:
+        >>> import numpy as np
+        >>> pos = np.random.randn(100, 3)
+        >>> t = np.linspace(0, 100, 100)
+        >>> fig, ax = plot_colored_trajectory_2d_mpl(pos, t, show=False)
     """
     fig, ax = _setup_fig_ax(fig, ax, figsize=kwargs.get("figsize", (8, 6.5)))
 

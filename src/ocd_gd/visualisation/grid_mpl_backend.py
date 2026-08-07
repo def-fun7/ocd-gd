@@ -60,6 +60,7 @@ def _finalize_mpl_figure(fig: plt.Figure, save_path: str | None, show: bool) -> 
     else:
         plt.close(fig)
 
+
 def _add_zvc_mpl(
     ax: plt.Axes,
     x_vals: npt.NDArray[np.float64],
@@ -77,6 +78,7 @@ def _add_zvc_mpl(
         linewidth=ZVC_LINEWIDTH,
     )
 
+
 def _add_resonance_mpl(
     ax: plt.Axes,
     resonance_specs: list[tuple[float, str, str]],
@@ -87,6 +89,7 @@ def _add_resonance_mpl(
     for radius, _, color in resonance_specs:
         ax.axvline(radius, color=color, linestyle=linestyle, linewidth=linewidth)
         ax.axvline(-radius, color=color, linestyle=linestyle, linewidth=linewidth)
+
 
 def _add_family_boundary_mpl(
     ax: plt.Axes,
@@ -110,10 +113,12 @@ def _add_family_boundary_mpl(
     )
     return True
 
+
 def _zvc_legend_handle(color: str) -> Line2D:
     return Line2D(
         [0], [0], color=color, lw=ZVC_LINEWIDTH, ls=ZVC_LINESTYLE_MPL, label=ZVC_LABEL
     )
+
 
 def _family_boundary_legend_handle(color: str) -> Line2D:
     return Line2D(
@@ -125,6 +130,7 @@ def _family_boundary_legend_handle(color: str) -> Line2D:
         label=FAMILY_BOUNDARY_LABEL,
     )
 
+
 def _resonance_legend_handles(
     resonance_specs: list[tuple[float, str, str]],
     *,
@@ -135,6 +141,7 @@ def _resonance_legend_handles(
         Line2D([0], [0], color=color, lw=linewidth, ls=linestyle, label=label)
         for _, label, color in resonance_specs
     ]
+
 
 def _build_side_by_side_legend_elements(
     theme: ChaosMapTheme,
@@ -166,6 +173,7 @@ def _build_side_by_side_legend_elements(
     elements.extend(_resonance_legend_handles(resonance_specs))
     return elements
 
+
 def _build_composite_legend_elements(
     theme: ChaosMapTheme,
     has_zvc: bool,
@@ -189,6 +197,7 @@ def _build_composite_legend_elements(
     )
     return elements
 
+
 def plot_chaos_maps_mpl(
     sali_grid: npt.NDArray[np.float64],
     gali_grid: npt.NDArray[np.float64],
@@ -208,30 +217,31 @@ def plot_chaos_maps_mpl(
     Uses a clean, unified legend instead of a colorbar since each map is a
     binary regular/chaotic classification rather than a continuous quantity.
 
-    Parameters
-    ----------
-    sali_grid, gali_grid, lyapunov_grid : ndarray
-        (grid_size, grid_size) arrays of 0 (regular) / 1 (chaotic) / NaN
-        (unphysical) classifications.
-    x_vals, v_x_vals : ndarray
-        Grid axis coordinates.
-    E_rem_vals : ndarray, optional
-        Residual energy at each x value; if given, overlays the
-        zero-velocity curve (ZVC).
-    resonance_radii : ResonanceRadii, optional
-        Corotation/Lindblad radii to overlay as mirrored (±R) vertical
-        lines; any field left as None is simply skipped.
-    orbit_family_grid : ndarray of str, optional
-        (grid_size_y, grid_size_x) array of `"box"` / `"loop"` classifications
-        (e.g. `GridChaosDetector.orbit_family` reshaped to the map's grid
-        shape) overlaid as a box/loop boundary contour line.
-    theme : str or ChaosMapTheme, default "magma"
-        Visual theme name (see `theme.py` for the registry, e.g. "magma",
-        "viridis", "ocean", "sunset") or an already-resolved theme instance.
-    save_path : str, optional
-        Path to export the figure.
-    show : bool, default True
-        Display the figure immediately.
+    Args:
+        sali_grid: (H, W) array of SALI indicators (0 for regular, 1 for chaotic, NaN for masked).
+        gali_grid: (H, W) array of GALI indicators (0 for regular, 1 for chaotic, NaN for masked).
+        lyapunov_grid: (H, W) array of Lyapunov indicators (0 for regular, 1 for chaotic, NaN for masked).
+        x_vals: Grid x coordinates.
+        v_x_vals: Grid v_x coordinates.
+        E_rem_vals: Residual energy at each x value. If provided, overlays the ZVC.
+        resonance_radii: Resonance radii object containing attributes like corotation, etc.
+        orbit_family_grid: Grid of box/loop family classifications.
+        theme: Visual theme name (e.g. "magma") or a theme instance. Defaults to "magma".
+        save_path: Path to export the figure. Defaults to None.
+        show: If True, displays the figure. Defaults to True.
+        **kwargs: Additional keyword arguments.
+
+    Returns:
+        tuple[plt.Figure, npt.NDArray[np.float64]]: The generated figure and axes array.
+
+    Examples:
+        >>> import numpy as np
+        >>> sali = np.zeros((10, 10))
+        >>> gali = np.zeros((10, 10))
+        >>> lyap = np.zeros((10, 10))
+        >>> x = np.linspace(-1, 1, 10)
+        >>> vx = np.linspace(-1, 1, 10)
+        >>> fig, axes = plot_chaos_maps_mpl(sali, gali, lyap, x, vx, show=False)
     """
     th = get_theme(theme)
     grid_size_y, grid_size_x = sali_grid.shape
@@ -245,7 +255,7 @@ def plot_chaos_maps_mpl(
     ]
 
     cmap = ListedColormap([th.color_regular, th.color_chaotic])
-    cmap.set_bad(color=th.color_masked)
+    cmap.with_extremes(bad=th.color_masked)
 
     fig, axes = plt.subplots(
         1, 3, figsize=SIDE_BY_SIDE_FIGSIZE_MPL, sharex=True, sharey=True
@@ -297,6 +307,7 @@ def plot_chaos_maps_mpl(
     _finalize_mpl_figure(fig, save_path, show)
     return fig, axes
 
+
 def plot_composite_chaos_map_mpl(
     sali_grid: npt.NDArray[np.float64],
     gali_grid: npt.NDArray[np.float64],
@@ -311,34 +322,38 @@ def plot_composite_chaos_map_mpl(
     show: bool = True,
     **kwargs,
 ) -> tuple[plt.Figure, plt.Axes]:
-    """Overlay SALI, GALI, and Lyapunov indicators into a single RGB composite
-    chaos map.
+    """Overlay SALI, GALI, and Lyapunov indicators into a single RGB composite chaos map.
 
     Channel mapping: Red = Lyapunov exponent flag, Green = GALI flag,
     Blue = SALI flag. A grid cell where none of the three fired keeps the
     regular-orbit background color; unphysical (NaN) cells use the theme's
     composite masked color.
 
-    Parameters
-    ----------
-    sali_grid, gali_grid, lyapunov_grid : ndarray
-        (grid_size, grid_size) arrays of 0/1/NaN classifications.
-    x_vals, v_x_vals : ndarray
-        Grid axis coordinates.
-    E_rem_vals : ndarray, optional
-        Residual energy at each x value; if given, overlays the ZVC.
-    resonance_radii : ResonanceRadii, optional
-        Corotation/Lindblad radii to overlay as mirrored (±R) vertical
-        lines; any field left as None is simply skipped.
-    orbit_family_grid : ndarray of str, optional
-        (grid_size_y, grid_size_x) array of `"box"` / `"loop"` classifications
-        overlaid as a box/loop boundary contour line.
-    theme : str or ChaosMapTheme, default "magma"
-        Visual theme name (see `theme.py`) or an already-resolved instance.
-    save_path : str, optional
-        Path to export the figure.
-    show : bool, default True
-        Display the figure immediately.
+    Args:
+        sali_grid: (H, W) array of SALI indicators.
+        gali_grid: (H, W) array of GALI indicators.
+        lyapunov_grid: (H, W) array of Lyapunov indicators.
+        x_vals: Grid x coordinates.
+        v_x_vals: Grid v_x coordinates.
+        E_rem_vals: Residual energy at each x value. If provided, overlays the ZVC.
+        resonance_radii: Resonance radii object containing attributes like corotation, etc.
+        orbit_family_grid: Grid of box/loop family classifications.
+        theme: Visual theme name or theme instance. Defaults to "magma".
+        save_path: Path to export the figure. Defaults to None.
+        show: If True, displays the figure. Defaults to True.
+        **kwargs: Additional keyword arguments.
+
+    Returns:
+        tuple[plt.Figure, plt.Axes]: The generated figure and axes object.
+
+    Examples:
+        >>> import numpy as np
+        >>> sali = np.zeros((10, 10))
+        >>> gali = np.zeros((10, 10))
+        >>> lyap = np.zeros((10, 10))
+        >>> x = np.linspace(-1, 1, 10)
+        >>> vx = np.linspace(-1, 1, 10)
+        >>> fig, ax = plot_composite_chaos_map_mpl(sali, gali, lyap, x, vx, show=False)
     """
     th = get_theme(theme)
     rgb_map = _binary_grids_to_composite_rgb(sali_grid, gali_grid, lyapunov_grid, th)
@@ -391,6 +406,7 @@ def plot_composite_chaos_map_mpl(
     _finalize_mpl_figure(fig, save_path, show)
     return fig, ax
 
+
 def plot_consensus_chaos_map_mpl(
     sali_grid: npt.NDArray[np.float64],
     gali_grid: npt.NDArray[np.float64],
@@ -405,7 +421,34 @@ def plot_consensus_chaos_map_mpl(
     show: bool = True,
     **kwargs,
 ) -> tuple[plt.Figure, plt.Axes]:
-    """Plot an 8-state discrete classification map showing exact (L, S, G) combinations."""
+    """Plot an 8-state discrete classification map showing exact (L, S, G) combinations.
+
+    Args:
+        sali_grid: (H, W) array of SALI indicators.
+        gali_grid: (H, W) array of GALI indicators.
+        lyapunov_grid: (H, W) array of Lyapunov indicators.
+        x_vals: Grid x coordinates.
+        v_x_vals: Grid v_x coordinates.
+        E_rem_vals: Residual energy at each x value. If provided, overlays the ZVC.
+        resonance_radii: Resonance radii object containing attributes like corotation, etc.
+        orbit_family_grid: Grid of box/loop family classifications.
+        theme: Visual theme name or theme instance. Defaults to "magma".
+        save_path: Path to export the figure. Defaults to None.
+        show: If True, displays the figure. Defaults to True.
+        **kwargs: Additional keyword arguments.
+
+    Returns:
+        tuple[plt.Figure, plt.Axes]: The generated figure and axes object.
+
+    Examples:
+        >>> import numpy as np
+        >>> sali = np.zeros((10, 10))
+        >>> gali = np.zeros((10, 10))
+        >>> lyap = np.zeros((10, 10))
+        >>> x = np.linspace(-1, 1, 10)
+        >>> vx = np.linspace(-1, 1, 10)
+        >>> fig, ax = plot_consensus_chaos_map_mpl(sali, gali, lyap, x, vx, show=False)
+    """
     th = get_theme(theme)
     consensus_grid = _compute_consensus_grid(sali_grid, gali_grid, lyapunov_grid)
     grid_shape = sali_grid.shape
@@ -424,7 +467,7 @@ def plot_consensus_chaos_map_mpl(
 
     colors = _get_consensus_colors(th)
     cmap = ListedColormap(colors)
-    cmap.set_bad(color=th.composite_masked_color)
+    cmap.with_extremes(bad=th.composite_masked_color)
     norm = BoundaryNorm(boundaries=np.arange(-0.5, 8.5, 1.0), ncolors=8)
 
     fig, ax = plt.subplots(figsize=CONSENSUS_FIGSIZE_MPL)

@@ -31,19 +31,27 @@ def plot_sali_batch_mpl(
     show: bool = True,
     **kwargs,
 ) -> list[plt.Figure]:
-    """
-    Plot grid of SALI vs Time graphs for multiple orbits. Paginated if total orbits > max_per_page.
+    """Plot grid of SALI vs Time graphs for multiple orbits.
 
-    Parameters
-    ----------
-    t : npt.NDArray[np.float64]
-        Time array.
-    sali_array : npt.NDArray[np.float64]
-        Full SALI array of shape (N_orbits, ...).
-    orbit_indices : list of int, optional
-        Target orbit indices to plot. Defaults to all orbits in sali_array.
-    max_per_page : int, default 10
-        Maximum subplots per figure page.
+    Paginated if total orbits > max_per_page.
+
+    Args:
+        t: Time array.
+        sali_array: Full SALI array of shape (N_orbits, ...).
+        orbit_indices: Target orbit indices to plot. Defaults to all orbits in sali_array.
+        sali_checks: Array of chaotic classification status flags. Defaults to None.
+        sali_times: Array of chaos detection times. Defaults to None.
+        lyapunov_array: Array of Lyapunov exponents/evolutions. Defaults to None.
+        threshold: Chaos detection threshold for SALI. Defaults to 1e-2.
+        window_size_time: Detection window size. Defaults to None.
+        max_per_page: Maximum subplots per figure page. Defaults to 10.
+        save_path: Base path to save the generated figures. If paginated, page indices
+            are appended to the name. Defaults to None.
+        show: If True, calls `plt.show()`. Defaults to True.
+        **kwargs: Additional plotting options passed to `_handle_save_show`.
+
+    Returns:
+        list[plt.Figure]: List of generated matplotlib figure objects.
     """
     num_total_orbits = sali_array.shape[0]
     if orbit_indices is None:
@@ -135,8 +143,28 @@ def plot_gali_batch_mpl(
     show: bool = True,
     **kwargs,
 ) -> list[plt.Figure]:
-    """
-    Plot grid of GALI vs Time graphs for multiple orbits. Paginated if total orbits > max_per_page.
+    """Plot grid of GALI vs Time graphs for multiple orbits.
+
+    Paginated if total orbits > max_per_page.
+
+    Args:
+        t: Time array.
+        gali_array: Full GALI array of shape (N_orbits, ...).
+        orbit_indices: Target orbit indices to plot. Defaults to all orbits in gali_array.
+        gali_checks: Array of chaotic classification status flags. Defaults to None.
+        gali_times: Array of chaos detection times. Defaults to None.
+        lyapunov_array: Array of Lyapunov exponents/evolutions. Defaults to None.
+        threshold: Chaos detection threshold for GALI. Defaults to 1e-16.
+        window_size_time: Detection window size. Defaults to None.
+        k_orders: GALI order list to plot. Defaults to None.
+        max_per_page: Maximum subplots per figure page. Defaults to 10.
+        save_path: Base path to save the generated figures. If paginated, page indices
+            are appended to the name. Defaults to None.
+        show: If True, calls `plt.show()`. Defaults to True.
+        **kwargs: Additional plotting options passed to `_handle_save_show`.
+
+    Returns:
+        list[plt.Figure]: List of generated matplotlib figure objects.
     """
     num_total_orbits = gali_array.shape[0]
     if orbit_indices is None:
@@ -232,13 +260,31 @@ def plot_sali_gali_dual_batch_mpl(
     show: bool = True,
     **kwargs,
 ) -> list[plt.Figure]:
-    """
-    Plot side-by-side SALI (left) and GALI (right) for multiple orbits in a batch.
+    """Plot side-by-side SALI (left) and GALI (right) for multiple orbits in a batch.
 
-    Parameters
-    ----------
-    max_orbits_per_page : int, default 5
-        Maximum number of orbits (rows = 5, total subplots = 10) per page.
+    Args:
+        t: Time array.
+        sali_array: Full SALI array of shape (N_orbits, ...).
+        gali_array: Full GALI array of shape (N_orbits, ...).
+        orbit_indices: Target orbit indices to plot. Defaults to all orbits.
+        sali_checks: Array of chaotic classification status flags for SALI. Defaults to None.
+        sali_times: Array of chaos detection times for SALI. Defaults to None.
+        gali_checks: Array of chaotic classification status flags for GALI. Defaults to None.
+        gali_times: Array of chaos detection times for GALI. Defaults to None.
+        lyapunov_array: Array of Lyapunov exponents/evolutions. Defaults to None.
+        sali_threshold: Chaos detection threshold for SALI. Defaults to 1e-2.
+        gali_threshold: Chaos detection threshold for GALI. Defaults to 1e-16.
+        sali_window_time: Detection window size for SALI. Defaults to None.
+        gali_window_time: Detection window size for GALI. Defaults to None.
+        k_orders: GALI order list to plot. Defaults to None.
+        max_orbits_per_page: Maximum number of orbits (rows, total subplots = 2 * rows) per page. Defaults to 5.
+        save_path: Base path to save the generated figures. If paginated, page indices
+            are appended to the name. Defaults to None.
+        show: If True, calls `plt.show()`. Defaults to True.
+        **kwargs: Additional plotting options passed to `_handle_save_show`.
+
+    Returns:
+        list[plt.Figure]: List of generated matplotlib figure objects.
     """
     num_total_orbits = sali_array.shape[0]
     if orbit_indices is None:

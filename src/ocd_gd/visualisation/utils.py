@@ -20,10 +20,11 @@ _OUTPUT_DIRS = {
 def set_output_dir(path: str = "./plots") -> tuple[Path, Path]:
     """Set default base directory for plot exports and create backend subfolders.
 
-    Returns
-    -------
-    Tuple[Path, Path]
-        Paths to (matplotlib_dir, plotly_dir)
+    Args:
+        path: The root directory for plots. Defaults to "./plots".
+
+    Returns:
+        tuple[Path, Path]: Paths to (matplotlib_dir, plotly_dir).
     """
     root = Path(path)
     mpl_dir = root / "matplotlib"
@@ -38,8 +39,17 @@ def set_output_dir(path: str = "./plots") -> tuple[Path, Path]:
 
     return mpl_dir, plotly_dir
 
+
 def resolve_save_path(save_path: str | None, backend: str) -> str | None:
-    """Helper to route relative save filenames into designated backend folders."""
+    """Helper to route relative save filenames into designated backend folders.
+
+    Args:
+        save_path: The filename or path to save the plot. If None, returns None.
+        backend: The visualization backend ('matplotlib' or 'plotly').
+
+    Returns:
+        str | None: The resolved save path, or None if input was None.
+    """
     if save_path is None:
         return None
 
@@ -51,6 +61,7 @@ def resolve_save_path(save_path: str | None, backend: str) -> str | None:
     set_output_dir(_OUTPUT_DIRS["root"])
 
     return str(_OUTPUT_DIRS[backend] / save_path)
+
 
 MPL_STYLE_DEFAULTS: dict[str, Any] = {
 
@@ -93,8 +104,12 @@ MPL_STYLE_DEFAULTS: dict[str, Any] = {
 }
 
 
-def set_publication_style():
-    """Apply default scientific plotting style to Matplotlib globally."""
+def set_publication_style() -> None:
+    """Apply default scientific plotting style to Matplotlib globally.
+
+    This updates `matplotlib.pyplot.rcParams` with predefined aesthetic settings
+    for publication-quality figures.
+    """
     plt.rcParams.update(MPL_STYLE_DEFAULTS)
 
 PALETTES = {

@@ -211,8 +211,33 @@ def plot_chaos_maps_plotly(
     """Plotly counterpart of `plot_chaos_maps_mpl`.
 
     Renders each map as an RGB image (rather than a `Heatmap`) so the
-    unphysical-region masking matches the matplotlib version exactly. See
-    `plot_chaos_maps_mpl` for parameter and color/legend semantics.
+    unphysical-region masking matches the matplotlib version exactly.
+
+    Args:
+        sali_grid: (H, W) array of SALI indicators.
+        gali_grid: (H, W) array of GALI indicators.
+        lyapunov_grid: (H, W) array of Lyapunov indicators.
+        x_vals: Grid x coordinates.
+        v_x_vals: Grid v_x coordinates.
+        E_rem_vals: Residual energy at each x value. If provided, overlays the ZVC.
+        resonance_radii: Resonance radii object.
+        orbit_family_grid: Grid of box/loop family classifications.
+        theme: Visual theme name or theme instance. Defaults to "magma".
+        save_path: Path to export the figure. Defaults to None.
+        show: If True, displays the figure. Defaults to True.
+        **kwargs: Additional keyword arguments.
+
+    Returns:
+        go.Figure: The generated Plotly figure object.
+
+    Examples:
+        >>> import numpy as np
+        >>> sali = np.zeros((10, 10))
+        >>> gali = np.zeros((10, 10))
+        >>> lyap = np.zeros((10, 10))
+        >>> x = np.linspace(-1, 1, 10)
+        >>> vx = np.linspace(-1, 1, 10)
+        >>> fig = plot_chaos_maps_plotly(sali, gali, lyap, x, vx, show=False)
     """
     th = get_theme(theme)
     grid_size_y, grid_size_x = sali_grid.shape
@@ -297,8 +322,36 @@ def plot_composite_chaos_map_plotly(
     show: bool = True,
     **kwargs,
 ) -> go.Figure:
-    """Plotly counterpart of `plot_composite_chaos_map_mpl` — see its
-    docstring for the channel-mapping and legend semantics."""
+    """Plotly counterpart of `plot_composite_chaos_map_mpl`.
+
+    Overlay SALI, GALI, and Lyapunov indicators into a single RGB composite chaos map.
+
+    Args:
+        sali_grid: (H, W) array of SALI indicators.
+        gali_grid: (H, W) array of GALI indicators.
+        lyapunov_grid: (H, W) array of Lyapunov indicators.
+        x_vals: Grid x coordinates.
+        v_x_vals: Grid v_x coordinates.
+        E_rem_vals: Residual energy at each x value. If provided, overlays the ZVC.
+        resonance_radii: Resonance radii object.
+        orbit_family_grid: Grid of box/loop family classifications.
+        theme: Visual theme name or theme instance. Defaults to "magma".
+        save_path: Path to export the figure. Defaults to None.
+        show: If True, displays the figure. Defaults to True.
+        **kwargs: Additional keyword arguments.
+
+    Returns:
+        go.Figure: The generated Plotly figure object.
+
+    Examples:
+        >>> import numpy as np
+        >>> sali = np.zeros((10, 10))
+        >>> gali = np.zeros((10, 10))
+        >>> lyap = np.zeros((10, 10))
+        >>> x = np.linspace(-1, 1, 10)
+        >>> vx = np.linspace(-1, 1, 10)
+        >>> fig = plot_composite_chaos_map_plotly(sali, gali, lyap, x, vx, show=False)
+    """
     th = get_theme(theme)
     grid_size_y, grid_size_x = sali_grid.shape
     rgb = (
@@ -359,7 +412,36 @@ def plot_consensus_chaos_map_plotly(
     show: bool = True,
     **kwargs,
 ) -> go.Figure:
-    """Plotly counterpart of `plot_consensus_chaos_map_mpl`."""
+    """Plotly counterpart of `plot_consensus_chaos_map_mpl`.
+
+    Plot an 8-state discrete classification map showing exact (L, S, G) combinations.
+
+    Args:
+        sali_grid: (H, W) array of SALI indicators.
+        gali_grid: (H, W) array of GALI indicators.
+        lyapunov_grid: (H, W) array of Lyapunov indicators.
+        x_vals: Grid x coordinates.
+        v_x_vals: Grid v_x coordinates.
+        E_rem_vals: Residual energy at each x value. If provided, overlays the ZVC.
+        resonance_radii: Resonance radii object.
+        orbit_family_grid: Grid of box/loop family classifications.
+        theme: Visual theme name or theme instance. Defaults to "magma".
+        save_path: Path to export the figure. Defaults to None.
+        show: If True, displays the figure. Defaults to True.
+        **kwargs: Additional keyword arguments.
+
+    Returns:
+        go.Figure: The generated Plotly figure object.
+
+    Examples:
+        >>> import numpy as np
+        >>> sali = np.zeros((10, 10))
+        >>> gali = np.zeros((10, 10))
+        >>> lyap = np.zeros((10, 10))
+        >>> x = np.linspace(-1, 1, 10)
+        >>> vx = np.linspace(-1, 1, 10)
+        >>> fig = plot_consensus_chaos_map_plotly(sali, gali, lyap, x, vx, show=False)
+    """
     th = get_theme(theme)
     grid_size_y, grid_size_x = sali_grid.shape
     consensus_grid = _compute_consensus_grid(sali_grid, gali_grid, lyapunov_grid)

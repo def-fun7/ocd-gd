@@ -32,7 +32,37 @@ def plot_dashboard_mpl(
     show: bool = True,
     **kwargs,
 ) -> tuple[plt.Figure, npt.NDArray[np.float64]]:
-    """Generate a 4-panel Matplotlib summary dashboard."""
+    """Generate a 4-panel Matplotlib summary dashboard.
+
+    The panels show the 3D trajectory, 2D face-on projection, SALI evolution,
+    and GALI evolution.
+
+    Args:
+        data: Dict containing orbit integration and chaos results. Must contain:
+            - "t": Time array.
+            - "pos": Position array of shape (N, 3).
+            - "sali": SALI evolution array.
+            - "gali": GALI evolution array/dict.
+            - "sali_is_chaotic" (optional): Chaotic classification from SALI.
+            - "sali_det_time" (optional): SALI detection time.
+            - "sali_window_time" (optional): SALI window time size.
+            - "gali_is_chaotic" (optional): Chaotic classification from GALI.
+            - "gali_det_time" (optional): GALI detection time.
+            - "gali_window_time" (optional): GALI window time size.
+            - "lyapunov" (optional): Lyapunov exponent/evolution.
+        sali_threshold: Chaos detection threshold for SALI. Defaults to 1e-2.
+        gali_threshold: Chaos detection threshold for GALI. Defaults to 1e-16.
+        k_orders: GALI order list to plot. Defaults to None.
+        save_path: Path to save the figure. If None, it is not saved. Defaults to None.
+        show: If True, calls `plt.show()`. Defaults to True.
+        **kwargs: Additional plotting options. Supported options include:
+            - figsize (tuple): Size of the figure. Defaults to (14, 10).
+            - suptitle (bool): Whether to show the main title. Defaults to True.
+            - title (str): Custom main title.
+
+    Returns:
+        tuple[plt.Figure, npt.NDArray[np.float64]]: The generated figure and its axes.
+    """
     fig = plt.figure(figsize=kwargs.get("figsize", (14, 10)))
     gs = fig.add_gridspec(2, 2, hspace=0.3, wspace=0.25)
 
@@ -103,6 +133,7 @@ def plot_dashboard_mpl(
     )
     return fig, fig.axes
 
+
 def plot_dashboard_plotly(
     data: dict[str, npt.NDArray[np.float64]],
     threshold: float = 1e-8,
@@ -110,8 +141,18 @@ def plot_dashboard_plotly(
     show: bool = True,
     **kwargs,
 ) -> None:
-    """
-    Generates interactive Plotly plots as sequential views or combined views.
+    """Generates interactive Plotly plots as sequential views or combined views.
+
+    Args:
+        data: Dict containing orbit integration and chaos results. Must contain:
+            - "pos": Position array of shape (N, 3).
+            - "t": Time array.
+            - "sali": SALI evolution array.
+        threshold: Chaos detection threshold for SALI. Defaults to 1e-8.
+        save_path: Path to save the interactive plots. If set, saves three files with
+            prefixes _3d, _2d, and _sali appended to the base filename. Defaults to None.
+        show: If True, opens the plots in a browser. Defaults to True.
+        **kwargs: Additional keyword arguments.
     """
 
     fig_3d = plot_trajectory_3d_plotly(data["pos"], show=False)
