@@ -24,7 +24,11 @@ from .visualisation import (
 
 
 class _GridChaosPlottingMixin:
-    """`plot_chaos_map`, `plot_composite_chaos_map`, and `save_chaos_maps`."""
+    """Mixin class providing plotting methods for GridChaosDetector.
+
+    Provides `plot_chaos_map`, `plot_composite_chaos_map`,
+    `plot_consensus_chaos_map`, and `save_chaos_maps`.
+    """
 
     def plot_chaos_map(
         self,
@@ -51,6 +55,20 @@ class _GridChaosPlottingMixin:
             Overlay corotation/Lindblad radii (see `resonance_radii`) as
             mirrored vertical lines. Set False to omit them (e.g. for a
             non-rotating potential where they'd all be absent anyway).
+        show_family_boundary : bool, default True
+            Overlay the box/loop orbit family classification boundaries on the grid.
+        **kwargs
+            Additional arguments passed to the visual backend.
+
+        Returns
+        -------
+        Any
+            The figure object (matplotlib Figure or Plotly Figure).
+
+        Examples
+        --------
+        >>> # With a constructed GridChaosDetector instance `detector`:
+        >>> # fig = detector.plot_chaos_map(backend="matplotlib", show=False)
         """
         sali_grid, gali_grid, lyap_grid = self.chaos_grids
         return self._dispatch_plot(
@@ -81,7 +99,32 @@ class _GridChaosPlottingMixin:
     ) -> Any:
         """Plot a single RGB composite overlay of the SALI/GALI/Lyapunov maps.
 
-        Parameters mirror `plot_chaos_map` — see its docstring.
+        Parameters
+        ----------
+        backend : str, optional
+            'matplotlib' or 'plotly' (overrides the detector's default).
+        save_path : str, optional
+            Path to export the figure. For plotly, a '.html' path writes an
+            interactive file; any other extension is passed to
+            `fig.write_image`.
+        show : bool, default True
+            Display the figure immediately.
+        show_resonances : bool, default True
+            Overlay corotation/Lindblad radii as mirrored vertical lines.
+        show_family_boundary : bool, default True
+            Overlay the box/loop orbit family classification boundaries on the grid.
+        **kwargs
+            Additional arguments passed to the visual backend.
+
+        Returns
+        -------
+        Any
+            The figure object (matplotlib Figure or Plotly Figure).
+
+        Examples
+        --------
+        >>> # With a constructed GridChaosDetector instance `detector`:
+        >>> # fig = detector.plot_composite_chaos_map(backend="plotly", show=False)
         """
         sali_grid, gali_grid, lyap_grid = self.chaos_grids
         return self._dispatch_plot(
@@ -110,7 +153,33 @@ class _GridChaosPlottingMixin:
         show_family_boundary: bool = True,
         **kwargs,
     ) -> Any:
-        """Plot a single consensus map (0 to 3 chaos indicators fired)."""
+        """Plot a single consensus map (0 to 3 chaos indicators fired).
+
+        Parameters
+        ----------
+        backend : str, optional
+            'matplotlib' or 'plotly' (overrides the detector's default).
+        save_path : str, optional
+            Path to export the figure.
+        show : bool, default True
+            Display the figure immediately.
+        show_resonances : bool, default True
+            Overlay corotation/Lindblad radii as mirrored vertical lines.
+        show_family_boundary : bool, default True
+            Overlay the box/loop orbit family classification boundaries on the grid.
+        **kwargs
+            Additional arguments passed to the visual backend.
+
+        Returns
+        -------
+        Any
+            The figure object.
+
+        Examples
+        --------
+        >>> # With a constructed GridChaosDetector instance `detector`:
+        >>> # fig = detector.plot_consensus_chaos_map(backend="matplotlib", show=False)
+        """
         sali_grid, gali_grid, lyap_grid = self.chaos_grids
         return self._dispatch_plot(
             plot_consensus_chaos_map_mpl,
@@ -137,7 +206,7 @@ class _GridChaosPlottingMixin:
         backend: str | None = None,
         **kwargs,
     ) -> None:
-        """Save the side-by-side and/or composite chaos maps to disk without
+        """Save the side-by-side and/or composite/consensus chaos maps to disk without
         displaying them.
 
         Parameters
@@ -146,8 +215,17 @@ class _GridChaosPlottingMixin:
             If given, renders `plot_chaos_map` and saves it here.
         composite_path : str, optional
             If given, renders `plot_composite_chaos_map` and saves it here.
+        consensus_path : str, optional
+            If given, renders `plot_consensus_chaos_map` and saves it here.
         backend : str, optional
             'matplotlib' or 'plotly' (overrides the detector's default).
+        **kwargs
+            Additional arguments passed to the plotting methods.
+
+        Examples
+        --------
+        >>> # With a constructed GridChaosDetector instance `detector`:
+        >>> # detector.save_chaos_maps(side_by_side_path="grid.png", composite_path="composite.png")
         """
         if side_by_side_path is not None:
             self.plot_chaos_map(

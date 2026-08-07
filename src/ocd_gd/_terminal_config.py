@@ -57,7 +57,6 @@ def get_logger(module_name: str) -> logging.Logger:
     """
     return logging.getLogger(_PACKAGE_LOGGER_NAME).getChild(module_name.split(".")[-1])
 
-
 def setup_logging(
     level: int = logging.INFO,
     fmt: str = "%(asctime)s [%(levelname)s] %(name)s: %(message)s",
@@ -83,7 +82,6 @@ def setup_logging(
     """
     root_logger = logging.getLogger()
 
-    # Clear existing handlers to prevent duplicated logs
     root_logger.handlers.clear()
 
     handler = logging.StreamHandler()
@@ -92,10 +90,8 @@ def setup_logging(
     root_logger.addHandler(handler)
     root_logger.setLevel(level)
 
-    # Ensure package loggers inherit root configuration
     _package_logger.setLevel(level)
     _package_logger.propagate = True
-
 
 def print_banner(title: str, subtitle: str = "") -> None:
     """Print a top-level banner/panel for the example script."""
@@ -112,7 +108,6 @@ def print_banner(title: str, subtitle: str = "") -> None:
         log.info("==================================================")
         log.info("  %s", full_title)
         log.info("==================================================")
-
 
 def print_kv_table(
     title: str,
@@ -134,7 +129,6 @@ def print_kv_table(
         for key, val in data.items():
             log.info("│ %-22s : %s", key, val)
         log.info("└──")
-
 
 def print_dataframe_table(
     title: str,

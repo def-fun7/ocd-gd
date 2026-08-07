@@ -33,10 +33,7 @@ from ._units import AgamaUnits, tag_unit
 
 logger = get_logger(__name__)
 
-# Which physical "kind" (see AgamaUnits.unit_for) each metadata_row field
-# is expressed in, so metadata_row can tag it as a Quantity rather than a
-# bare float. None/absent = dimensionless (thresholds, window sizes,
-# counts, tolerances -- configuration knobs, not physical quantities).
+
 _METADATA_FIELD_UNITS: dict[str, str | None] = {
     "num_orbits": None,
     "iter_time": "time",
@@ -63,6 +60,19 @@ class OrbitChaosDetector(_OrbitPlottingMixin):
     `family_summary` (box vs. loop, from the sign of the in-plane angular
     momentum -- see `_family_check.py`), reusing the same trajectory data
     with no extra integration.
+
+    Examples
+    --------
+    >>> import agama
+    >>> from ocd_gd.orbit_detector import OrbitChaosDetector
+    >>> agama.setUnits(mass=1, length=1, velocity=1)
+    >>> pot = agama.Potential(type="Spheroid", mass=1e10, scaleRadius=5.0)
+    >>> ic = [8.0, 0.0, 0.05, 0.0, 180.0, 5.0]
+    >>> detector = OrbitChaosDetector(ic=ic, pot=pot, iter_time=1.0)
+    >>> detector.num_orbits
+    1
+    >>> detector.orbit_family
+    array(['loop'], dtype='<U4')
     """
 
     def __init__(
@@ -89,42 +99,45 @@ class OrbitChaosDetector(_OrbitPlottingMixin):
             Initial conditions for coordinates and velocities.
         pot : agama.Potential
             Agama gravitational potential object.
-        omega : float
-            pattern speed of the rotating frame
+        omega : float, default 0.0
+            pattern speed of the rotating frame.
         iter_time : float, default 10.0
             Total time duration for orbit integrations.
-        gali_threshold : float, default 1e-16
+        gali_threshold : float, default 1e-20
             Threshold limits to register chaos in GALI calculations.
-        sali_threshold : float, default 1e-2
+        sali_threshold : float, default 1e-3
             Threshold limits to register chaos in SALI calculations.
-        gali_window_size : int, default 100
+        gali_window_size : int, default 50
             The sliding window size required to confirm sustained convergence.
-        sali_window_size : int, default 10
+        sali_window_size : int, default 25
             The sliding window size required to confirm sustained convergence.
         accuracy : float, default 1e-8
             Integration precision tracking for Agama.
-        max_num_steps : int, default 1e8
+        max_num_steps : int, default 100000000
             Safety boundary cap for maximum integration steps allowed.
-        plotting_backend: str, default "matplotlib"
+        plotting_backend : str, default "matplotlib"
             setup which plotting library to use.
         keep_raw_deviations : bool, default False
             If True, preserve the raw (un-normalized) deviation vectors so they
-            remain accessible via `self._dev_arr` after normalisation — useful
-            for plotting/diagnostics on small batches. If False (default),
-            normalisation happens in place on `self._dev_arr` directly, avoiding
-            an extra full-size array copy — recommended for large batches
-            (thousands of orbits) where memory is the binding constraint.
+            remain accessible via `self._dev_arr` after normalisation.
         units : AgamaUnits, optional
             Unit system to tag physical `metadata_row()` columns (`iter_time`,
             and in `GridChaosDetector`, `R_0`/`E_0`/`omega`/...) with real
             astropy units. If None (default), falls back to
-            `AgamaUnits.current()` -- the most recent `AgamaUnits.from_setup(...)`
-            call in this process, or None if that utility was never used, in
-            which case metadata columns stay bare floats (unchanged from
-            before this parameter existed).
+            `AgamaUnits.current()`.
+
+        Examples
+        --------
+        >>> import agama
+        >>> from ocd_gd.orbit_detector import OrbitChaosDetector
+        >>> agama.setUnits(mass=1, length=1, velocity=1)
+        >>> pot = agama.Potential(type="Spheroid", mass=1e10, scaleRadius=5.0)
+        >>> ic = [[8.0, 0.0, 0.05, 0.0, 180.0, 5.0]]
+        >>> detector = OrbitChaosDetector(ic=ic, pot=pot, iter_time=5.0)
+        >>> isinstance(detector.pot, agama.Potential)
+        True
         """
 
-        # 1. Configuration Attributes
         self.ic: npt.NDArray[np.float64] = np.atleast_2d(ic)
         self.pot: Any = pot
         self.omega: float = omega
@@ -143,20 +156,17 @@ class OrbitChaosDetector(_OrbitPlottingMixin):
             units if units is not None else AgamaUnits.current()
         )
 
-        # 2. Raw Cached Simulation Data (Private)
         self._time_arr: npt.NDArray[np.float64] | None = None
         self._traj_arr: npt.NDArray[np.float64] | None = None
         self._dev_arr: npt.NDArray[np.float64] | None = None
         self._lyap: npt.NDArray[np.float64] | None = None
 
-        # 3. Lazy Derived Attributes / Cache Layer
         self._dev_arr_normalized: npt.NDArray[np.float64] | None = None
         self._sali_arr: npt.NDArray[np.float64] | None = None
         self._gali_arr: npt.NDArray[np.float64] | None = None
         self._chaos_results_cache: tuple[npt.NDArray[np.float64], ... | None] = None
         self._orbit_family_cache: npt.NDArray[np.str_] | None = None
 
-        # Automatically kick off the heavy simulation on creation
         sali_kernel(np.array([[[[1]]]]), np.array([0]), np.array([1]))
         self._integrate_orbits()
 
@@ -204,9 +214,7 @@ class OrbitChaosDetector(_OrbitPlottingMixin):
             dev = self._dev_arr
             if dev.dtype != np.float64:
                 dev = dev.astype(np.float64, copy=False)
-                self._dev_arr = (
-                    dev  # keep attribute consistent with what we're mutating
-                )
+                self._dev_arr = dev
 
         np.nan_to_num(dev, copy=False, nan=0.0, posinf=1e30, neginf=-1e30)
 
@@ -256,13 +264,26 @@ class OrbitChaosDetector(_OrbitPlottingMixin):
         )
         return result
 
-    # =========================================================================
-    # PUBLIC PROPERTIES
-    # =========================================================================
-
     @property
     def criteria(self) -> IntegrationCriteria:
-        """Get the integration and chaos indicator stopping criteria."""
+        """Get the integration and chaos indicator stopping criteria.
+
+        Returns
+        -------
+        IntegrationCriteria
+            The configuration parameters for orbit integration and evaluation.
+
+        Examples
+        --------
+        >>> import agama
+        >>> from ocd_gd.orbit_detector import OrbitChaosDetector
+        >>> agama.setUnits(mass=1, length=1, velocity=1)
+        >>> pot = agama.Potential(type="Spheroid", mass=1e10, scaleRadius=5.0)
+        >>> ic = [8.0, 0.0, 0.05, 0.0, 180.0, 5.0]
+        >>> detector = OrbitChaosDetector(ic, pot, iter_time=2.0)
+        >>> detector.criteria.iter_time
+        2.0
+        """
         return IntegrationCriteria(
             iter_time=self.iter_time,
             gali_threshold=self.gali_threshold,
@@ -275,61 +296,177 @@ class OrbitChaosDetector(_OrbitPlottingMixin):
 
     @property
     def timestamps(self) -> npt.NDArray[np.float64] | None:
-        """Get the full integration time array."""
+        """Get the full integration time array.
+
+        Returns
+        -------
+        ndarray or None
+            Array of timestamps for the integrated trajectory.
+
+        Examples
+        --------
+        >>> import agama
+        >>> from ocd_gd.orbit_detector import OrbitChaosDetector
+        >>> agama.setUnits(mass=1, length=1, velocity=1)
+        >>> pot = agama.Potential(type="Spheroid", mass=1e10, scaleRadius=5.0)
+        >>> ic = [8.0, 0.0, 0.05, 0.0, 180.0, 5.0]
+        >>> detector = OrbitChaosDetector(ic, pot, iter_time=1.0)
+        >>> detector.timestamps.ndim
+        1
+        """
         return self._time_arr[0]
 
     @property
     def trajectories(self) -> npt.NDArray[np.float64] | None:
-        """Get the integrated phase space trajectory paths."""
+        """Get the integrated phase space trajectory paths.
+
+        Returns
+        -------
+        ndarray or None
+            Phase space trajectories for integrated orbits with shape
+            (num_orbits, time_steps, 6).
+
+        Examples
+        --------
+        >>> import agama
+        >>> from ocd_gd.orbit_detector import OrbitChaosDetector
+        >>> agama.setUnits(mass=1, length=1, velocity=1)
+        >>> pot = agama.Potential(type="Spheroid", mass=1e10, scaleRadius=5.0)
+        >>> ic = [8.0, 0.0, 0.05, 0.0, 180.0, 5.0]
+        >>> detector = OrbitChaosDetector(ic, pot, iter_time=1.0)
+        >>> detector.trajectories.shape[2]
+        6
+        """
         return self._traj_arr
 
     @property
     def lyapunov_exponents(self) -> npt.NDArray[np.float64] | None:
-        """Get calculated Lyapunov exponents for the system paths."""
+        """Get calculated Lyapunov exponents for the system paths.
+
+        Returns
+        -------
+        ndarray or None
+            The Lyapunov exponents and corresponding times of shape
+            (num_orbits, 2).
+
+        Examples
+        --------
+        >>> import agama
+        >>> from ocd_gd.orbit_detector import OrbitChaosDetector
+        >>> agama.setUnits(mass=1, length=1, velocity=1)
+        >>> pot = agama.Potential(type="Spheroid", mass=1e10, scaleRadius=5.0)
+        >>> ic = [8.0, 0.0, 0.05, 0.0, 180.0, 5.0]
+        >>> detector = OrbitChaosDetector(ic, pot, iter_time=1.0)
+        >>> detector.lyapunov_exponents.shape
+        (1, 2)
+        """
         return self._lyap
 
     @property
     def deviation_vectors(self) -> npt.NDArray[np.float64]:
-        """Lazy-loaded property for normalized deviation vectors."""
+        """Lazy-loaded property for normalized deviation vectors.
+
+        Returns
+        -------
+        ndarray
+            Normalized deviation vectors for the integrated orbits of shape
+            (num_orbits, 6, time_steps, 6).
+
+        Examples
+        --------
+        >>> import agama
+        >>> from ocd_gd.orbit_detector import OrbitChaosDetector
+        >>> agama.setUnits(mass=1, length=1, velocity=1)
+        >>> pot = agama.Potential(type="Spheroid", mass=1e10, scaleRadius=5.0)
+        >>> ic = [8.0, 0.0, 0.05, 0.0, 180.0, 5.0]
+        >>> detector = OrbitChaosDetector(ic, pot, iter_time=1.0)
+        >>> detector.deviation_vectors.ndim
+        4
+        """
         if self._dev_arr_normalized is None:
             self._dev_arr_normalized = self._normalize_deviation_vectors()
         return self._dev_arr_normalized
 
     @property
     def sali_array(self) -> npt.NDArray[np.float64]:
-        """Lazy-loaded property for the entire batch SALI matrix."""
+        """Lazy-loaded property for the entire batch SALI matrix.
+
+        Returns
+        -------
+        ndarray
+            The Small Alignment Index values for each orbit over time,
+            shaped (num_orbits, time_steps, 15).
+
+        Examples
+        --------
+        >>> import agama
+        >>> from ocd_gd.orbit_detector import OrbitChaosDetector
+        >>> agama.setUnits(mass=1, length=1, velocity=1)
+        >>> pot = agama.Potential(type="Spheroid", mass=1e10, scaleRadius=5.0)
+        >>> ic = [8.0, 0.0, 0.05, 0.0, 180.0, 5.0]
+        >>> detector = OrbitChaosDetector(ic, pot, iter_time=1.0)
+        >>> detector.sali_array.shape[1]
+        15
+        """
         if self._sali_arr is None:
             self._sali_arr = self._compute_sali()
         return self._sali_arr
 
     @property
     def gali_array(self) -> npt.NDArray[np.float64]:
-        """Lazy-loaded property for the entire batch GALI matrix."""
+        """Lazy-loaded property for the entire batch GALI matrix.
+
+        Returns
+        -------
+        ndarray
+            The Generalized Alignment Index values for each orbit over time,
+            shaped (num_orbits, time_steps).
+
+        Examples
+        --------
+        >>> import agama
+        >>> from ocd_gd.orbit_detector import OrbitChaosDetector
+        >>> agama.setUnits(mass=1, length=1, velocity=1)
+        >>> pot = agama.Potential(type="Spheroid", mass=1e10, scaleRadius=5.0)
+        >>> ic = [8.0, 0.0, 0.05, 0.0, 180.0, 5.0]
+        >>> detector = OrbitChaosDetector(ic, pot, iter_time=1.0)
+        >>> detector.gali_array.ndim
+        2
+        """
         if self._gali_arr is None:
             self._gali_arr = self._compute_gali()
         return self._gali_arr
 
     @property
     def orbit_family(self) -> npt.NDArray[np.str_]:
-        """Lazy-loaded per-orbit box/loop classification (see
-        `_family_check.classify_box_loop`) -- `"loop"` if the orbit's
-        in-plane angular momentum L_z(t) keeps one sign for the whole
-        integration, `"box"` if it flips sign (never settles into
-        circulating one way).
+        """Lazy-loaded per-orbit box/loop classification.
+
+        Classifies each orbit as `"loop"` if the orbit's in-plane angular
+        momentum L_z(t) keeps one sign for the whole integration, or `"box"`
+        if it flips sign (never settles into circulating one way).
 
         Cheap: reuses the already-integrated `self.trajectories`, no new
-        integration. Coarse: only distinguishes box vs. loop, not which
-        resonance family a loop orbit belongs to (e.g. x1 vs x2 near the
-        ILR) -- that needs frequency analysis of the trajectory and isn't
-        implemented here (see `_family_check.py`'s module docstring).
+        integration. Coarse: only distinguishes box vs. loop.
+
+        Returns
+        -------
+        ndarray
+            An array of strings ("box" or "loop") of shape (num_orbits,).
+
+        Examples
+        --------
+        >>> import agama
+        >>> from ocd_gd.orbit_detector import OrbitChaosDetector
+        >>> agama.setUnits(mass=1, length=1, velocity=1)
+        >>> pot = agama.Potential(type="Spheroid", mass=1e10, scaleRadius=5.0)
+        >>> ic = [8.0, 0.0, 0.05, 0.0, 180.0, 5.0]
+        >>> detector = OrbitChaosDetector(ic, pot, iter_time=1.0)
+        >>> detector.orbit_family[0] in ("box", "loop")
+        True
         """
         if self._orbit_family_cache is None:
             self._orbit_family_cache = classify_box_loop(self.trajectories)
         return self._orbit_family_cache
-
-    # =========================================================================
-    # PUBLIC ACCESS METHODS
-    # =========================================================================
 
     def _validate_index(self, orbit_idx: int | None) -> None:
         """Ensure provided lookup index is within bounds."""
@@ -350,39 +487,138 @@ class OrbitChaosDetector(_OrbitPlottingMixin):
         return chosen
 
     def _tag_unit(self, name: str, value: Any, lookup: dict[str, str | None]) -> Any:
-        """Attach a physical unit to a raw Agama-unit metadata value, if
-        one is known for `name` (via `lookup`) and this detector has an
-        `AgamaUnits` to convert with. Returns `value` unchanged otherwise
-        -- e.g. no `AgamaUnits.from_setup(...)` was ever called in this
-        process, so columns fall back to the previous bare-float
-        behavior."""
+        """Attach a physical unit to a raw Agama-unit metadata value."""
         return tag_unit(self.units, name, value, lookup)
 
     def get_trajectory(self, orbit_idx: int | None = None) -> npt.NDArray[np.float64]:
-        """Return the full trajectory or specific targeted orbit index data."""
+        """Return the full trajectory or specific targeted orbit index data.
+
+        Parameters
+        ----------
+        orbit_idx : int, optional
+            Specific orbit index to retrieve. If None, returns all trajectories.
+
+        Returns
+        -------
+        ndarray
+            Phase space trajectories.
+
+        Raises
+        ------
+        IndexError
+            If orbit_idx is out of bounds.
+
+        Examples
+        --------
+        >>> import agama
+        >>> from ocd_gd.orbit_detector import OrbitChaosDetector
+        >>> agama.setUnits(mass=1, length=1, velocity=1)
+        >>> pot = agama.Potential(type="Spheroid", mass=1e10, scaleRadius=5.0)
+        >>> ic = [8.0, 0.0, 0.05, 0.0, 180.0, 5.0]
+        >>> detector = OrbitChaosDetector(ic, pot, iter_time=1.0)
+        >>> detector.get_trajectory(0).shape
+        (5000, 6)
+        """
         self._validate_index(orbit_idx)
         return self.trajectories if orbit_idx is None else self.trajectories[orbit_idx]
 
     def get_sali(self, orbit_idx: int | None = None) -> npt.NDArray[np.float64]:
-        """Return SALI calculation sequences filtered down to target orbit."""
+        """Return SALI calculation sequences filtered down to target orbit.
+
+        Parameters
+        ----------
+        orbit_idx : int, optional
+            Specific orbit index to retrieve. If None, returns all SALI arrays.
+
+        Returns
+        -------
+        ndarray
+            SALI values over time.
+
+        Raises
+        ------
+        IndexError
+            If orbit_idx is out of bounds.
+
+        Examples
+        --------
+        >>> import agama
+        >>> from ocd_gd.orbit_detector import OrbitChaosDetector
+        >>> agama.setUnits(mass=1, length=1, velocity=1)
+        >>> pot = agama.Potential(type="Spheroid", mass=1e10, scaleRadius=5.0)
+        >>> ic = [8.0, 0.0, 0.05, 0.0, 180.0, 5.0]
+        >>> detector = OrbitChaosDetector(ic, pot, iter_time=1.0)
+        >>> detector.get_sali(0).shape
+        (15, 5000)
+        """
         self._validate_index(orbit_idx)
         return self.sali_array if orbit_idx is None else self.sali_array[orbit_idx]
 
     def get_gali(self, orbit_idx: int | None = None) -> npt.NDArray[np.float64]:
-        """Return GALI calculation sequences filtered down to target orbit."""
+        """Return GALI calculation sequences filtered down to target orbit.
+
+        Parameters
+        ----------
+        orbit_idx : int, optional
+            Specific orbit index to retrieve. If None, returns all GALI arrays.
+
+        Returns
+        -------
+        ndarray
+            GALI values over time.
+
+        Raises
+        ------
+        IndexError
+            If orbit_idx is out of bounds.
+
+        Examples
+        --------
+        >>> import agama
+        >>> from ocd_gd.orbit_detector import OrbitChaosDetector
+        >>> agama.setUnits(mass=1, length=1, velocity=1)
+        >>> pot = agama.Potential(type="Spheroid", mass=1e10, scaleRadius=5.0)
+        >>> ic = [8.0, 0.0, 0.05, 0.0, 180.0, 5.0]
+        >>> detector = OrbitChaosDetector(ic, pot, iter_time=1.0)
+        >>> detector.get_gali(0).shape
+        (5000,)
+        """
         self._validate_index(orbit_idx)
         return self.gali_array if orbit_idx is None else self.gali_array[orbit_idx]
 
     def get_family(
         self, orbit_idx: int | None = None
     ) -> npt.NDArray[np.str_] | np.str_:
-        """Return the box/loop classification, optionally for one orbit."""
+        """Return the box/loop classification, optionally for one orbit.
+
+        Parameters
+        ----------
+        orbit_idx : int, optional
+            Specific orbit index to retrieve. If None, returns classifications for all orbits.
+
+        Returns
+        -------
+        ndarray or str
+            The classification string(s).
+
+        Raises
+        ------
+        IndexError
+            If orbit_idx is out of bounds.
+
+        Examples
+        --------
+        >>> import agama
+        >>> from ocd_gd.orbit_detector import OrbitChaosDetector
+        >>> agama.setUnits(mass=1, length=1, velocity=1)
+        >>> pot = agama.Potential(type="Spheroid", mass=1e10, scaleRadius=5.0)
+        >>> ic = [8.0, 0.0, 0.05, 0.0, 180.0, 5.0]
+        >>> detector = OrbitChaosDetector(ic, pot, iter_time=1.0)
+        >>> detector.get_family(0) in ("box", "loop")
+        True
+        """
         self._validate_index(orbit_idx)
         return self.orbit_family if orbit_idx is None else self.orbit_family[orbit_idx]
-
-    # =========================================================================
-    # CORE ANALYSIS METHOD
-    # =========================================================================
 
     def detect_chaos(
         self,
@@ -416,8 +652,20 @@ class OrbitChaosDetector(_OrbitPlottingMixin):
 
         Returns
         -------
-        Union[ChaosSummary, ChaosFullReport]
+        ChaosSummary or ChaosFullReport
             The designated analysis container populated with convergence checks.
+
+        Examples
+        --------
+        >>> import agama
+        >>> from ocd_gd.orbit_detector import OrbitChaosDetector
+        >>> agama.setUnits(mass=1, length=1, velocity=1)
+        >>> pot = agama.Potential(type="Spheroid", mass=1e10, scaleRadius=5.0)
+        >>> ic = [8.0, 0.0, 0.05, 0.0, 180.0, 5.0]
+        >>> detector = OrbitChaosDetector(ic, pot, iter_time=1.0)
+        >>> report = detector.detect_chaos(check_only=True)
+        >>> hasattr(report, "sali_check")
+        True
         """
         detect_chaos_start = time.perf_counter()
 
@@ -528,10 +776,6 @@ class OrbitChaosDetector(_OrbitPlottingMixin):
             lyapunov_array=lyap_d,
         )
 
-    # =========================================================================
-    # SURVEY SUMMARY
-    # =========================================================================
-
     def _method_stats(self, check: npt.NDArray[np.float64]) -> MethodChaosStats:
         """Build a MethodChaosStats block for one indicator's check array.
 
@@ -566,18 +810,14 @@ class OrbitChaosDetector(_OrbitPlottingMixin):
         )
 
     def chaos_summary(self, **detect_chaos_kwargs: Any) -> ChaosSurveySummary:
-        """Summarize chaos classification across every integrated orbit:
-        per-indicator counts/fractions/indices/ICs, plus how often SALI,
-        GALI, and Lyapunov agree with each other.
+        """Summarize chaos classification across every integrated orbit.
 
-        Works for any integrated batch — not grid-specific. On a
-        `GridChaosDetector`, `self.num_orbits`/`self.ic` already exclude
-        unphysical cells (they were never integrated), so this summary
-        automatically covers physical orbits only.
+        Computes per-indicator counts/fractions/indices/ICs, plus how often SALI,
+        GALI, and Lyapunov agree with each other.
 
         Parameters
         ----------
-        **detect_chaos_kwargs :
+        **detect_chaos_kwargs : dict
             Forwarded to `detect_chaos()` — e.g. `sali_threshold_override`,
             `gali_window_override`, etc., to summarize under different
             settings than the detector's own defaults.
@@ -587,6 +827,18 @@ class OrbitChaosDetector(_OrbitPlottingMixin):
         ChaosSurveySummary
             `n_total`, one `MethodChaosStats` per indicator (`.sali`,
             `.gali`, `.lyapunov`), and a `ChaosAgreement` block.
+
+        Examples
+        --------
+        >>> import agama
+        >>> from ocd_gd.orbit_detector import OrbitChaosDetector
+        >>> agama.setUnits(mass=1, length=1, velocity=1)
+        >>> pot = agama.Potential(type="Spheroid", mass=1e10, scaleRadius=5.0)
+        >>> ic = [8.0, 0.0, 0.05, 0.0, 180.0, 5.0]
+        >>> detector = OrbitChaosDetector(ic, pot, iter_time=1.0)
+        >>> summary = detector.chaos_summary()
+        >>> summary.n_total
+        1
         """
         summary = self.detect_chaos(check_only=True, **detect_chaos_kwargs)
 
@@ -600,9 +852,7 @@ class OrbitChaosDetector(_OrbitPlottingMixin):
         lyap_undetermined = np.isnan(lyap_raw)
         lyap_bool = np.where(lyap_undetermined, False, lyap_raw).astype(bool)
 
-        classified = (
-            ~lyap_undetermined
-        )  # sali/gali have no NaNs, so this is the only mask needed
+        classified = ~lyap_undetermined
 
         all_agree = (sali_bool == gali_bool) & (gali_bool == lyap_bool) & classified
 
@@ -617,7 +867,7 @@ class OrbitChaosDetector(_OrbitPlottingMixin):
             all_agree_chaotic=int(np.sum(all_agree & sali_bool)),
             all_agree_regular=int(np.sum(all_agree & ~sali_bool)),
             disagreement=int(np.sum(~all_agree & classified)),
-            n_undetermined=int(np.sum(lyap_undetermined)),  # add this field
+            n_undetermined=int(np.sum(lyap_undetermined)),
         )
 
         return ChaosSurveySummary(
@@ -629,43 +879,55 @@ class OrbitChaosDetector(_OrbitPlottingMixin):
         )
 
     def family_summary(self) -> FamilyStats:
-        """Summarize box/loop classification across every integrated
-        orbit: counts, fractions, and indices per family (see
-        `orbit_family`). Mirrors `chaos_summary()`'s shape, so the two can
-        be combined by the caller (e.g. a "loop AND regular" fraction).
+        """Summarize box/loop classification across every integrated orbit.
+
+        Computes counts, fractions, and indices per family (see `orbit_family`).
+
+        Returns
+        -------
+        FamilyStats
+            A statistics container with counts and indices for box and loop families.
+
+        Examples
+        --------
+        >>> import agama
+        >>> from ocd_gd.orbit_detector import OrbitChaosDetector
+        >>> agama.setUnits(mass=1, length=1, velocity=1)
+        >>> pot = agama.Potential(type="Spheroid", mass=1e10, scaleRadius=5.0)
+        >>> ic = [8.0, 0.0, 0.05, 0.0, 180.0, 5.0]
+        >>> detector = OrbitChaosDetector(ic, pot, iter_time=1.0)
+        >>> summary = detector.family_summary()
+        >>> hasattr(summary, "n_loop")
+        True
         """
         return summarize_family(self.orbit_family)
 
-    # =========================================================================
-    # RUN METADATA
-    # =========================================================================
-
     def metadata_row(self, extra: dict[str, Any | None] | None = None) -> QTable:
-        """Build a single-row astropy QTable of this run's integration and
-        chaos-detection settings (from `criteria`), plus any extra columns
-        the caller supplies.
-
-        Intended for collecting many runs (e.g. a bar-strength or BH-mass
-        sweep) into one table: build a `metadata_row` per run, `vstack` them
-        together, and add result columns (see `chaos_summary`) alongside.
-        Values in `extra` may be plain numbers/strings or astropy
-        `Quantity` objects — QTable handles both, so unit-aware columns
-        (e.g. `bh_mass=1e6 * u.Msun`) work directly.
-
-        Fields with a known physical meaning (currently just `iter_time`;
-        `GridChaosDetector.metadata_row` adds more) are tagged as
-        `Quantity` columns using `self.units` (see `AgamaUnits`) rather
-        than left as bare Agama-unit floats -- provided `self.units` is
-        set (see the `units` parameter on `__init__`). If it's not, these
-        columns stay bare floats, exactly as before this existed.
+        """Build a single-row astropy QTable of this run's integration/chaos parameters.
 
         Parameters
         ----------
         extra : dict, optional
             Additional columns to attach — e.g. potential-construction
             parameters (`bar_strength`, `bh_mass`) that this class has no
-            way to introspect from an opaque `agama.Potential` object, so
-            the caller supplies them explicitly.
+            way to introspect.
+
+        Returns
+        -------
+        QTable
+            A single-row table containing parameters and metadata.
+
+        Examples
+        --------
+        >>> import agama
+        >>> from ocd_gd.orbit_detector import OrbitChaosDetector
+        >>> agama.setUnits(mass=1, length=1, velocity=1)
+        >>> pot = agama.Potential(type="Spheroid", mass=1e10, scaleRadius=5.0)
+        >>> ic = [8.0, 0.0, 0.05, 0.0, 180.0, 5.0]
+        >>> detector = OrbitChaosDetector(ic, pot, iter_time=1.0)
+        >>> row = detector.metadata_row(extra={"run_id": 42})
+        >>> "run_id" in row.colnames
+        True
         """
         criteria = self.criteria
         raw_columns: dict[str, Any] = {

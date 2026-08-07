@@ -23,8 +23,7 @@ from .orbit_detector import OrbitChaosDetector
 
 logger = get_logger(__name__)
 
-# Same purpose as orbit_detector.py's _METADATA_FIELD_UNITS, for the
-# grid-specific columns this class adds on top of the base class's.
+
 _GRID_METADATA_FIELD_UNITS: dict[str, str | None] = {
     "R_0": "length",
     "E_0": "energy",
@@ -78,6 +77,16 @@ class GridChaosDetector(_GridChaosPlottingMixin, OrbitChaosDetector):
     `save_chaos_maps` (see `_GridChaosPlottingMixin` in `_grid_plotting.py`),
     and the grid-shaped counterpart of the base class's `orbit_family`:
     `family_grid` (see `_scatter_to_grid` above).
+
+    Examples
+    --------
+    >>> import agama
+    >>> from ocd_gd.grid_detector import GridChaosDetector
+    >>> agama.setUnits(mass=1, length=1, velocity=1)
+    >>> pot = agama.Potential(type="Spheroid", mass=1e10, scaleRadius=5.0)
+    >>> detector = GridChaosDetector(potential=pot, R_0=8.0, grid_size=3)
+    >>> detector.grid_size
+    3
     """
 
     def __init__(
@@ -146,9 +155,17 @@ class GridChaosDetector(_GridChaosPlottingMixin, OrbitChaosDetector):
         units : AgamaUnits, optional
             Forwarded to `OrbitChaosDetector.__init__`. Used here to tag
             `R_0`, `E_0`, `y_0`, `z_0`, and `omega` as physical `Quantity`
-            columns in `metadata_row()` -- see
-            `orbit_detector._METADATA_FIELD_UNITS`'s docstring for the
-            fallback behavior when it's left as None.
+            columns in `metadata_row()`.
+
+        Examples
+        --------
+        >>> import agama
+        >>> from ocd_gd.grid_detector import GridChaosDetector
+        >>> agama.setUnits(mass=1, length=1, velocity=1)
+        >>> pot = agama.Potential(type="Spheroid", mass=1e10, scaleRadius=5.0)
+        >>> detector = GridChaosDetector(potential=pot, R_0=8.0, grid_size=3, iter_time=1.0)
+        >>> detector.num_orbits <= 9
+        True
         """
         logger.info(
             "Generating %dx%d (x, v_x) grid of initial conditions at R_0=%.4g and omega=%.4g ...",
@@ -193,11 +210,6 @@ class GridChaosDetector(_GridChaosPlottingMixin, OrbitChaosDetector):
         self._orbit_idx_lookup_cache: npt.NDArray[np.float64] | None = None
         self._resonance_radii_cache: ResonanceRadii | None = None
 
-        # Only physically valid grid cells get integrated — skips wasted
-        # agama.orbit() work on cells already known to violate the energy
-        # constraint. `_physical_indices` records each integrated orbit's
-        # original flat grid position, so chaos results can be scattered
-        # back into (grid_size, grid_size) shape later.
         self._physical_indices = np.where(~grid_info.unphysical_mask)[0]
 
         n_total_cells = grid_size**2
@@ -261,18 +273,48 @@ class GridChaosDetector(_GridChaosPlottingMixin, OrbitChaosDetector):
         npt.NDArray[np.float64], npt.NDArray[np.float64], npt.NDArray[np.float64]
     ]:
         """Lazy-loaded (sali_grid, gali_grid, lyapunov_grid) maps, each shaped
-        (grid_size, grid_size) with unphysical cells set to NaN."""
+        (grid_size, grid_size) with unphysical cells set to NaN.
+
+        Returns
+        -------
+        tuple of ndarray
+            The SALI grid, GALI grid, and Lyapunov exponent grid.
+
+        Examples
+        --------
+        >>> import agama
+        >>> from ocd_gd.grid_detector import GridChaosDetector
+        >>> agama.setUnits(mass=1, length=1, velocity=1)
+        >>> pot = agama.Potential(type="Spheroid", mass=1e10, scaleRadius=5.0)
+        >>> detector = GridChaosDetector(potential=pot, R_0=8.0, grid_size=3, iter_time=1.0)
+        >>> sali, gali, lyap = detector.chaos_grids
+        >>> sali.shape
+        (3, 3)
+        """
         if self._chaos_grids_cache is None:
             self._chaos_grids_cache = self._compute_chaos_grids()
         return self._chaos_grids_cache
 
     @property
     def family_grid(self) -> npt.NDArray[np.str_]:
-        """Lazy-loaded (grid_size, grid_size) box/loop family map (see
-        `OrbitChaosDetector.orbit_family`), scattered back into grid shape
-        via `_scatter_to_grid`. Unphysical grid cells are labeled
-        `"unphysical"` rather than left as NaN, since a string column has
-        no NaN to fall back to.
+        """Lazy-loaded (grid_size, grid_size) box/loop family map.
+
+        Unphysical grid cells are labeled `"unphysical"`.
+
+        Returns
+        -------
+        ndarray
+            Array of strings indicating the family classification or `"unphysical"`.
+
+        Examples
+        --------
+        >>> import agama
+        >>> from ocd_gd.grid_detector import GridChaosDetector
+        >>> agama.setUnits(mass=1, length=1, velocity=1)
+        >>> pot = agama.Potential(type="Spheroid", mass=1e10, scaleRadius=5.0)
+        >>> detector = GridChaosDetector(potential=pot, R_0=8.0, grid_size=3, iter_time=1.0)
+        >>> detector.family_grid.shape
+        (3, 3)
         """
         if self._family_grid_cache is None:
             self._family_grid_cache = _scatter_to_grid(
@@ -295,16 +337,37 @@ class GridChaosDetector(_GridChaosPlottingMixin, OrbitChaosDetector):
         return self._orbit_idx_lookup_cache
 
     def orbit_idx_at(self, row: int, col: int) -> int | None:
-        """Return the orbit_idx for grid cell (row, col), or None if that
-        cell was unphysical and was never integrated.
+        """Return the orbit_idx for grid cell (row, col).
 
-        `row` indexes v_x and `col` indexes x — matching `chaos_grids`'/
-        `family_grid`'s axes (`chaos_grids[0][row, col]` is the SALI check,
-        `family_grid[row, col]` is the box/loop label, for the orbit this
-        returns). Use the returned orbit_idx with any inherited orbit_idx-
-        based method: `get_sali`, `get_gali`, `get_family`,
-        `get_trajectory`, `plot_sali`, `plot_gali`, `detect_chaos(orbit_idx=...)`,
-        etc.
+        `row` indexes v_x and `col` indexes x.
+
+        Parameters
+        ----------
+        row : int
+            The row index (v_x axis).
+        col : int
+            The column index (x axis).
+
+        Returns
+        -------
+        int or None
+            The orbit index, or None if that cell was unphysical and was never integrated.
+
+        Raises
+        ------
+        IndexError
+            If (row, col) is out of bounds for the grid size.
+
+        Examples
+        --------
+        >>> import agama
+        >>> from ocd_gd.grid_detector import GridChaosDetector
+        >>> agama.setUnits(mass=1, length=1, velocity=1)
+        >>> pot = agama.Potential(type="Spheroid", mass=1e10, scaleRadius=5.0)
+        >>> detector = GridChaosDetector(potential=pot, R_0=8.0, grid_size=3, iter_time=1.0)
+        >>> idx = detector.orbit_idx_at(1, 1)
+        >>> idx is None or isinstance(idx, int)
+        True
         """
         if not (0 <= row < self.grid_size and 0 <= col < self.grid_size):
             raise IndexError(
@@ -316,34 +379,120 @@ class GridChaosDetector(_GridChaosPlottingMixin, OrbitChaosDetector):
         return None if idx == -1 else int(idx)
 
     def grid_position_of(self, orbit_idx: int) -> tuple[int, int]:
-        """Return the (row, col) grid position an orbit_idx corresponds to —
-        the inverse of `orbit_idx_at`. `row` indexes v_x, `col` indexes x."""
+        """Return the (row, col) grid position an orbit_idx corresponds to.
+
+        The inverse of `orbit_idx_at`. `row` indexes v_x, `col` indexes x.
+
+        Parameters
+        ----------
+        orbit_idx : int
+            The orbit index to lookup.
+
+        Returns
+        -------
+        tuple of int
+            The (row, col) indices in the grid.
+
+        Raises
+        ------
+        IndexError
+            If orbit_idx is out of bounds.
+
+        Examples
+        --------
+        >>> import agama
+        >>> from ocd_gd.grid_detector import GridChaosDetector
+        >>> agama.setUnits(mass=1, length=1, velocity=1)
+        >>> pot = agama.Potential(type="Spheroid", mass=1e10, scaleRadius=5.0)
+        >>> detector = GridChaosDetector(potential=pot, R_0=8.0, grid_size=3, iter_time=1.0)
+        >>> if detector.num_orbits > 0:
+        ...     row, col = detector.grid_position_of(0)
+        ...     isinstance(row, int) and isinstance(col, int)
+        True
+        """
         self._validate_index(orbit_idx)
         flat = self._physical_indices[orbit_idx]
         return divmod(int(flat), self.grid_size)
 
     def grid_coordinates_of(self, orbit_idx: int) -> tuple[float, float]:
-        """Return the (x, v_x) physical coordinates an orbit_idx corresponds
-        to, rather than its raw (row, col) grid position."""
+        """Return the (x, v_x) physical coordinates an orbit_idx corresponds to.
+
+        Parameters
+        ----------
+        orbit_idx : int
+            The orbit index to lookup.
+
+        Returns
+        -------
+        tuple of float
+            The (x, v_x) physical coordinates.
+
+        Raises
+        ------
+        IndexError
+            If orbit_idx is out of bounds.
+
+        Examples
+        --------
+        >>> import agama
+        >>> from ocd_gd.grid_detector import GridChaosDetector
+        >>> agama.setUnits(mass=1, length=1, velocity=1)
+        >>> pot = agama.Potential(type="Spheroid", mass=1e10, scaleRadius=5.0)
+        >>> detector = GridChaosDetector(potential=pot, R_0=8.0, grid_size=3, iter_time=1.0)
+        >>> if detector.num_orbits > 0:
+        ...     x, vx = detector.grid_coordinates_of(0)
+        ...     isinstance(x, float) and isinstance(vx, float)
+        True
+        """
         row, col = self.grid_position_of(orbit_idx)
         return float(self.x_grid[col]), float(self.vx_grid[row])
 
     @property
     def resonance_radii(self) -> ResonanceRadii:
-        """Lazy-loaded corotation/inner/outer Lindblad radii for this
-        detector's potential at its pattern speed `self.omega`. Used by
-        `plot_chaos_map`/`plot_composite_chaos_map` to overlay reference
-        lines; any radius is None if `omega == 0` or no root was found."""
+        """Lazy-loaded corotation/inner/outer Lindblad radii for this potential.
+
+        Returns
+        -------
+        ResonanceRadii
+            A container holding the computed resonance radii.
+
+        Examples
+        --------
+        >>> import agama
+        >>> from ocd_gd.grid_detector import GridChaosDetector
+        >>> agama.setUnits(mass=1, length=1, velocity=1)
+        >>> pot = agama.Potential(type="Spheroid", mass=1e10, scaleRadius=5.0)
+        >>> detector = GridChaosDetector(potential=pot, R_0=8.0, grid_size=3, iter_time=1.0)
+        >>> hasattr(detector.resonance_radii, "CR")
+        False
+        """
         if self._resonance_radii_cache is None:
             self._resonance_radii_cache = compute_resonance_radii(self.pot, self.omega)
         return self._resonance_radii_cache
 
     def metadata_row(self, extra: dict[str, Any | None] | None = None) -> QTable:
-        """Extends `OrbitChaosDetector.metadata_row` with grid-specific
-        parameters (R_0, E_0, grid geometry, transverse velocity fractions),
-        tagged as physical `Quantity` columns where applicable (see
-        `_GRID_METADATA_FIELD_UNITS` and `OrbitChaosDetector._tag_unit`).
-        See the base method for the `extra` parameter and general behavior.
+        """Extends `OrbitChaosDetector.metadata_row` with grid-specific parameters.
+
+        Parameters
+        ----------
+        extra : dict, optional
+            Additional columns to attach.
+
+        Returns
+        -------
+        QTable
+            A single-row table containing integration and grid parameters.
+
+        Examples
+        --------
+        >>> import agama
+        >>> from ocd_gd.grid_detector import GridChaosDetector
+        >>> agama.setUnits(mass=1, length=1, velocity=1)
+        >>> pot = agama.Potential(type="Spheroid", mass=1e10, scaleRadius=5.0)
+        >>> detector = GridChaosDetector(potential=pot, R_0=8.0, grid_size=3, iter_time=1.0)
+        >>> row = detector.metadata_row()
+        >>> "grid_size" in row.colnames
+        True
         """
         raw_grid_columns: dict[str, Any] = {
             "R_0": self.R_0,
@@ -364,19 +513,55 @@ class GridChaosDetector(_GridChaosPlottingMixin, OrbitChaosDetector):
 
     @staticmethod
     def circular_velocity(potential: Any, R_0: float) -> float:
-        """Local circular velocity magnitude at (R_0, 0, 0) from the
-        potential's radial force — the same helper used internally to turn
-        `v_y0_frac`/`v_z0_frac` into actual velocities. Exposed for
-        inspection (e.g. checking what velocity a given R_0 implies) without
-        needing to construct a detector first.
+        """Local circular velocity magnitude at (R_0, 0, 0) from the potential's radial force.
+
+        Parameters
+        ----------
+        potential : agama.Potential
+            Agama gravitational potential object.
+        R_0 : float
+            Reference radius.
+
+        Returns
+        -------
+        float
+            The circular velocity magnitude.
+
+        Examples
+        --------
+        >>> import agama
+        >>> from ocd_gd.grid_detector import GridChaosDetector
+        >>> agama.setUnits(mass=1, length=1, velocity=1)
+        >>> pot = agama.Potential(type="Spheroid", mass=1e10, scaleRadius=5.0)
+        >>> GridChaosDetector.circular_velocity(pot, 8.0) > 0
+        True
         """
         return _circular_velocity(potential, R_0)
 
     @staticmethod
     def reference_energy(potential: Any, R_0: float) -> float:
-        """Total energy of a circular orbit at (R_0, 0, 0) — the same value
-        `GridChaosDetector` derives internally when `E_0` is left as None.
-        Exposed for inspection ahead of constructing a detector.
+        """Total energy of a circular orbit at (R_0, 0, 0).
+
+        Parameters
+        ----------
+        potential : agama.Potential
+            Agama gravitational potential object.
+        R_0 : float
+            Reference radius.
+
+        Returns
+        -------
+        float
+            Total energy of the circular orbit.
+
+        Examples
+        --------
+        >>> import agama
+        >>> from ocd_gd.grid_detector import GridChaosDetector
+        >>> agama.setUnits(mass=1, length=1, velocity=1)
+        >>> pot = agama.Potential(type="Spheroid", mass=1e10, scaleRadius=5.0)
+        >>> GridChaosDetector.reference_energy(pot, 8.0) < 0
+        True
         """
         v_circ = _circular_velocity(potential, R_0)
         return _reference_energy(potential, R_0, v_circ)

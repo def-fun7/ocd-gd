@@ -20,10 +20,6 @@ from matplotlib.collections import LineCollection
 
 from .utils import resolve_save_path
 
-# ==============================================================================
-# Simple SALI, GALI plots [Helpers]
-# ==============================================================================
-
 
 def _setup_fig_ax(
     fig: plt.Figure | None = None,
@@ -43,7 +39,6 @@ def _setup_fig_ax(
         fig = ax.get_figure()
     return fig, ax
 
-
 def _handle_save_show(
     fig,
     save_path: str | None = None,
@@ -59,7 +54,6 @@ def _handle_save_show(
         fig.savefig(save_path, dpi=dpi, bbox_inches=bbox_inches)
     if show:
         plt.show()
-
 
 def _format_lyap_text(lyap_data: npt.NDArray[np.float64] | None) -> str | None:
     """Format AGAMA's Lyapunov array [lambda * Torb, Tchaos / Torb] cleanly."""
@@ -83,10 +77,6 @@ def _format_lyap_text(lyap_data: npt.NDArray[np.float64] | None) -> str | None:
             + rf"$T_{{\mathrm{{chaos}}}} = {t_chaos:.1f} \, T_{{\mathrm{{orb}}}}$"
         )
 
-
-# ==============================================================================
-# 1. SALI vs Time
-# ==============================================================================
 def plot_sali_mpl(
     t: npt.NDArray[np.float64],
     sali: npt.NDArray[np.float64],
@@ -104,7 +94,6 @@ def plot_sali_mpl(
     """Plot SALI vs Time on a log scale."""
     fig, ax = _setup_fig_ax(fig, ax, figsize=kwargs.get("figsize", (7, 4.5)))
 
-    # 1. Title Status
     base_title = kwargs.get("title", "SALI vs Time")
     if is_chaotic is not None:
         status_str = "Chaotic" if is_chaotic else "Regular"
@@ -115,13 +104,11 @@ def plot_sali_mpl(
     else:
         ax.set_title(base_title)
 
-    # 2. Plot SALI trace (single call to prevent legend duplication)
     color = kwargs.get("color", "crimson")
     lw = kwargs.get("linewidth", kwargs.get("lw", 1.5))
     label = kwargs.get("label", "SALI")
     ax.plot(t, sali, color=color, lw=lw, label=label)
 
-    # 3. Plot Threshold Line
     if threshold is not None:
         thresh_color = kwargs.get("thresh_color", "black")
         thresh_ls = kwargs.get("thresh_ls", "--")
@@ -133,7 +120,6 @@ def plot_sali_mpl(
             label=kwargs.get("thresh_label", f"Threshold ({threshold:.0e})"),
         )
 
-    # 4. Draw Detection Window Box (if chaotic and time is finite)
     if (
         is_chaotic
         and detection_time is not None
@@ -155,7 +141,6 @@ def plot_sali_mpl(
         )
         ax.axvline(t_end, color="orange", linestyle=":", lw=1.5, zorder=2)
 
-    # 5. Overlay Lyapunov Exponent Text Box
     lyap_str = _format_lyap_text(lyapunov)
     if lyap_str and kwargs.get("show_lyapunov", True):
         ax.text(
@@ -186,10 +171,6 @@ def plot_sali_mpl(
     )
     return fig, ax
 
-
-# ==============================================================================
-# 2. GALI vs Time
-# ==============================================================================
 def plot_gali_mpl(
     t: npt.NDArray[np.float64],
     gali: npt.NDArray[np.float64],
@@ -208,7 +189,6 @@ def plot_gali_mpl(
     """Plot GALI_k vs Time on a log scale."""
     fig, ax = _setup_fig_ax(fig, ax, figsize=kwargs.get("figsize", (7, 4.5)))
 
-    # 1. Title Status
     base_title = kwargs.get("title", "GALI vs Time")
     if is_chaotic is not None:
         status_str = "Chaotic" if is_chaotic else "Regular"
@@ -219,7 +199,6 @@ def plot_gali_mpl(
     else:
         ax.set_title(base_title)
 
-    # 2. Plot GALI Traces
     if gali.ndim == 1:
         label = f"GALI_{k_orders[0]}" if k_orders else "GALI"
         ax.plot(t, gali, lw=kwargs.get("lw", 1.5), label=label)
@@ -234,7 +213,6 @@ def plot_gali_mpl(
             )
             ax.plot(t, gali[:, i], color=colors[i], lw=kwargs.get("lw", 1.5), label=lbl)
 
-    # 3. Plot Threshold Line
     if threshold is not None:
         thresh_color = kwargs.get("thresh_color", "black")
         thresh_ls = kwargs.get("thresh_ls", "--")
@@ -246,7 +224,6 @@ def plot_gali_mpl(
             label=kwargs.get("thresh_label", f"Threshold ({threshold:.0e})"),
         )
 
-    # 4. Draw Detection Window Box
     if (
         is_chaotic
         and detection_time is not None
@@ -268,7 +245,6 @@ def plot_gali_mpl(
         )
         ax.axvline(t_end, color="orange", linestyle=":", lw=1.5, zorder=2)
 
-    # 5. Overlay Lyapunov Exponent Text Box
     lyap_str = _format_lyap_text(lyapunov)
     if lyap_str and kwargs.get("show_lyapunov", True):
         ax.text(
@@ -299,10 +275,6 @@ def plot_gali_mpl(
     )
     return fig, ax
 
-
-# ==============================================================================
-# 3. Orbit Trajectory Plot (Face-On & Edge-On)
-# ==============================================================================
 def plot_trajectory_2d_mpl(
     pos: npt.NDArray[np.float64],
     fig: plt.Figure | None = None,
@@ -324,7 +296,6 @@ def plot_trajectory_2d_mpl(
     alpha = kwargs.get("alpha", 0.7)
     lw = kwargs.get("lw", 0.8)
 
-    # Face-on (X vs Y)
     axes_arr[0].plot(x, y, color=color, alpha=alpha, lw=lw)
     axes_arr[0].set_xlabel("X")
     axes_arr[0].set_ylabel("Y")
@@ -332,7 +303,6 @@ def plot_trajectory_2d_mpl(
     axes_arr[0].set_aspect("equal", adjustable="datalim")
     axes_arr[0].grid(kwargs.get("grid", True), linestyle=":", alpha=0.5)
 
-    # Edge-on (X vs Z)
     axes_arr[1].plot(x, z, color=color, alpha=alpha, lw=lw)
     axes_arr[1].set_xlabel("X")
     axes_arr[1].set_ylabel("Z")
@@ -346,10 +316,6 @@ def plot_trajectory_2d_mpl(
     _handle_save_show(fig, save_path=save_path, show=show, **kwargs)
     return fig, axes_arr
 
-
-# ==============================================================================
-# 4. 3D Orbit Plot
-# ==============================================================================
 def plot_trajectory_3d_mpl(
     pos: npt.NDArray[np.float64],
     fig: plt.Figure | None = None,
@@ -393,10 +359,6 @@ def plot_trajectory_3d_mpl(
     _handle_save_show(fig, save_path=save_path, show=show, **kwargs)
     return fig, ax
 
-
-# ==============================================================================
-# 5. Phase Space Plot (Position vs Velocity)
-# ==============================================================================
 def plot_phase_space_mpl(
     pos: npt.NDArray[np.float64],
     vel: npt.NDArray[np.float64],
@@ -421,9 +383,8 @@ def plot_phase_space_mpl(
 
     color = kwargs.get("color", "purple")
     alpha = kwargs.get("alpha", 0.5)
-    s = kwargs.get("s", 1)  # Marker size
+    s = kwargs.get("s", 1)
 
-    # Scatter points preferred for phase space to spot invariant curves/chaos scattering
     ax.scatter(
         q,
         v,
@@ -446,10 +407,6 @@ def plot_phase_space_mpl(
     _handle_save_show(fig, save_path=save_path, show=show, **kwargs)
     return fig, ax
 
-
-# ==============================================================================
-# 6. Fractional Energy Drift vs Time
-# ==============================================================================
 def plot_energy_drift_mpl(
     t: npt.NDArray[np.float64],
     energy: npt.NDArray[np.float64],
@@ -473,7 +430,6 @@ def plot_energy_drift_mpl(
 
     ax.plot(t, drift, color=color, lw=lw, label=kwargs.get("label", "|ΔE/E₀|"))
 
-    # Default to log scale for energy errors
     if kwargs.get("log_scale", True):
         ax.set_yscale("log")
 
@@ -488,10 +444,6 @@ def plot_energy_drift_mpl(
     _handle_save_show(fig, save_path=save_path, show=show, **kwargs)
     return fig, ax
 
-
-# ==============================================================================
-# 7. Color-Coded Trajectory Plot (Colored by Time or SALI)
-# ==============================================================================
 def plot_colored_trajectory_2d_mpl(
     pos: npt.NDArray[np.float64],
     c_values: npt.NDArray[np.float64],

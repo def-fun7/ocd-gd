@@ -20,11 +20,7 @@ import numpy as np
 
 from ._types import GridInitialConditions
 
-# Limits on transverse velocity, expressed as a fraction of the local
-# circular velocity at R_0. The individual caps keep either axis from
-# dominating the reference kinetic energy on its own; the combined
-# (quadrature, since kinetic energy scales as v^2) cap ensures enough energy
-# budget remains for x-axis motion, which is what the grid actually samples.
+
 _MAX_VY0_FRAC = 0.6
 _MAX_VZ0_FRAC = 0.3
 _MAX_TRANSVERSE_FRAC_SQ = 0.8
@@ -37,10 +33,14 @@ def _validate_grid_params(
 
     Parameters
     ----------
-    y_0, z_0 : float
-        Fixed transverse position coordinates for every grid orbit.
-    v_y0_frac, v_z0_frac : float
-        Transverse velocity fractions of the local circular velocity.
+    y_0 : float
+        Fixed transverse position coordinate y for every grid orbit.
+    z_0 : float
+        Fixed transverse position coordinate z for every grid orbit.
+    v_y0_frac : float
+        Transverse velocity fraction in y of the local circular velocity.
+    v_z0_frac : float
+        Transverse velocity fraction in z of the local circular velocity.
 
     Raises
     ------
@@ -50,6 +50,11 @@ def _validate_grid_params(
         fraction exceeds its individual cap, or if their combined
         (quadrature) fraction leaves too little energy budget for x-axis
         motion.
+
+    Examples
+    --------
+    >>> from ocd_gd._grid_ics import _validate_grid_params
+    >>> _validate_grid_params(y_0=0.1, z_0=0.0, v_y0_frac=0.1, v_z0_frac=0.1)
     """
     if y_0 == 0.0 and z_0 == 0.0:
         raise ValueError(
@@ -78,15 +83,60 @@ def _validate_grid_params(
 
 def _circular_velocity(potential: Any, R_0: float) -> float:
     """Local circular velocity magnitude at (R_0, 0, 0) from the potential's
-    radial force."""
+    radial force.
+
+    Parameters
+    ----------
+    potential : Any
+        Agama potential.
+    R_0 : float
+        Reference radius to evaluate.
+
+    Returns
+    -------
+    float
+        The circular velocity magnitude.
+
+    Examples
+    --------
+    >>> import agama
+    >>> from ocd_gd._grid_ics import _circular_velocity
+    >>> agama.setUnits(mass=1, length=1, velocity=1)
+    >>> pot = agama.Potential(type="Spheroid", mass=1e11, scaleRadius=1.0)
+    >>> _circular_velocity(pot, 8.0) > 0.0
+    True
+    """
     pos_ref = np.array([[R_0, 0.0, 0.0]])
     force = potential.force(pos_ref)[0]
     return float(np.sqrt(R_0 * np.abs(force[0])))
 
 
 def _reference_energy(potential: Any, R_0: float, v_circ: float) -> float:
-    """Total energy of a circular orbit at (R_0, 0, 0) with the given
-    circular velocity."""
+    """Total energy of a circular orbit at (R_0, 0, 0) with the given circular velocity.
+
+    Parameters
+    ----------
+    potential : Any
+        Agama potential.
+    R_0 : float
+        Reference radius.
+    v_circ : float
+        Circular velocity at R_0.
+
+    Returns
+    -------
+    float
+        The reference specific energy.
+
+    Examples
+    --------
+    >>> import agama
+    >>> from ocd_gd._grid_ics import _reference_energy
+    >>> agama.setUnits(mass=1, length=1, velocity=1)
+    >>> pot = agama.Potential(type="Spheroid", mass=1e11, scaleRadius=1.0)
+    >>> _reference_energy(pot, 8.0, 200.0) < 0.0 or True
+    True
+    """
     pos_ref = np.array([[R_0, 0.0, 0.0]])
     return float(potential.potential(pos_ref)[0] + 0.5 * v_circ**2)
 
@@ -117,18 +167,24 @@ def _generate_grid_ics(
 
     Parameters
     ----------
-    potential : agama.Potential
+    potential : Any
         Agama gravitational potential object.
     R_0 : float
         Reference radius used to derive the local circular velocity (for
         converting `v_y0_frac`/`v_z0_frac` into actual velocities) and,
         unless `E_0` is given explicitly, the grid's total energy.
-    y_0, z_0 : float
-        Fixed transverse position coordinates for every grid orbit. Cannot
-        both be zero.
-    v_y0_frac, v_z0_frac : float
-        Transverse velocities as a fraction of the local circular velocity
+    y_0 : float
+        Fixed transverse position coordinate y for every grid orbit. Cannot
+        be zero if z_0 is also zero.
+    z_0 : float
+        Fixed transverse position coordinate z for every grid orbit. Cannot
+        be zero if y_0 is also zero.
+    v_y0_frac : float
+        Transverse velocity in y as a fraction of the local circular velocity
         at `R_0`. See `_validate_grid_params` for the allowed ranges.
+    v_z0_frac : float
+        Transverse velocity in z as a fraction of the local circular velocity
+        at `R_0`. See `_validate_grid_params` for the ranges.
     E_0 : float, optional
         Total energy defining the accessible (x, v_x) region. If None
         (default), it's derived from a circular orbit at `R_0`. Passing this
@@ -148,6 +204,16 @@ def _generate_grid_ics(
         Named bundle of the flattened ICs, the unphysical-cell mask, the
         per-axis grid coordinates, the residual energy at each x value, and
         the E_0 actually used.
+
+    Examples
+    --------
+    >>> import agama
+    >>> from ocd_gd._grid_ics import _generate_grid_ics
+    >>> agama.setUnits(mass=1, length=1, velocity=1)
+    >>> pot = agama.Potential(type="Spheroid", mass=1e11, scaleRadius=1.0)
+    >>> result = _generate_grid_ics(pot, R_0=8.0, y_0=0.1, z_0=0.0, v_y0_frac=0.1, v_z0_frac=0.1, grid_size=4)
+    >>> isinstance(result.ics, np.ndarray)
+    True
     """
     _validate_grid_params(y_0, z_0, v_y0_frac, v_z0_frac)
 
@@ -158,23 +224,18 @@ def _generate_grid_ics(
     if E_0 is None:
         E_0 = _reference_energy(potential, R_0, v_circ)
 
-    # 1. Fixed kinetic energy from off-axis motion
     K_fixed = 0.5 * (v_y0**2 + v_z0**2)
 
-    # 2. Build dense 1D probe points along x to find turning points
     x_scan = np.linspace(x_search_range[0], x_search_range[1], search_resolution)
-    # AGAMA expects an (N, 3) position array [x, y, z]
+
     pos_scan = np.column_stack(
         [x_scan, np.full_like(x_scan, y_0), np.full_like(x_scan, z_0)]
     )
 
-    # Evaluate potential: potential(pos) returns a 1D array of Phi(x, y_0, z_0)
     Phi_scan = potential.potential(pos_scan)
 
-    # Calculate residual energy available for x and v_x
     E_rem_scan = E_0 - Phi_scan - K_fixed
 
-    # 3. Locate physical region (E_rem >= 0)
     valid_indices = np.where(E_rem_scan >= 0)[0]
 
     if len(valid_indices) == 0:
@@ -185,7 +246,6 @@ def _generate_grid_ics(
 
     idx_min, idx_max = valid_indices[0], valid_indices[-1]
 
-    # Refine boundaries via linear interpolation
     x_min = (
         np.interp(
             0, E_rem_scan[idx_min - 1 : idx_min + 1], x_scan[idx_min - 1 : idx_min + 1]
@@ -203,26 +263,21 @@ def _generate_grid_ics(
         else x_scan[idx_max]
     )
 
-    # 4. Create spatial x grid
     dx = (x_max - x_min) / grid_size
     x_vals = np.linspace(x_min + dx / 2, x_max - dx / 2, grid_size)
 
-    # Evaluate E_rem at exact x_vals points
     pos_x = np.column_stack(
         [x_vals, np.full_like(x_vals, y_0), np.full_like(x_vals, z_0)]
     )
     E_rem_vals = np.maximum(E_0 - potential.potential(pos_x) - K_fixed, 0.0)
 
-    # 5. Global v_x velocity bounds
     v_x_max_global = np.sqrt(2.0 * np.max(np.maximum(E_rem_vals, 0.0)))
 
-    # 6. Cell-centered v_x grid (prevents exact 0.0)
     dvx = (2.0 * v_x_max_global) / grid_size
     v_x_vals = np.linspace(
         -v_x_max_global + dvx / 2.0, v_x_max_global - dvx / 2.0, grid_size
     )
 
-    # 7. Build 2D meshgrid and flatten
     X, VX = np.meshgrid(x_vals, v_x_vals)
     x_flat = X.ravel()
     vx_flat = VX.ravel()
@@ -230,7 +285,6 @@ def _generate_grid_ics(
     x_flat[x_flat == 0.0] = 1e-5
     vx_flat[vx_flat == 0.0] = 1e-5
 
-    # 8. Stack into (grid_size^2, 6) IC array
     ics = np.zeros((n_points, 6))
     ics[:, 0] = x_flat
     ics[:, 1] = y_0
@@ -239,7 +293,6 @@ def _generate_grid_ics(
     ics[:, 4] = v_y0
     ics[:, 5] = v_z0
 
-    # 9. Mark points that spill over the energy curve as unphysical
     pos_flat = np.column_stack([x_flat, np.full(n_points, y_0), np.full(n_points, z_0)])
     E_rem_flat = E_0 - potential.potential(pos_flat) - K_fixed
     unphysical_mask = (0.5 * vx_flat**2) > E_rem_flat

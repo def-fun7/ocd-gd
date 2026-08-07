@@ -25,11 +25,28 @@ from ._grid_ics import _circular_velocity
 
 
 class ResonanceRadii(NamedTuple):
-    """Corotation and Lindblad radii for a potential at a given pattern
-    speed. Any radius with no root in the search range is None — most
+    """Corotation and Lindblad radii for a potential at a given pattern speed.
+
+    Any radius with no root in the search range is None — most
     commonly `corotation`/`inner_lindblad`/`outer_lindblad` are all None for
     a non-rotating potential (`omega == 0`), since there's nothing to be
     resonant with.
+
+    Parameters
+    ----------
+    corotation : float or None
+        The radius where omega_pattern equals Omega_circ(R).
+    inner_lindblad : float or None
+        The radius where omega_pattern = Omega_circ(R) - kappa(R)/m.
+    outer_lindblad : float or None
+        The radius where omega_pattern = Omega_circ(R) + kappa(R)/m.
+
+    Examples
+    --------
+    >>> from ocd_gd._resonance import ResonanceRadii
+    >>> radii = ResonanceRadii(corotation=5.0, inner_lindblad=3.0, outer_lindblad=7.0)
+    >>> radii.corotation
+    5.0
     """
 
     corotation: float | None
@@ -96,8 +113,8 @@ def compute_resonance_radii(
 
     Parameters
     ----------
-    potential : agama.Potential
-        Potential to evaluate.
+    potential : Any
+        Agama potential to evaluate.
     omega_pattern : float
         Pattern speed (e.g. the `omega` a GridChaosDetector was built with).
         If 0.0, no radius will be found — there's no resonance without
@@ -115,6 +132,16 @@ def compute_resonance_radii(
     ResonanceRadii
         `corotation`, `inner_lindblad`, `outer_lindblad` — each None if no
         root was found in `r_search_range`.
+
+    Examples
+    --------
+    >>> import agama
+    >>> from ocd_gd._resonance import compute_resonance_radii, ResonanceRadii
+    >>> agama.setUnits(mass=1, length=1, velocity=1)
+    >>> pot = agama.Potential(type="Spheroid", mass=1e11, scaleRadius=1.0)
+    >>> radii = compute_resonance_radii(pot, omega_pattern=15.0)
+    >>> isinstance(radii, ResonanceRadii)
+    True
     """
     r_vals = np.linspace(r_search_range[0], r_search_range[1], search_resolution)
     omega_circ = _angular_velocity_curve(potential, r_vals)
@@ -132,7 +159,22 @@ def compute_resonance_radii(
 
 
 class CorotationSetup(NamedTuple):
-    """Omega and R_0 for a GridChaosDetector centered on corotation."""
+    """Omega and R_0 for a GridChaosDetector centered on corotation.
+
+    Parameters
+    ----------
+    omega : float
+        Pattern speed at corotation.
+    R_corotation : float
+        The corotation radius.
+
+    Examples
+    --------
+    >>> from ocd_gd._resonance import CorotationSetup
+    >>> setup = CorotationSetup(omega=15.0, R_corotation=4.5)
+    >>> setup.R_corotation
+    4.5
+    """
 
     omega: float
     R_corotation: float
@@ -150,11 +192,29 @@ def omega_for_corotation_ratio(
     direct evaluation of the potential's circular velocity curve at that
     one radius, not an implicit equation -- no root-finding needed.
 
-    Returns both `omega` and `R_corotation` (rather than just `omega`)
-    since a typical use is feeding both straight into GridChaosDetector:
-    `GridChaosDetector(pot, R_0=R_corotation, omega=omega, ...)` centers
-    the grid's orbits, and the energy derived from them (when `E_0` is
-    left as None), directly on the resonance region being studied.
+    Parameters
+    ----------
+    potential : Any
+        Agama potential.
+    a_bar : float
+        Semi-major axis of the bar.
+    ratio : float, default 1.2
+        Ratio of corotation radius to bar semi-major axis.
+
+    Returns
+    -------
+    CorotationSetup
+        An object containing `omega` and `R_corotation`.
+
+    Examples
+    --------
+    >>> import agama
+    >>> from ocd_gd._resonance import omega_for_corotation_ratio, CorotationSetup
+    >>> agama.setUnits(mass=1, length=1, velocity=1)
+    >>> pot = agama.Potential(type="Spheroid", mass=1e11, scaleRadius=1.0)
+    >>> setup = omega_for_corotation_ratio(pot, a_bar=3.0, ratio=1.2)
+    >>> isinstance(setup, CorotationSetup)
+    True
     """
     R_CR = ratio * a_bar
     v_circ = _circular_velocity(potential, R_CR)

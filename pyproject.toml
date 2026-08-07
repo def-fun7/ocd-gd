@@ -58,12 +58,13 @@ agama = ["numpy", "setuptools", "wheel", "scipy", "matplotlib"]
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]
-testpaths = ["tests"]
+testpaths = ["tests", "src"]
 python_files = ["test_*.py"]
 addopts = [
     "-v",
     "--strict-markers",
     "-W ignore::DeprecationWarning",
+    "--doctest-modules"
 ]
 
 [tool.setuptools.packages.find]

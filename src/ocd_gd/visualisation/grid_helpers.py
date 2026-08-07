@@ -43,10 +43,6 @@ from .grid_constants import (
 )
 from .grid_themes import ChaosMapTheme, _hex_to_rgb01
 
-# =============================================================================
-# SHARED HELPERS — data to RGB
-# =============================================================================
-
 
 def _binary_grid_to_rgb(
     grid: npt.NDArray[np.float64],
@@ -61,14 +57,12 @@ def _binary_grid_to_rgb(
     rgb[grid == 1] = to_rgb(color_chaotic)
     return rgb
 
-
 def _composite_flag_rgb(
     sali: bool, gali: bool, lyapunov: bool, theme: ChaosMapTheme
 ) -> tuple[float, float, float]:
     """Compute the RGB color for a combination of (SALI, GALI, Lyapunov)
     flags, via the theme's light(regular)->dark(chaotic) vote ramp."""
     return theme.get_state_color(sali, gali, lyapunov)
-
 
 def _binary_grids_to_composite_rgb(
     sali_grid: npt.NDArray[np.float64],
@@ -91,12 +85,11 @@ def _binary_grids_to_composite_rgb(
     lo = np.array(_hex_to_rgb01(theme.composite_regular_color))
     hi = np.array(_hex_to_rgb01(theme.composite_chaotic_color))
 
-    t = (n_chaotic / 3.0)[..., np.newaxis]  # shape (*grid, 1) for broadcasting
-    rgb = lo + (hi - lo) * t  # shape (*grid, 3)
+    t = (n_chaotic / 3.0)[..., np.newaxis]
+    rgb = lo + (hi - lo) * t
 
     rgb[nan_mask] = to_rgb(theme.composite_masked_color)
     return rgb
-
 
 def _compute_zvc(
     E_rem_vals: npt.NDArray[np.float64] | None,
@@ -105,7 +98,6 @@ def _compute_zvc(
     if E_rem_vals is None:
         return None
     return np.sqrt(2.0 * np.maximum(E_rem_vals, 0.0))
-
 
 def _resonance_overlay_specs(
     resonance_radii, theme: ChaosMapTheme
@@ -122,7 +114,6 @@ def _resonance_overlay_specs(
             color = theme.resonance_colors.get(field_name, "#000000")
             specs.append((radius, label, color))
     return specs
-
 
 def _family_boundary_field(
     orbit_family_grid: npt.NDArray[np.str_] | None,
@@ -141,7 +132,6 @@ def _family_boundary_field(
     field[orbit_family_grid == _FAMILY_BOX_LABEL] = 0.0
     return field
 
-
 def _has_family_boundary(family_field: npt.NDArray[np.float64] | None) -> bool:
     """Whether a box/loop boundary actually exists to draw (both families
     must be present somewhere in the grid)."""
@@ -149,7 +139,6 @@ def _has_family_boundary(family_field: npt.NDArray[np.float64] | None) -> bool:
         return False
     finite = family_field[np.isfinite(family_field)]
     return finite.size > 0 and finite.min() != finite.max()
-
 
 def _compute_consensus_grid(
     sali_grid: npt.NDArray[np.float64],
@@ -169,13 +158,11 @@ def _compute_consensus_grid(
     g = np.nan_to_num(gali_grid, nan=0.0).astype(int)
     l = np.nan_to_num(lyapunov_grid, nan=0.0).astype(int)
 
-    # 3-bit integer mapping: 4*L + 2*S + 1*G
     code = (l << 2) | (s << 1) | g
 
     consensus = code.astype(np.float64)
     consensus[nan_mask] = np.nan
     return consensus
-
 
 def _get_consensus_colors(theme: ChaosMapTheme) -> list[tuple[float, float, float]]:
     """Return RGB colors for all 8 discrete states (0..7) derived from `theme`.
@@ -185,14 +172,12 @@ def _get_consensus_colors(theme: ChaosMapTheme) -> list[tuple[float, float, floa
     """
     colors = []
     for code in range(8):
-        l = bool(code & 4)  # Bit 2: Lyapunov
-        s = bool(code & 2)  # Bit 1: SALI
-        g = bool(code & 1)  # Bit 0: GALI
+        l = bool(code & 4)
+        s = bool(code & 2)
+        g = bool(code & 1)
 
-        # Note the exact argument order: sali, gali, lyapunov
         colors.append(_composite_flag_rgb(sali=s, gali=g, lyapunov=l, theme=theme))
     return colors
-
 
 def _consensus_grid_to_rgb(
     consensus_grid: npt.NDArray[np.float64],
@@ -207,7 +192,6 @@ def _consensus_grid_to_rgb(
     for val in range(8):
         rgb[consensus_grid == val] = colors[val]
     return rgb
-
 
 def _composite_legend_entries(
     theme: ChaosMapTheme,

@@ -30,9 +30,44 @@ import numpy.typing as npt
 
 @dataclass(frozen=True)
 class FamilyStats:
-    """Counts/fractions/indices for the box/loop split, mirroring
-    `MethodChaosStats`'s shape so the two can be reported side by side
-    (or combined, e.g. "regular AND loop" fractions)."""
+    """Counts/fractions/indices for the box/loop split.
+
+    Mirrors `MethodChaosStats`'s shape so the two can be reported side by side
+    (or combined, e.g. "regular AND loop" fractions).
+
+    Parameters
+    ----------
+    n_loop : int
+        Number of orbits classified as loop orbits.
+    n_box : int
+        Number of orbits classified as box orbits.
+    n_total : int
+        Total number of orbits.
+    loop_fraction : float
+        Fraction of orbits classified as loop orbits.
+    box_fraction : float
+        Fraction of orbits classified as box orbits.
+    loop_indices : ndarray
+        Indices of orbits classified as loop orbits.
+    box_indices : ndarray
+        Indices of orbits classified as box orbits.
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> from ocd_gd._family_check import FamilyStats
+    >>> stats = FamilyStats(
+    ...     n_loop=5,
+    ...     n_box=5,
+    ...     n_total=10,
+    ...     loop_fraction=0.5,
+    ...     box_fraction=0.5,
+    ...     loop_indices=np.array([0, 1, 2, 3, 4], dtype=np.intp),
+    ...     box_indices=np.array([5, 6, 7, 8, 9], dtype=np.intp),
+    ... )
+    >>> stats.loop_fraction
+    0.5
+    """
 
     n_loop: int
     n_box: int
@@ -66,26 +101,60 @@ def classify_box_loop(
     ndarray of str, shape (n_orbits,)
         `"loop"` if L_z(t) keeps one sign (within `rel_tol`) for the
         whole integration, `"box"` if it changes sign at least once.
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> from ocd_gd._family_check import classify_box_loop
+    >>> # Mock trajectories: shape (2, 10, 6)
+    >>> # Orbit 0: positive L_z throughout (x=1, y=0, vx=0, vy=1 => L_z=1)
+    >>> # Orbit 1: alternating L_z
+    >>> traj = np.zeros((2, 10, 6))
+    >>> traj[0, :, 0] = 1.0  # x
+    >>> traj[0, :, 4] = 1.0  # vy
+    >>> traj[1, 0, 0], traj[1, 0, 4] = 1.0, 1.0
+    >>> traj[1, 1, 0], traj[1, 1, 4] = 1.0, -1.0
+    >>> classify_box_loop(traj)
+    array(['loop', 'box'], dtype='<U4')
     """
     x, y = traj_arr[:, :, 0], traj_arr[:, :, 1]
     vx, vy = traj_arr[:, :, 3], traj_arr[:, :, 4]
-    Lz = x * vy - y * vx  # shape (n_orbits, n_times)
+    Lz = x * vy - y * vx
 
     scale = np.abs(Lz).max(axis=1, keepdims=True)
     scale = np.where(scale == 0.0, 1.0, scale)
     significant = np.abs(Lz) > rel_tol * scale
 
     sign = np.sign(Lz)
-    # A flip only counts between two consecutive samples that are both
-    # "significant" -- a pass through genuinely tiny L_z is ignored rather
-    # than counted as circulation reversing.
+
     flips = (sign[:, :-1] * sign[:, 1:] < 0) & significant[:, :-1] & significant[:, 1:]
     is_box = flips.any(axis=1)
     return np.where(is_box, "box", "loop")
 
 
 def summarize_family(family: npt.NDArray[np.str_]) -> FamilyStats:
-    """Build a `FamilyStats` block from a `classify_box_loop` result."""
+    """Build a `FamilyStats` block from a `classify_box_loop` result.
+
+    Parameters
+    ----------
+    family : ndarray of str
+        The classification result from `classify_box_loop` (each element
+        is either "loop" or "box").
+
+    Returns
+    -------
+    FamilyStats
+        The summarized statistics for the classification.
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> from ocd_gd._family_check import summarize_family
+    >>> family = np.array(["loop", "box", "loop", "loop"])
+    >>> stats = summarize_family(family)
+    >>> stats.n_loop
+    3
+    """
     is_loop = family == "loop"
     loop_indices = np.where(is_loop)[0]
     box_indices = np.where(~is_loop)[0]

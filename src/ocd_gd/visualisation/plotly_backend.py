@@ -20,10 +20,6 @@ from plotly.subplots import make_subplots
 
 from .utils import resolve_save_path
 
-# ==============================================================================
-# Simple SALI, GALI plots [Helpers]
-# ==============================================================================
-
 
 def _handle_save_show(
     fig: go.Figure,
@@ -38,7 +34,7 @@ def _handle_save_show(
         if save_path.endswith(".html"):
             fig.write_html(save_path)
         else:
-            # Requires `kaleido` package for static exports (png, pdf, svg)
+
             width = kwargs.get("width", 900)
             height = kwargs.get("height", 600)
             scale = kwargs.get("scale", 2)
@@ -46,10 +42,6 @@ def _handle_save_show(
     if show:
         fig.show()
 
-
-# ==============================================================================
-# 1. SALI vs Time
-# ==============================================================================
 def plot_sali_plotly(
     t: npt.NDArray[np.float64],
     sali: npt.NDArray[np.float64],
@@ -124,10 +116,6 @@ def plot_sali_plotly(
     _handle_save_show(fig, save_path=save_path, show=show, **kwargs)
     return fig
 
-
-# ==============================================================================
-# 2. GALI vs Time
-# ==============================================================================
 def plot_gali_plotly(
     t: npt.NDArray[np.float64],
     gali: npt.NDArray[np.float64],
@@ -169,10 +157,6 @@ def plot_gali_plotly(
     _handle_save_show(fig, save_path=save_path, show=show, **kwargs)
     return fig
 
-
-# ==============================================================================
-# 3. Orbit Trajectory Plot (Face-On & Edge-On Side-by-Side)
-# ==============================================================================
 def plot_trajectory_2d_plotly(
     pos: npt.NDArray[np.float64],
     save_path: str | None = None,
@@ -192,7 +176,6 @@ def plot_trajectory_2d_plotly(
     x, y, z = pos[:, 0], pos[:, 1], pos[:, 2]
     color = kwargs.get("color", "navy")
 
-    # Face-On
     fig.add_trace(
         go.Scatter(
             x=x, y=y, mode="lines", name="Face-On", line={"color": color, "width": 1}
@@ -200,7 +183,7 @@ def plot_trajectory_2d_plotly(
         row=1,
         col=1,
     )
-    # Edge-On
+
     fig.add_trace(
         go.Scatter(
             x=x, y=z, mode="lines", name="Edge-On", line={"color": color, "width": 1}
@@ -226,10 +209,6 @@ def plot_trajectory_2d_plotly(
     _handle_save_show(fig, save_path=save_path, show=show, **kwargs)
     return fig
 
-
-# ==============================================================================
-# 4. 3D Orbit Plot
-# ==============================================================================
 def plot_trajectory_3d_plotly(
     pos: npt.NDArray[np.float64],
     save_path: str | None = None,
@@ -291,10 +270,6 @@ def plot_trajectory_3d_plotly(
     _handle_save_show(fig, save_path=save_path, show=show, **kwargs)
     return fig
 
-
-# ==============================================================================
-# 5. Phase Space Plot (Position vs Velocity)
-# ==============================================================================
 def plot_phase_space_plotly(
     pos: npt.NDArray[np.float64],
     vel: npt.NDArray[np.float64],
@@ -340,10 +315,6 @@ def plot_phase_space_plotly(
     _handle_save_show(fig, save_path=save_path, show=show, **kwargs)
     return fig
 
-
-# ==============================================================================
-# 6. Fractional Energy Drift vs Time
-# ==============================================================================
 def plot_energy_drift_plotly(
     t: npt.NDArray[np.float64],
     energy: npt.NDArray[np.float64],
@@ -383,10 +354,6 @@ def plot_energy_drift_plotly(
     _handle_save_show(fig, save_path=save_path, show=show, **kwargs)
     return fig
 
-
-# ==============================================================================
-# 7. Color-Coded Trajectory Plot (Colored by Time or SALI)
-# ==============================================================================
 def plot_colored_trajectory_2d_plotly(
     pos: npt.NDArray[np.float64],
     c_values: npt.NDArray[np.float64],

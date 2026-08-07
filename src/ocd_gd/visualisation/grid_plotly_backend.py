@@ -45,10 +45,6 @@ from .grid_helpers import (
 )
 from .grid_themes import DEFAULT_THEME, ChaosMapTheme, get_theme
 
-# =============================================================================
-# Chaos Maps: SHARED HELPERS
-# =============================================================================
-
 
 def _save_plotly_figure(fig: go.Figure, save_path: str) -> None:
     """Save a plotly figure as interactive HTML (`.html`) or a static image
@@ -58,14 +54,12 @@ def _save_plotly_figure(fig: go.Figure, save_path: str) -> None:
     else:
         fig.write_image(save_path)
 
-
 def _finalize_plotly_figure(fig: go.Figure, save_path: str | None, show: bool) -> None:
     """Shared save/show handling for the plotly chaos-map plots."""
     if save_path:
         _save_plotly_figure(fig, save_path)
     if show:
         fig.show()
-
 
 def _add_zvc_plotly(
     fig: go.Figure,
@@ -100,7 +94,6 @@ def _add_zvc_plotly(
         **subplot_kwargs,
     )
 
-
 def _add_resonance_plotly(
     fig: go.Figure,
     resonance_specs: list[tuple[float, str, str]],
@@ -122,7 +115,6 @@ def _add_resonance_plotly(
             line={"color": color, "dash": linestyle, "width": linewidth},
             **subplot_kwargs,
         )
-
 
 def _add_family_boundary_plotly(
     fig: go.Figure,
@@ -161,7 +153,6 @@ def _add_family_boundary_plotly(
     )
     return True
 
-
 def _legend_proxy_traces(
     labels_and_colors: Sequence[tuple[str, str | tuple[float, float, float]]],
 ) -> list:
@@ -181,7 +172,6 @@ def _legend_proxy_traces(
         )
         for label, color in labels_and_colors
     ]
-
 
 def _line_legend_proxy_traces(
     labels_and_colors: Sequence[tuple[str, str]],
@@ -203,12 +193,6 @@ def _line_legend_proxy_traces(
         )
         for label, color in labels_and_colors
     ]
-
-
-# =============================================================================
-# A. CHAOS MAPS: Side By Side
-# =============================================================================
-
 
 def plot_chaos_maps_plotly(
     sali_grid: npt.NDArray[np.float64],
@@ -299,12 +283,6 @@ def plot_chaos_maps_plotly(
     _finalize_plotly_figure(fig, save_path, show)
     return fig
 
-
-# =============================================================================
-# B. CHAOS MAP: Composite
-# =============================================================================
-
-
 def plot_composite_chaos_map_plotly(
     sali_grid: npt.NDArray[np.float64],
     gali_grid: npt.NDArray[np.float64],
@@ -367,12 +345,6 @@ def plot_composite_chaos_map_plotly(
     _finalize_plotly_figure(fig, save_path, show)
     return fig
 
-
-# =============================================================================
-# C. CHAOS MAP: Consensus
-# =============================================================================
-
-
 def plot_consensus_chaos_map_plotly(
     sali_grid: npt.NDArray[np.float64],
     gali_grid: npt.NDArray[np.float64],
@@ -410,7 +382,6 @@ def plot_consensus_chaos_map_plotly(
         fig, x_vals, v_x_vals, family_field, th.family_boundary_color
     )
 
-    # Consensus level color swatches in legend
     colors = _get_consensus_colors(th)
     consensus_legend_entries = [(CONSENSUS_LABELS[i], colors[i]) for i in range(4)]
     consensus_legend_entries.append(

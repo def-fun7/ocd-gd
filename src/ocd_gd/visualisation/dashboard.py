@@ -44,7 +44,6 @@ def plot_dashboard_mpl(
     t = data["t"]
     pos = data["pos"]
 
-    # Panel 1: 3D Trajectory
     plot_trajectory_3d_mpl(
         pos,
         fig=fig,
@@ -54,7 +53,6 @@ def plot_dashboard_mpl(
         title="3D Orbit Trajectory",
     )
 
-    # Panel 2: Face-On (X-Y) Trajectory
     ax_2d_face.plot(pos[:, 0], pos[:, 1], color="navy", lw=0.8, alpha=0.7)
     ax_2d_face.set_xlabel("X")
     ax_2d_face.set_ylabel("Y")
@@ -62,7 +60,6 @@ def plot_dashboard_mpl(
     ax_2d_face.set_aspect("equal", adjustable="datalim")
     ax_2d_face.grid(True, linestyle=":", alpha=0.5)
 
-    # Panel 3: SALI vs Time (Log scale + Window Box + Lyapunov Box)
     plot_sali_mpl(
         t=t,
         sali=data["sali"],
@@ -76,7 +73,6 @@ def plot_dashboard_mpl(
         show=False,
     )
 
-    # Panel 4: GALI vs Time (Log scale + Window Box + Lyapunov Box)
     plot_gali_mpl(
         t=t,
         gali=data["gali"],
@@ -107,7 +103,6 @@ def plot_dashboard_mpl(
     )
     return fig, fig.axes
 
-
 def plot_dashboard_plotly(
     data: dict[str, npt.NDArray[np.float64]],
     threshold: float = 1e-8,
@@ -118,8 +113,7 @@ def plot_dashboard_plotly(
     """
     Generates interactive Plotly plots as sequential views or combined views.
     """
-    # Note: Plotly multi-panel dashboards mixing 3D scenes with 2D Cartesian axes
-    # are cleanest when triggered or saved per figure panel.
+
     fig_3d = plot_trajectory_3d_plotly(data["pos"], show=False)
     fig_2d = plot_trajectory_2d_plotly(data["pos"], show=False)
     fig_sali = plot_sali_plotly(

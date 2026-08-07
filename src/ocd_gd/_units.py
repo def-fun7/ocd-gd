@@ -25,12 +25,6 @@ from typing import Any
 import agama
 import astropy.units as u
 
-# The most recently constructed AgamaUnits (via `from_setup`). None until
-# `from_setup` has been called at least once in this process -- e.g.
-# because a script called `agama.setUnits(...)` directly instead. Used as
-# the default by OrbitChaosDetector/GridChaosDetector when no `units=` is
-# passed explicitly, so existing code that never touches this module keeps
-# working (metadata columns just stay bare floats, as before).
 _CURRENT_UNITS: AgamaUnits | None = None
 
 
@@ -44,6 +38,23 @@ class AgamaUnits:
     that's also what calls `agama.setUnits(...)`, so "what Agama thinks
     its units are" and "what this class thinks they are" can't drift
     apart.
+
+    Parameters
+    ----------
+    length : u.Quantity
+        The length unit (typically kpc).
+    velocity : u.Quantity
+        The velocity unit (typically km/s).
+    mass : u.Quantity
+        The mass unit (typically Msun).
+
+    Examples
+    --------
+    >>> import astropy.units as u
+    >>> from ocd_gd._units import AgamaUnits
+    >>> units = AgamaUnits(length=1.0 * u.kpc, velocity=1.0 * (u.km / u.s), mass=1.0 * u.Msun)
+    >>> isinstance(units.length, u.Quantity)
+    True
     """
 
     length: u.Quantity
@@ -61,6 +72,27 @@ class AgamaUnits:
         Arguments have the same meaning as `agama.setUnits`: how many
         kpc / 1e10 Msun / (km/s) one Agama unit equals. The (1, 1, 1)
         default matches every script in this repo.
+
+        Parameters
+        ----------
+        length : float, default 1.0
+            Length unit scale in kpc.
+        mass : float, default 1.0
+            Mass unit scale in 1e10 Msun.
+        velocity : float, default 1.0
+            Velocity unit scale in km/s.
+
+        Returns
+        -------
+        AgamaUnits
+            The constructed unit system.
+
+        Examples
+        --------
+        >>> from ocd_gd._units import AgamaUnits
+        >>> units = AgamaUnits.from_setup(length=1.0, mass=1.0, velocity=1.0)
+        >>> isinstance(units, AgamaUnits)
+        True
         """
         agama.setUnits(length=length, mass=mass, velocity=velocity)
         instance = cls(
@@ -75,13 +107,23 @@ class AgamaUnits:
     @classmethod
     def current(cls) -> AgamaUnits | None:
         """The most recently constructed `AgamaUnits`, or None if
-        `from_setup` hasn't been called yet in this process."""
+        `from_setup` hasn't been called yet in this process.
+
+        Returns
+        -------
+        AgamaUnits or None
+            The current active unit system, if registered.
+
+        Examples
+        --------
+        >>> from ocd_gd._units import AgamaUnits
+        >>> _ = AgamaUnits.from_setup(length=1.0, mass=1.0, velocity=1.0)
+        >>> units = AgamaUnits.current()
+        >>> units is not None
+        True
+        """
         return _CURRENT_UNITS
 
-    # ------------------------------------------------------------------
-    # Derived units, built from the three base ones above -- never
-    # hardcoded, so changing `from_setup`'s arguments updates all of them.
-    # ------------------------------------------------------------------
     @property
     def time(self) -> u.Quantity:
         return (self.length / self.velocity).to(u.Gyr)
@@ -109,15 +151,35 @@ class AgamaUnits:
     def density(self) -> u.Quantity:
         return self.mass / self.length**3
 
-    # ------------------------------------------------------------------
-    # Conversion
-    # ------------------------------------------------------------------
     def unit_for(self, kind: str | None) -> u.Quantity | None:
         """Return the base-unit Quantity for a named `kind` (e.g.
         "length", "energy", "time", "frequency", "angular_momentum",
         "acceleration", "density", "velocity", "mass"), or None for
         `kind=None`/`"dimensionless"` -- e.g. threshold values, fractions,
-        grid_size: plain numbers with no physical unit."""
+        grid_size: plain numbers with no physical unit.
+
+        Parameters
+        ----------
+        kind : str or None
+            The name of the physical quantity kind.
+
+        Returns
+        -------
+        u.Quantity or None
+            The matching unit as an astropy Quantity.
+
+        Raises
+        ------
+        ValueError
+            If `kind` is unknown.
+
+        Examples
+        --------
+        >>> from ocd_gd._units import AgamaUnits
+        >>> units = AgamaUnits.from_setup(length=1.0, mass=1.0, velocity=1.0)
+        >>> units.unit_for("length")
+        <Quantity 1. kpc>
+        """
         if kind is None or kind == "dimensionless":
             return None
         if not hasattr(self, kind):
@@ -126,7 +188,27 @@ class AgamaUnits:
 
     def to_quantity(self, value: Any, kind: str | None) -> Any:
         """Convert a raw Agama-unit value (float or array) to a physical
-        `Quantity`. `kind=None` returns `value` unchanged."""
+        `Quantity`. `kind=None` returns `value` unchanged.
+
+        Parameters
+        ----------
+        value : Any
+            The value or array in Agama units.
+        kind : str or None
+            The name of the physical quantity kind.
+
+        Returns
+        -------
+        Any
+            The converted astropy Quantity, or the raw value if `kind` is None.
+
+        Examples
+        --------
+        >>> from ocd_gd._units import AgamaUnits
+        >>> units = AgamaUnits.from_setup()
+        >>> units.to_quantity(8.0, "length")
+        <Quantity 8. kpc>
+        """
         unit = self.unit_for(kind)
         return value if unit is None else value * unit
 
@@ -134,7 +216,29 @@ class AgamaUnits:
         """Convert a physical `Quantity` back to a raw Agama-unit float
         (or array) -- e.g. before passing a user-supplied `R_0` given in
         real kpc into code that calls Agama's C API directly. `kind=None`
-        returns `quantity` unchanged (assumed already raw)."""
+        returns `quantity` unchanged (assumed already raw).
+
+        Parameters
+        ----------
+        quantity : Any
+            The astropy Quantity to convert.
+        kind : str or None
+            The name of the physical quantity kind.
+
+        Returns
+        -------
+        Any
+            The raw numeric value.
+
+        Examples
+        --------
+        >>> import astropy.units as u
+        >>> from ocd_gd._units import AgamaUnits
+        >>> units = AgamaUnits.from_setup()
+        >>> q = 8.0 * u.kpc
+        >>> units.to_raw(q, "length").item()
+        8.0
+        """
         unit = self.unit_for(kind)
         if unit is None:
             return quantity
@@ -151,6 +255,30 @@ def tag_unit(
     because `AgamaUnits.from_setup(...)` was never called in this process,
     so the value stays a bare float (or `name` isn't in `lookup`, meaning
     it's dimensionless by convention -- a threshold, count, fraction).
+
+    Parameters
+    ----------
+    units : AgamaUnits or None
+        The active units converter system.
+    name : str
+        The parameter or column name to look up.
+    value : Any
+        The raw numerical value or array.
+    lookup : dict of str to str or None
+        Dictionary mapping names to unit kinds.
+
+    Returns
+    -------
+    Any
+        The unit-tagged value (astropy Quantity) or raw value.
+
+    Examples
+    --------
+    >>> from ocd_gd._units import AgamaUnits, tag_unit
+    >>> units = AgamaUnits.from_setup()
+    >>> lookup = {"R_0": "length"}
+    >>> tag_unit(units, "R_0", 8.0, lookup)
+    <Quantity 8. kpc>
     """
     if units is None:
         return value

@@ -45,10 +45,6 @@ from .visualisation import (
 class _OrbitPlottingMixin:
     """All `plot_*` methods and the small helpers that only exist to serve them."""
 
-    # =========================================================================
-    # SHARED PLOTTING HELPERS
-    # =========================================================================
-
     def _dispatch_plot(
         self,
         mpl_fn: Callable[..., Any],
@@ -63,6 +59,24 @@ class _OrbitPlottingMixin:
         would otherwise be repeated in every plotting method. `mpl_fn` and
         `plotly_fn` are called with identical positional/keyword arguments, so
         this only applies where both implementations share a signature.
+
+        Parameters
+        ----------
+        mpl_fn : Callable
+            The Matplotlib rendering function.
+        plotly_fn : Callable
+            The Plotly rendering function.
+        backend : str or None
+            The requested backend name.
+        *args : Any
+            Positional arguments passed to the rendering function.
+        **kwargs : Any
+            Keyword arguments passed to the rendering function.
+
+        Returns
+        -------
+        Any
+            The generated figure or axes.
         """
         engine = self._resolve_backend(backend)
         plot_fn = mpl_fn if engine == "matplotlib" else plotly_fn
@@ -88,10 +102,6 @@ class _OrbitPlottingMixin:
         det_time = float(time_val.flat[0]) if np.ndim(time_val) > 0 else float(time_val)
         return is_chaotic, det_time
 
-    # =========================================================================
-    # SINGLE-ORBIT PLOTS
-    # =========================================================================
-
     def plot_sali(
         self,
         orbit_idx: int = 0,
@@ -116,6 +126,18 @@ class _OrbitPlottingMixin:
             Path to export figure.
         show : bool, default True
             Display figure immediately.
+        **kwargs
+            Additional arguments passed to the visual backend.
+
+        Returns
+        -------
+        tuple of (plt.Figure, plt.Axes) or go.Figure
+            The generated figure and axes.
+
+        Examples
+        --------
+        >>> # Assuming `detector` is an integrated OrbitChaosDetector:
+        >>> # fig = detector.plot_sali(orbit_idx=0, backend="matplotlib", show=False)
         """
         self._validate_index(orbit_idx)
 
@@ -124,7 +146,6 @@ class _OrbitPlottingMixin:
             chaos_report.sali_check, chaos_report.sali_time
         )
 
-        # Approximate sliding window duration in time units
         window_time = self.sali_window_size * self._get_dt()
 
         sali_data = np.squeeze(self.sali_array[orbit_idx])
@@ -176,6 +197,18 @@ class _OrbitPlottingMixin:
             Path to export figure.
         show : bool, default True
             Display figure immediately.
+        **kwargs
+            Additional arguments passed to the visual backend.
+
+        Returns
+        -------
+        tuple of (plt.Figure, plt.Axes) or go.Figure
+            The generated GALI plot.
+
+        Examples
+        --------
+        >>> # Assuming `detector` is an integrated OrbitChaosDetector:
+        >>> # fig = detector.plot_gali(orbit_idx=0, backend="plotly", show=False)
         """
         self._validate_index(orbit_idx)
 
@@ -218,7 +251,31 @@ class _OrbitPlottingMixin:
         show: bool = True,
         **kwargs,
     ) -> tuple[plt.Figure, npt.NDArray[np.float64]] | go.Figure:
-        """Plot Face-On (X-Y) and Edge-On (X-Z) 2D orbit projections."""
+        """Plot Face-On (X-Y) and Edge-On (X-Z) 2D orbit projections.
+
+        Parameters
+        ----------
+        orbit_idx : int, default 0
+            Target orbit index.
+        backend : str, optional
+            'matplotlib' or 'plotly' (overrides default).
+        save_path : str, optional
+            Path to export figure.
+        show : bool, default True
+            Display figure immediately.
+        **kwargs
+            Additional arguments passed to the visual backend.
+
+        Returns
+        -------
+        tuple of (plt.Figure, ndarray of plt.Axes) or go.Figure
+            The generated 2D projections.
+
+        Examples
+        --------
+        >>> # Assuming `detector` is an integrated OrbitChaosDetector:
+        >>> # fig = detector.plot_trajectory_2d(orbit_idx=0, show=False)
+        """
         self._validate_index(orbit_idx)
         pos = self.trajectories[orbit_idx][:, :3]
 
@@ -240,7 +297,31 @@ class _OrbitPlottingMixin:
         show: bool = True,
         **kwargs,
     ) -> tuple[plt.Figure, plt.Axes] | go.Figure:
-        """Plot 3D spatial orbit path."""
+        """Plot 3D spatial orbit path.
+
+        Parameters
+        ----------
+        orbit_idx : int, default 0
+            Target orbit index.
+        backend : str, optional
+            'matplotlib' or 'plotly' (overrides default).
+        save_path : str, optional
+            Path to export figure.
+        show : bool, default True
+            Display figure immediately.
+        **kwargs
+            Additional arguments passed to the visual backend.
+
+        Returns
+        -------
+        tuple of (plt.Figure, plt.Axes) or go.Figure
+            The generated 3D figure.
+
+        Examples
+        --------
+        >>> # Assuming `detector` is an integrated OrbitChaosDetector:
+        >>> # fig = detector.plot_trajectory_3d(orbit_idx=0, show=False)
+        """
         self._validate_index(orbit_idx)
         pos = self.trajectories[orbit_idx][:, :3]
 
@@ -263,7 +344,33 @@ class _OrbitPlottingMixin:
         show: bool = True,
         **kwargs,
     ) -> tuple[plt.Figure, plt.Axes] | go.Figure:
-        """Plot 2D phase space scatter projection (Position vs Velocity)."""
+        """Plot 2D phase space scatter projection (Position vs Velocity).
+
+        Parameters
+        ----------
+        orbit_idx : int, default 0
+            Target orbit index.
+        plane : str, default 'x'
+            The coordinate axis plane to project: 'x' (x vs vx), 'y' (y vs vy), or 'z' (z vs vz).
+        backend : str, optional
+            'matplotlib' or 'plotly' (overrides default).
+        save_path : str, optional
+            Path to export figure.
+        show : bool, default True
+            Display figure immediately.
+        **kwargs
+            Additional arguments passed to the visual backend.
+
+        Returns
+        -------
+        tuple of (plt.Figure, plt.Axes) or go.Figure
+            The generated phase space projection.
+
+        Examples
+        --------
+        >>> # Assuming `detector` is an integrated OrbitChaosDetector:
+        >>> # fig = detector.plot_phase_space(orbit_idx=0, plane="x", show=False)
+        """
         self._validate_index(orbit_idx)
         pos = self.trajectories[orbit_idx][:, :3]
         vel = self.trajectories[orbit_idx][:, 3:6]
@@ -289,7 +396,33 @@ class _OrbitPlottingMixin:
         show: bool = True,
         **kwargs,
     ) -> tuple[plt.Figure, plt.Axes] | go.Figure:
-        """Plot 2D Face-On trajectory colored dynamically by time or SALI."""
+        """Plot 2D Face-On trajectory colored dynamically by time or SALI.
+
+        Parameters
+        ----------
+        orbit_idx : int, default 0
+            Target orbit index.
+        color_by : str, default 'time'
+            Variable to color the trajectory line by: 'time' or 'sali'.
+        backend : str, optional
+            'matplotlib' or 'plotly' (overrides default).
+        save_path : str, optional
+            Path to export figure.
+        show : bool, default True
+            Display figure immediately.
+        **kwargs
+            Additional arguments passed to the visual backend.
+
+        Returns
+        -------
+        tuple of (plt.Figure, plt.Axes) or go.Figure
+            The generated colored trajectory.
+
+        Examples
+        --------
+        >>> # Assuming `detector` is an integrated OrbitChaosDetector:
+        >>> # fig = detector.plot_colored_trajectory(orbit_idx=0, color_by="sali", show=False)
+        """
         self._validate_index(orbit_idx)
         pos = self.trajectories[orbit_idx][:, :3]
 
@@ -321,10 +454,33 @@ class _OrbitPlottingMixin:
         show: bool = True,
         **kwargs,
     ) -> tuple[plt.Figure, npt.NDArray[np.float64]] | None:
-        """Plot a multi-panel diagnostic dashboard summarizing trajectory and chaos metrics."""
+        """Plot a multi-panel diagnostic dashboard summarizing trajectory and chaos metrics.
+
+        Parameters
+        ----------
+        orbit_idx : int, default 0
+            Target orbit index.
+        backend : str, optional
+            'matplotlib' or 'plotly' (overrides default).
+        save_path : str, optional
+            Path to export figure.
+        show : bool, default True
+            Display figure immediately.
+        **kwargs
+            Additional arguments passed to the visual backend.
+
+        Returns
+        -------
+        tuple of (plt.Figure, ndarray of plt.Axes) or None
+            The dashboard figure and axes.
+
+        Examples
+        --------
+        >>> # Assuming `detector` is an integrated OrbitChaosDetector:
+        >>> # fig = detector.plot_dashboard(orbit_idx=0, show=False)
+        """
         self._validate_index(orbit_idx)
 
-        # 1. Extract Chaos Detection Metadata
         chaos_report = self.detect_chaos(orbit_idx=orbit_idx, check_only=True)
         sali_is_chaotic, sali_det_time = self._detection_info(
             chaos_report.sali_check, chaos_report.sali_time
@@ -334,7 +490,6 @@ class _OrbitPlottingMixin:
         )
         dt = self._get_dt()
 
-        # 2. Extract Data Arrays
         sali = np.squeeze(self.sali_array[orbit_idx])
         if sali.ndim > 1:
             sali = np.min(sali, axis=0)
@@ -352,7 +507,7 @@ class _OrbitPlottingMixin:
             "sali": sali,
             "gali": np.squeeze(self.gali_array[orbit_idx]),
             "lyapunov": lyap_data,
-            # Detection parameters
+
             "sali_is_chaotic": sali_is_chaotic,
             "sali_det_time": sali_det_time if np.isfinite(sali_det_time) else None,
             "sali_window_time": self.sali_window_size * dt,
@@ -373,10 +528,6 @@ class _OrbitPlottingMixin:
             **kwargs,
         )
 
-    # =========================================================================
-    # BATCH PLOTS (matplotlib only — no plotly batch implementation exists)
-    # =========================================================================
-
     def plot_sali_batch(
         self,
         orbit_indices: list[int | None] | None = None,
@@ -395,6 +546,20 @@ class _OrbitPlottingMixin:
             Maximum subplots rendered per figure page.
         save_path : str, optional
             Path to export image files. Multi-page figures append '_page1', '_page2'.
+        show : bool, default True
+            Display figures immediately.
+        **kwargs
+            Additional arguments passed to the visual backend.
+
+        Returns
+        -------
+        list of plt.Figure
+            The list of generated figure pages.
+
+        Examples
+        --------
+        >>> # Assuming `detector` is an integrated OrbitChaosDetector:
+        >>> # figs = detector.plot_sali_batch(orbit_indices=[0, 1, 2], show=False)
         """
         chaos_report = self.detect_chaos(check_only=True)
         dt = self._get_dt()
@@ -423,7 +588,33 @@ class _OrbitPlottingMixin:
         show: bool = True,
         **kwargs,
     ) -> list[plt.Figure]:
-        """Plot a grid of GALI vs Time plots for multiple orbits (paginated)."""
+        """Plot a grid of GALI vs Time plots for multiple orbits (paginated).
+
+        Parameters
+        ----------
+        orbit_indices : list of int, optional
+            Selected orbit indices (e.g., [0, 1, 4, 7]). Defaults to all integrated orbits.
+        k_orders : list of int, optional
+            GALI order indices to plot.
+        max_per_page : int, default 10
+            Maximum subplots rendered per figure page.
+        save_path : str, optional
+            Path to export image files.
+        show : bool, default True
+            Display figures immediately.
+        **kwargs
+            Additional arguments passed to the visual backend.
+
+        Returns
+        -------
+        list of plt.Figure
+            The list of generated figure pages.
+
+        Examples
+        --------
+        >>> # Assuming `detector` is an integrated OrbitChaosDetector:
+        >>> # figs = detector.plot_gali_batch(orbit_indices=[0, 1], show=False)
+        """
         chaos_report = self.detect_chaos(check_only=True)
         dt = self._get_dt()
 
@@ -458,10 +649,26 @@ class _OrbitPlottingMixin:
         ----------
         orbit_indices : list of int, optional
             Selected orbit indices. Defaults to all integrated orbits.
+        k_orders : list of int, optional
+            GALI order indices to plot.
         max_orbits_per_page : int, default 5
             Number of orbits per figure page (5 orbits = 10 subplots per page).
         save_path : str, optional
             Output file path for saving figures.
+        show : bool, default True
+            Display figures immediately.
+        **kwargs
+            Additional arguments passed to the visual backend.
+
+        Returns
+        -------
+        list of plt.Figure
+            The list of generated figure pages.
+
+        Examples
+        --------
+        >>> # Assuming `detector` is an integrated OrbitChaosDetector:
+        >>> # figs = detector.plot_sali_gali_batch(orbit_indices=[0], show=False)
         """
         chaos_report = self.detect_chaos(check_only=True)
         dt = self._get_dt()

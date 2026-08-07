@@ -21,14 +21,14 @@ DEFAULT_THEME = "magma"
 
 
 _STATE_ORDER: list[tuple[bool, bool, bool]] = [
-    (False, False, False),  # 0 votes
+    (False, False, False),
     (True, False, False),
     (False, True, False),
-    (False, False, True),  # 1 vote
+    (False, False, True),
     (True, True, False),
     (True, False, True),
-    (False, True, True),  # 2 votes
-    (True, True, True),  # 3 votes
+    (False, True, True),
+    (True, True, True),
 ]
 _STATE_RANK: dict[tuple[bool, bool, bool], int] = {
     s: i for i, s in enumerate(_STATE_ORDER)
@@ -39,12 +39,10 @@ def _hex_to_rgb01(hex_color: str) -> tuple[float, float, float]:
     h = hex_color.lstrip("#")
     return tuple(int(h[i : i + 2], 16) / 255.0 for i in (0, 2, 4))
 
-
 def _lerp_rgb(
     lo: tuple[float, float, float], hi: tuple[float, float, float], t: float
 ) -> tuple[float, float, float]:
     return tuple(lo[i] + (hi[i] - lo[i]) * t for i in range(3))
-
 
 @dataclass(frozen=True)
 class ChaosMapTheme:
@@ -86,7 +84,6 @@ class ChaosMapTheme:
         hi = _hex_to_rgb01(self.composite_chaotic_color)
         return _lerp_rgb(lo, hi, t)
 
-    # --- deprecated channel-based fields, kept for backward compatibility ---
     @property
     def composite_base_rgb(self) -> tuple[float, float, float]:
         return _hex_to_rgb01(self.composite_regular_color)
@@ -103,17 +100,12 @@ class ChaosMapTheme:
     def composite_on_b(self) -> float:
         return _hex_to_rgb01(self.composite_chaotic_color)[2]
 
-
 THEMES: dict[str, ChaosMapTheme] = {}
 
 
 def _register(theme: ChaosMapTheme) -> None:
     THEMES[theme.name] = theme
 
-
-# =============================================================================
-# MAGMA (default) — pale gold (regular) -> deep violet (chaotic)
-# =============================================================================
 _register(
     ChaosMapTheme(
         name="magma",
@@ -134,9 +126,7 @@ _register(
     )
 )
 
-# =============================================================================
-# VIRIDIS — pale yellow-green (regular) -> deep purple (chaotic)
-# =============================================================================
+
 _register(
     ChaosMapTheme(
         name="viridis",
@@ -157,9 +147,7 @@ _register(
     )
 )
 
-# =============================================================================
-# OCEAN — light teal (regular) -> deep navy (chaotic)
-# =============================================================================
+
 _register(
     ChaosMapTheme(
         name="ocean",
@@ -180,9 +168,7 @@ _register(
     )
 )
 
-# =============================================================================
-# SUNSET — light peach (regular) -> deep maroon (chaotic)
-# =============================================================================
+
 _register(
     ChaosMapTheme(
         name="sunset",
@@ -206,7 +192,6 @@ _register(
 
 def list_themes() -> list[str]:
     return list(THEMES.keys())
-
 
 def get_theme(theme: str | ChaosMapTheme) -> ChaosMapTheme:
     if isinstance(theme, ChaosMapTheme):

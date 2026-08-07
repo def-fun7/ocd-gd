@@ -45,10 +45,6 @@ from .grid_helpers import (
 )
 from .grid_themes import DEFAULT_THEME, ChaosMapTheme, get_theme
 
-# =============================================================================
-# Chaos Maps: SHARED HELPERS
-# =============================================================================
-
 
 def _finalize_mpl_figure(fig: plt.Figure, save_path: str | None, show: bool) -> None:
     """Shared save/show/close handling for the matplotlib chaos-map plots.
@@ -63,7 +59,6 @@ def _finalize_mpl_figure(fig: plt.Figure, save_path: str | None, show: bool) -> 
         plt.show()
     else:
         plt.close(fig)
-
 
 def _add_zvc_mpl(
     ax: plt.Axes,
@@ -82,7 +77,6 @@ def _add_zvc_mpl(
         linewidth=ZVC_LINEWIDTH,
     )
 
-
 def _add_resonance_mpl(
     ax: plt.Axes,
     resonance_specs: list[tuple[float, str, str]],
@@ -93,7 +87,6 @@ def _add_resonance_mpl(
     for radius, _, color in resonance_specs:
         ax.axvline(radius, color=color, linestyle=linestyle, linewidth=linewidth)
         ax.axvline(-radius, color=color, linestyle=linestyle, linewidth=linewidth)
-
 
 def _add_family_boundary_mpl(
     ax: plt.Axes,
@@ -117,12 +110,10 @@ def _add_family_boundary_mpl(
     )
     return True
 
-
 def _zvc_legend_handle(color: str) -> Line2D:
     return Line2D(
         [0], [0], color=color, lw=ZVC_LINEWIDTH, ls=ZVC_LINESTYLE_MPL, label=ZVC_LABEL
     )
-
 
 def _family_boundary_legend_handle(color: str) -> Line2D:
     return Line2D(
@@ -134,7 +125,6 @@ def _family_boundary_legend_handle(color: str) -> Line2D:
         label=FAMILY_BOUNDARY_LABEL,
     )
 
-
 def _resonance_legend_handles(
     resonance_specs: list[tuple[float, str, str]],
     *,
@@ -145,7 +135,6 @@ def _resonance_legend_handles(
         Line2D([0], [0], color=color, lw=linewidth, ls=linestyle, label=label)
         for _, label, color in resonance_specs
     ]
-
 
 def _build_side_by_side_legend_elements(
     theme: ChaosMapTheme,
@@ -177,9 +166,6 @@ def _build_side_by_side_legend_elements(
     elements.extend(_resonance_legend_handles(resonance_specs))
     return elements
 
-
-
-
 def _build_composite_legend_elements(
     theme: ChaosMapTheme,
     has_zvc: bool,
@@ -203,10 +189,6 @@ def _build_composite_legend_elements(
     )
     return elements
 
-
-# ==============================================================================
-# A. Chaos Maps: Side By Side
-# ==============================================================================
 def plot_chaos_maps_mpl(
     sali_grid: npt.NDArray[np.float64],
     gali_grid: npt.NDArray[np.float64],
@@ -315,12 +297,6 @@ def plot_chaos_maps_mpl(
     _finalize_mpl_figure(fig, save_path, show)
     return fig, axes
 
-
-# ==============================================================================
-# B. Chaos Maps: Composite
-# ==============================================================================
-
-
 def plot_composite_chaos_map_mpl(
     sali_grid: npt.NDArray[np.float64],
     gali_grid: npt.NDArray[np.float64],
@@ -415,12 +391,6 @@ def plot_composite_chaos_map_mpl(
     _finalize_mpl_figure(fig, save_path, show)
     return fig, ax
 
-
-# ==============================================================================
-# C. Chaos Maps: Consenses
-# ==============================================================================
-
-
 def plot_consensus_chaos_map_mpl(
     sali_grid: npt.NDArray[np.float64],
     gali_grid: npt.NDArray[np.float64],
@@ -469,7 +439,6 @@ def plot_consensus_chaos_map_mpl(
         interpolation="nearest",
     )
 
-    # Overlays & Clamping
     if v_zvc is not None:
         _add_zvc_mpl(ax, x_vals, v_zvc, th.zvc_color)
     _add_resonance_mpl(
@@ -485,7 +454,6 @@ def plot_consensus_chaos_map_mpl(
     ax.set_xlim(x_vals[0], x_vals[-1])
     ax.set_ylim(v_x_vals[0], v_x_vals[-1])
 
-    # 8-tick Colorbar
     cbar = fig.colorbar(im, ax=ax, ticks=list(range(8)), pad=0.03, fraction=0.046)
     cbar.ax.set_yticklabels([CONSENSUS_LABELS[i] for i in range(8)])
     cbar.set_label(
@@ -501,7 +469,6 @@ def plot_consensus_chaos_map_mpl(
         pad=12,
     )
 
-    # Legend for overlay lines
     line_legend_elements = []
     if v_zvc is not None:
         line_legend_elements.append(_zvc_legend_handle(th.zvc_color))

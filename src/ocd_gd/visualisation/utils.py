@@ -9,7 +9,7 @@ from typing import Any
 
 import matplotlib.pyplot as plt
 
-# Global tracking for export directories
+
 _OUTPUT_DIRS = {
     "root": Path("./plots"),
     "matplotlib": Path("./plots/matplotlib"),
@@ -38,40 +38,36 @@ def set_output_dir(path: str = "./plots") -> tuple[Path, Path]:
 
     return mpl_dir, plotly_dir
 
-
 def resolve_save_path(save_path: str | None, backend: str) -> str | None:
     """Helper to route relative save filenames into designated backend folders."""
     if save_path is None:
         return None
 
     path_obj = Path(save_path)
-    # If absolute path or user explicitly specified a folder, don't overwrite it
+
     if path_obj.is_absolute() or len(path_obj.parts) > 1:
         return save_path
 
-    # Make sure output directories exist even if user didn't call set_output_dir()
     set_output_dir(_OUTPUT_DIRS["root"])
 
     return str(_OUTPUT_DIRS[backend] / save_path)
 
-
-# Default style parameters across Matplotlib plots
 MPL_STYLE_DEFAULTS: dict[str, Any] = {
-    # Figure properties
+
     "figure.facecolor": "white",
     "figure.dpi": 150,
     "figure.figsize": (8, 6),
     "savefig.dpi": 600,
-    # Axes & spine styling
+
     "axes.facecolor": "white",
     "axes.linewidth": 0.8,
     "axes.labelsize": 12,
     "axes.titlesize": 13,
     "axes.grid": True,
-    # Fonts
+
     "font.family": "sans-serif",
     "font.size": 10,
-    # Ticks
+
     "xtick.labelsize": 12,
     "ytick.labelsize": 12,
     "xtick.direction": "in",
@@ -84,13 +80,13 @@ MPL_STYLE_DEFAULTS: dict[str, Any] = {
     "ytick.minor.size": 3,
     "xtick.minor.width": 0.6,
     "ytick.minor.width": 0.6,
-    # Grid
+
     "grid.linestyle": "--",
     "grid.alpha": 0.25,
-    # Legend
+
     "legend.fontsize": 10,
     "legend.title_fontsize": 10,
-    # Lines, markers, and errorbars
+
     "lines.linewidth": 1.0,
     "lines.markersize": 6,
     "errorbar.capsize": 5,
@@ -101,8 +97,6 @@ def set_publication_style():
     """Apply default scientific plotting style to Matplotlib globally."""
     plt.rcParams.update(MPL_STYLE_DEFAULTS)
 
-
-# Common color palettes
 PALETTES = {
     "sali": "crimson",
     "gali": "plasma",

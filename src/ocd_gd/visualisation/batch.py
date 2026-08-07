@@ -49,7 +49,6 @@ def plot_sali_batch_mpl(
     if orbit_indices is None:
         orbit_indices = list(range(num_total_orbits))
 
-    # Paginate indices into chunks of max_per_page
     pages = [
         orbit_indices[i : i + max_per_page]
         for i in range(0, len(orbit_indices), max_per_page)
@@ -96,16 +95,14 @@ def plot_sali_batch_mpl(
                 ax=ax,
                 show=False,
                 title=f"Orbit #{idx}",
-                legend=(i == 0),  # Show legend only on first subplot to reduce clutter
+                legend=(i == 0),
             )
 
-        # Hide remaining unused subplot grid cells on final page
         for j in range(n_plots, len(axes_flat)):
             fig.delaxes(axes_flat[j])
 
         fig.tight_layout()
 
-        # Handle saving paginated outputs (e.g. sali_batch_page1.png)
         page_save_path = None
         if save_path:
             if len(pages) > 1:
@@ -122,7 +119,6 @@ def plot_sali_batch_mpl(
         figures.append(fig)
 
     return figures
-
 
 def plot_gali_batch_mpl(
     t: npt.NDArray[np.float64],
@@ -216,7 +212,6 @@ def plot_gali_batch_mpl(
 
     return figures
 
-
 def plot_sali_gali_dual_batch_mpl(
     t: npt.NDArray[np.float64],
     sali_array: npt.NDArray[np.float64],
@@ -249,7 +244,6 @@ def plot_sali_gali_dual_batch_mpl(
     if orbit_indices is None:
         orbit_indices = list(range(num_total_orbits))
 
-    # Split target orbits into chunks (e.g. 5 orbits -> 10 subplots max per page)
     pages = [
         orbit_indices[i : i + max_orbits_per_page]
         for i in range(0, len(orbit_indices), max_orbits_per_page)
@@ -271,7 +265,6 @@ def plot_sali_gali_dual_batch_mpl(
             ax_sali = axes[row_idx, 0]
             ax_gali = axes[row_idx, 1]
 
-            # 1. Process SALI
             sali_data = np.squeeze(sali_array[idx])
             if sali_data.ndim > 1:
                 sali_data = np.min(sali_data, axis=0)
@@ -286,7 +279,6 @@ def plot_sali_gali_dual_batch_mpl(
                 if np.isfinite(st_float):
                     sali_det_time = st_float
 
-            # 2. Process GALI
             gali_data = np.squeeze(gali_array[idx])
 
             g_check = gali_checks[idx] if gali_checks is not None else None
@@ -301,7 +293,6 @@ def plot_sali_gali_dual_batch_mpl(
 
             lyap_data = lyapunov_array[idx] if lyapunov_array is not None else None
 
-            # Render Left Panel (SALI)
             plot_sali_mpl(
                 t=t,
                 sali=sali_data,
@@ -317,7 +308,6 @@ def plot_sali_gali_dual_batch_mpl(
                 legend=(row_idx == 0),
             )
 
-            # Render Right Panel (GALI)
             plot_gali_mpl(
                 t=t,
                 gali=gali_data,
@@ -336,7 +326,6 @@ def plot_sali_gali_dual_batch_mpl(
 
         fig.tight_layout()
 
-        # Multi-page filename formatting
         page_save_path = None
         if save_path:
             if len(pages) > 1:

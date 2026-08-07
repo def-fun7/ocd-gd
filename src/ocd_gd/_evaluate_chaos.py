@@ -19,16 +19,47 @@ def evaluate_chaos(
     separate: bool = False,
     window_size: int = 10,
 ) -> tuple[npt.NDArray[np.float64], npt.NDArray[np.float64]]:
-    """... (docstring unchanged) ..."""
+    """Determine convergence/chaos based on whether a metric sustains a value below a threshold.
+
+    Parameters
+    ----------
+    metric_arr : ndarray
+        SALI/GALI values over time. Can be 2D (n_orbits, n_times) or 3D
+        (n_orbits, n_methods, n_times).
+    time_arr : ndarray
+        1D array of times corresponding to the last axis of `metric_arr`.
+    threshold : float, default 1e-12
+        Threshold below which the metric must fall.
+    separate : bool, default False
+        For 3D inputs, if True, evaluate convergence per method.
+    window_size : int, default 10
+        Number of consecutive steps the metric must stay below the threshold
+        to confirm convergence.
+
+    Returns
+    -------
+    check : ndarray
+        Convergence flag (1 for converged/chaotic, 0 otherwise).
+    time : ndarray
+        First time at which sustained convergence was reached (or `np.inf`).
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> from ocd_gd._evaluate_chaos import evaluate_chaos
+    >>> metric = np.array([[1.0, 1.0, 1e-13, 1e-14, 1e-15, 1e-15]])
+    >>> times = np.array([0.0, 1.0, 2.0, 3.0, 4.0, 5.0])
+    >>> check, time = evaluate_chaos(metric, times, threshold=1e-12, window_size=3)
+    >>> check
+    array([1])
+    >>> time
+    array([2.])
+    """
     time_flat = time_arr.ravel()
     n_time_steps = metric_arr.shape[-1]
 
     raw_mask = metric_arr < threshold
 
-    # Sliding-window "all True for window_size steps" via prefix sums of the
-    # False count, instead of window_size-1 sequential in-place ANDs.
-    # window_false_count[..., k] = number of False entries in
-    # raw_mask[..., k : k+window_size]; sustained_mask is where that's zero.
     false_count = (~raw_mask).astype(np.int32)
     cumsum = np.cumsum(false_count, axis=-1)
     cumsum = np.concatenate([np.zeros_like(cumsum[..., :1]), cumsum], axis=-1)
