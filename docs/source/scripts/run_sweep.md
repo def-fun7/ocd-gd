@@ -5,7 +5,7 @@ results into a single tidy `astropy.table.QTable`, one row per run — the
 "many runs at once" path that neither `GridChaosDetector` nor
 `OrbitChaosDetector` provide on their own. Each potential can be an
 already-built `agama.Potential`, a path to a JSON config from
-[03 — Composite Potential Builder](03_composite_potential_builder.md), or
+[Composite Potential Builder](build_potential.md), or
 a `{"Qb": ..., "f_bh": ...}` dict built fresh via `makeCompositePotential`;
 each output row combines `GridChaosDetector.metadata_row()` (grid
 geometry, integration settings), per-indicator chaotic-fraction/agreement

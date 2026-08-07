@@ -39,19 +39,19 @@ uv sync
 
 ocd-gd operates around two core abstractions:
 Galactic Potentials: Potential models constructed via AGAMA (e.g., NFW halo, Miyamoto-Nagai disk, Hernquist bulge).
-OrbitChaosDetector: The main engine that integrates initial phase-space conditions ($x, y, z, v_x, v_y, v_z$) and computes chaos indicators (such as Lyapunov exponents or frequency map analysis metrics). 3. Running Included Examples
-The repository comes with pre-configured scripts in examples/:
+OrbitChaosDetector: The main engine that integrates initial phase-space conditions ($x, y, z, v_x, v_y, v_z$) and computes chaos indicators (such as Lyapunov exponents or frequency map analysis metrics).
 
-````Bash
+## 3. Running Included Examples
 
+The repository comes with pre-configured scripts in `examples/`:
+
+```bash
 # Run single orbit setup
-
 uv run python examples/01_single_orbit_setup.py
-``` bash
-# Run unit test suite
 
+# Run unit test suite
 uv run pytest
-````
+```
 
 ## Next Steps
 
