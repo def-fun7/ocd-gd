@@ -18,9 +18,9 @@ from astropy.table import QTable
 
 from ._evaluate_chaos import evaluate_chaos
 from ._family_check import FamilyStats, classify_box_loop, summarize_family
-from ._terminal_config import get_logger
 from ._plotting import _OrbitPlottingMixin
 from ._sali_kernel import sali_kernel
+from ._terminal_config import get_logger
 from ._types import (
     ChaosAgreement,
     ChaosFullReport,

@@ -31,7 +31,7 @@ import astropy.units as u
 # the default by OrbitChaosDetector/GridChaosDetector when no `units=` is
 # passed explicitly, so existing code that never touches this module keeps
 # working (metadata columns just stay bare floats, as before).
-_CURRENT_UNITS: "AgamaUnits | None" = None
+_CURRENT_UNITS: AgamaUnits | None = None
 
 
 @dataclass(frozen=True)
@@ -53,7 +53,7 @@ class AgamaUnits:
     @classmethod
     def from_setup(
         cls, length: float = 1.0, mass: float = 1.0, velocity: float = 1.0
-    ) -> "AgamaUnits":
+    ) -> AgamaUnits:
         """Call `agama.setUnits(length=length, mass=mass, velocity=velocity)`
         and return the matching `AgamaUnits` (also registered as
         `AgamaUnits.current()` for the rest of this process).
@@ -73,7 +73,7 @@ class AgamaUnits:
         return instance
 
     @classmethod
-    def current(cls) -> "AgamaUnits | None":
+    def current(cls) -> AgamaUnits | None:
         """The most recently constructed `AgamaUnits`, or None if
         `from_setup` hasn't been called yet in this process."""
         return _CURRENT_UNITS
@@ -142,7 +142,7 @@ class AgamaUnits:
 
 
 def tag_unit(
-    units: "AgamaUnits | None", name: str, value: Any, lookup: dict[str, str | None]
+    units: AgamaUnits | None, name: str, value: Any, lookup: dict[str, str | None]
 ) -> Any:
     """Attach a physical unit to a raw Agama-unit value, if one is known
     for `name` (via `lookup`) and `units` is given.

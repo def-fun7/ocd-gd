@@ -13,11 +13,10 @@ __all__ = [
 ]
 
 
+import matplotlib.pyplot as plt
 import numpy as np
 import numpy.typing as npt
-import matplotlib.pyplot as plt
 from matplotlib.collections import LineCollection
-
 
 from .utils import resolve_save_path
 

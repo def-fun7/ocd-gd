@@ -17,10 +17,10 @@ __all__ = [
     "HAS_RICH",
     "console",
     "get_logger",
-    "setup_logging",
     "print_banner",
-    "print_kv_table",
     "print_dataframe_table",
+    "print_kv_table",
+    "setup_logging",
 ]
 
 import logging

@@ -1,3 +1,7 @@
+"""
+Plotly backend for chaos-map plotting.
+"""
+
 __all__ = [
     "plot_chaos_maps_plotly",
     "plot_composite_chaos_map_plotly",
@@ -8,41 +12,38 @@ from collections.abc import Sequence
 
 import numpy as np
 import numpy.typing as npt
-
-
 import plotly.graph_objects as go
+from matplotlib.colors import to_hex, to_rgb
 from plotly.subplots import make_subplots
 
-from .grid_themes import ChaosMapTheme, DEFAULT_THEME, get_theme
-from .grid_helpers import (
-    _composite_flag_rgb,
-    _binary_grids_to_composite_rgb,
-    _compute_zvc,
-    _resonance_overlay_specs,
-    _family_boundary_field,
-    _has_family_boundary,
-    _compute_consensus_grid,
-    _get_consensus_colors,
-)
 from .grid_constants import (
-    SIDE_BY_SIDE_LEGEND_LABELS,
-    COMPOSITE_LEGEND_LABELS,
-    _COMPOSITE_LEGEND_FLAGS,
-    ZVC_LABEL,
-    ZVC_LINEWIDTH,
-    SIDE_BY_SIDE_LAYOUT_PLOTLY,
-    ZVC_LINESTYLE_PLOTLY,
-    RESONANCE_LINESTYLE_PLOTLY,
-    RESONANCE_LINEWIDTH,
-    RESONANCE_LABELS,
+    COMPOSITE_LAYOUT_PLOTLY,
+    CONSENSUS_LABELS,
+    CONSENSUS_LAYOUT_PLOTLY,
     FAMILY_BOUNDARY_LABEL,
     FAMILY_BOUNDARY_LINESTYLE_PLOTLY,
     FAMILY_BOUNDARY_LINEWIDTH_PLOTLY,
-    _FAMILY_BOX_LABEL,
-    _FAMILY_LOOP_LABEL,
-    CONSENSUS_LAYOUT_PLOTLY,
-    CONSENSUS_LABELS,
+    RESONANCE_LINESTYLE_PLOTLY,
+    RESONANCE_LINEWIDTH,
+    SIDE_BY_SIDE_LAYOUT_PLOTLY,
+    SIDE_BY_SIDE_LEGEND_LABELS,
+    ZVC_LABEL,
+    ZVC_LINESTYLE_PLOTLY,
+    ZVC_LINEWIDTH,
 )
+from .grid_helpers import (
+    _binary_grid_to_rgb,
+    _binary_grids_to_composite_rgb,
+    _composite_legend_entries,
+    _compute_consensus_grid,
+    _compute_zvc,
+    _consensus_grid_to_rgb,
+    _family_boundary_field,
+    _get_consensus_colors,
+    _has_family_boundary,
+    _resonance_overlay_specs,
+)
+from .grid_themes import DEFAULT_THEME, ChaosMapTheme, get_theme
 
 # =============================================================================
 # Chaos Maps: SHARED HELPERS

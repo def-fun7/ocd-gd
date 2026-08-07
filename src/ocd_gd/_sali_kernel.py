@@ -1,3 +1,7 @@
+"""
+Numba JIT kernel for computing SALI (Systematic Alignment Index).
+"""
+
 __all__ = ["sali_kernel"]
 
 import numpy as np

@@ -40,9 +40,8 @@ import scipy.optimize
 from _cli_common import add_clear_cache_arg, add_qb_fbh_args
 
 from ocd_gd import (
-    CorotationSetup,
-    omega_for_corotation_ratio,
     get_logger,
+    omega_for_corotation_ratio,
     print_banner,
     print_dataframe_table,
     print_kv_table,

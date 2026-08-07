@@ -10,9 +10,9 @@ no assumption about rotation curves being available as a separate API.
 """
 
 __all__ = [
+    "CorotationSetup",
     "ResonanceRadii",
     "compute_resonance_radii",
-    "CorotationSetup",
     "omega_for_corotation_ratio",
 ]
 

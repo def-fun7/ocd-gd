@@ -58,8 +58,8 @@ from pathlib import Path
 from typing import Any
 
 import agama
-import numpy as np
 import matplotlib
+import numpy as np
 
 matplotlib.use("Agg")
 from _cli_common import add_clear_cache_arg, add_qb_fbh_args
@@ -68,14 +68,13 @@ from build_potential import clearCache, load_composite_potential, makeCompositeP
 
 from ocd_gd import (
     AgamaUnits,
-    tag_unit,
     GridChaosDetector,
     get_logger,
     print_banner,
     print_dataframe_table,
     print_kv_table,
     setup_logging,
-    set_publication_style,
+    tag_unit,
 )
 
 CURRENT_UNITS = AgamaUnits.from_setup(length=1, mass=1, velocity=1)

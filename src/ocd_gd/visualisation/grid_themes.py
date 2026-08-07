@@ -15,6 +15,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+__all__ = ["DEFAULT_THEME", "ChaosMapTheme", "get_theme"]
+
 DEFAULT_THEME = "magma"
 
 

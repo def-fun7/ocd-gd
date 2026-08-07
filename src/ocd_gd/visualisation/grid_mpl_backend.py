@@ -1,52 +1,49 @@
-_all__ = [
+"""
+Matplotlib backend for chaos-map plotting.
+"""
+
+__all__ = [
     "plot_chaos_maps_mpl",
     "plot_composite_chaos_map_mpl",
     "plot_consensus_chaos_map_mpl",
 ]
 
+import matplotlib.pyplot as plt
 import numpy as np
 import numpy.typing as npt
-import matplotlib.pyplot as plt
-from matplotlib.collections import LineCollection
-
-from matplotlib.colors import ListedColormap, to_rgb, BoundaryNorm
+from matplotlib.colors import BoundaryNorm, ListedColormap
 from matplotlib.lines import Line2D
 from matplotlib.patches import Patch
 
-from .grid_themes import ChaosMapTheme, DEFAULT_THEME, get_theme
-from .grid_helpers import (
-    _composite_flag_rgb,
-    _binary_grids_to_composite_rgb,
-    _compute_zvc,
-    _resonance_overlay_specs,
-    _family_boundary_field,
-    _has_family_boundary,
-    _compute_consensus_grid,
-    _get_consensus_colors,
-)
 from .grid_constants import (
-    SIDE_BY_SIDE_LEGEND_LABELS,
-    COMPOSITE_LEGEND_LABELS,
-    _COMPOSITE_LEGEND_FLAGS,
-    ZVC_LABEL,
-    ZVC_LINEWIDTH,
-    SIDE_BY_SIDE_FIGSIZE_MPL,
     COMPOSITE_FIGSIZE_MPL,
     COMPOSITE_RESONANCE_LINESTYLE_MPL,
     COMPOSITE_RESONANCE_LINEWIDTH_MPL,
-    ZVC_LINESTYLE_MPL,
-    RESONANCE_LINESTYLE_MPL,
-    RESONANCE_LINEWIDTH,
-    RESONANCE_LABELS,
+    CONSENSUS_FIGSIZE_MPL,
+    CONSENSUS_LABELS,
     FAMILY_BOUNDARY_LABEL,
     FAMILY_BOUNDARY_LINESTYLE_MPL,
     FAMILY_BOUNDARY_LINEWIDTH_MPL,
-    _FAMILY_BOX_LABEL,
-    _FAMILY_LOOP_LABEL,
     MPL_LEGEND_KWARGS,
-    CONSENSUS_FIGSIZE_MPL,
-    CONSENSUS_LABELS,
+    RESONANCE_LINESTYLE_MPL,
+    RESONANCE_LINEWIDTH,
+    SIDE_BY_SIDE_FIGSIZE_MPL,
+    SIDE_BY_SIDE_LEGEND_LABELS,
+    ZVC_LABEL,
+    ZVC_LINESTYLE_MPL,
+    ZVC_LINEWIDTH,
 )
+from .grid_helpers import (
+    _binary_grids_to_composite_rgb,
+    _composite_legend_entries,
+    _compute_consensus_grid,
+    _compute_zvc,
+    _family_boundary_field,
+    _get_consensus_colors,
+    _has_family_boundary,
+    _resonance_overlay_specs,
+)
+from .grid_themes import DEFAULT_THEME, ChaosMapTheme, get_theme
 
 # =============================================================================
 # Chaos Maps: SHARED HELPERS
@@ -181,20 +178,6 @@ def _build_side_by_side_legend_elements(
     return elements
 
 
-def _composite_legend_entries(
-    theme: ChaosMapTheme,
-) -> list[tuple[str, tuple[float, float, float]]]:
-    """(label, RGB color) pairs for the composite legend/key. Colors are
-    computed via `_composite_flag_rgb` — the same mapping used to render the
-    map — so the swatches always match the actual pixel colors."""
-    entries = [
-        (COMPOSITE_LEGEND_LABELS[key], _composite_flag_rgb(*flags, theme))
-        for key, flags in _COMPOSITE_LEGEND_FLAGS.items()
-    ]
-    entries.append(
-        (COMPOSITE_LEGEND_LABELS["masked"], to_rgb(theme.composite_masked_color))
-    )
-    return entries
 
 
 def _build_composite_legend_elements(

@@ -17,25 +17,31 @@ STYLE CONSTANTS block below and is the same for every theme.
 
 __all__ = [
     "_binary_grid_to_rgb",
-    "_composite_flag_rgb",
     "_binary_grids_to_composite_rgb",
-    "_compute_zvc",
-    "_resonance_overlay_specs",
-    "_family_boundary_field",
-    "_has_family_boundary",
+    "_composite_flag_rgb",
+    "_composite_legend_entries",
     "_compute_consensus_grid",
-    "_get_consensus_colors",
+    "_compute_zvc",
     "_consensus_grid_to_rgb",
+    "_family_boundary_field",
+    "_get_consensus_colors",
+    "_has_family_boundary",
+    "_resonance_overlay_specs",
 ]
 
 
 import numpy as np
 import numpy.typing as npt
-
 from matplotlib.colors import to_rgb
 
-from .grid_themes import ChaosMapTheme, DEFAULT_THEME, get_theme, _hex_to_rgb01
-from .grid_constants import RESONANCE_LABELS, _FAMILY_BOX_LABEL, _FAMILY_LOOP_LABEL
+from .grid_constants import (
+    _COMPOSITE_LEGEND_FLAGS,
+    _FAMILY_BOX_LABEL,
+    _FAMILY_LOOP_LABEL,
+    COMPOSITE_LEGEND_LABELS,
+    RESONANCE_LABELS,
+)
+from .grid_themes import ChaosMapTheme, _hex_to_rgb01
 
 # =============================================================================
 # SHARED HELPERS — data to RGB
@@ -74,7 +80,6 @@ def _binary_grids_to_composite_rgb(
     `_composite_flag_rgb`). Each cell's color is interpolated along the
     theme's regular->chaotic ramp by how many of the three indicators
     (SALI, GALI, Lyapunov) flagged it chaotic."""
-    shape = sali_grid.shape
     nan_mask = np.isnan(sali_grid) | np.isnan(gali_grid) | np.isnan(lyapunov_grid)
 
     s = np.nan_to_num(sali_grid, nan=0).astype(bool)
@@ -202,3 +207,19 @@ def _consensus_grid_to_rgb(
     for val in range(8):
         rgb[consensus_grid == val] = colors[val]
     return rgb
+
+
+def _composite_legend_entries(
+    theme: ChaosMapTheme,
+) -> list[tuple[str, tuple[float, float, float]]]:
+    """(label, RGB color) pairs for the composite legend/key. Colors are
+    computed via `_composite_flag_rgb` — the same mapping used to render the
+    map — so the swatches always match the actual pixel colors."""
+    entries = [
+        (COMPOSITE_LEGEND_LABELS[key], _composite_flag_rgb(*flags, theme))
+        for key, flags in _COMPOSITE_LEGEND_FLAGS.items()
+    ]
+    entries.append(
+        (COMPOSITE_LEGEND_LABELS["masked"], to_rgb(theme.composite_masked_color))
+    )
+    return entries

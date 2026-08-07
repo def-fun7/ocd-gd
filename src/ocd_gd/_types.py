@@ -6,13 +6,13 @@ containers with no behavior of their own.
 """
 
 __all__ = [
-    "IntegrationCriteria",
-    "ChaosSummary",
-    "ChaosFullReport",
-    "GridInitialConditions",
-    "MethodChaosStats",
     "ChaosAgreement",
+    "ChaosFullReport",
+    "ChaosSummary",
     "ChaosSurveySummary",
+    "GridInitialConditions",
+    "IntegrationCriteria",
+    "MethodChaosStats",
     "chaos_summary_row",
 ]
 

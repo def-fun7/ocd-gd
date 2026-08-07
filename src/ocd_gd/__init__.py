@@ -6,42 +6,43 @@ and detecting chaotic vs. regular dynamical behavior using SALI/GALI metrics.
 """
 
 __all__ = [
+    "HAS_RICH",
+    "AgamaUnits",
     "ChaosAgreement",
     "ChaosFullReport",
     "ChaosSummary",
     "ChaosSurveySummary",
-    "OrbitChaosDetector",
+    "CorotationSetup",
+    "FamilyStats",
     "GridChaosDetector",
     "IntegrationCriteria",
     "MethodChaosStats",
+    "OrbitChaosDetector",
     "ResonanceRadii",
-    "CorotationSetup",
-    "omega_for_corotation_ratio",
     "chaos_summary_row",
-    "AgamaUnits",
-    "tag_unit",
-    "FamilyStats",
+    "console",
     "get_logger",
-    "setup_logging",
+    "omega_for_corotation_ratio",
     "print_banner",
     "print_dataframe_table",
     "print_kv_table",
-    "HAS_RICH",
-    "console",
     "set_output_dir",
     "set_publication_style",
+    "setup_logging",
+    "tag_unit",
 ]
 
+from ._family_check import FamilyStats
+from ._resonance import CorotationSetup, ResonanceRadii, omega_for_corotation_ratio
 from ._terminal_config import (
+    HAS_RICH,
+    console,
     get_logger,
-    setup_logging,
     print_banner,
     print_dataframe_table,
     print_kv_table,
-    HAS_RICH,
-    console,
+    setup_logging,
 )
-from ._resonance import ResonanceRadii, omega_for_corotation_ratio, CorotationSetup
 from ._types import (
     ChaosAgreement,
     ChaosFullReport,
@@ -51,11 +52,7 @@ from ._types import (
     MethodChaosStats,
     chaos_summary_row,
 )
-
-from .visualisation import set_output_dir, set_publication_style
-
 from ._units import AgamaUnits, tag_unit
-from ._family_check import FamilyStats
-
 from .grid_detector import GridChaosDetector
 from .orbit_detector import OrbitChaosDetector
+from .visualisation import set_output_dir, set_publication_style
