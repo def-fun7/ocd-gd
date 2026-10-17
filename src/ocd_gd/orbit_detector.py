@@ -81,13 +81,13 @@ class OrbitChaosDetector(_OrbitPlottingMixin):
         pot: Any,
         omega: float = 0.0,
         iter_time: float = 10.0,
+        traj_size: int = 5000,
         gali_threshold: float = 1e-20,
         sali_threshold: float = 1e-3,
         gali_window_size: int = 50,
         sali_window_size: int = 25,
         accuracy: float = 1e-8,
         max_num_steps: int = 100000000,
-        plotting_backend: str = "matplotlib",
         keep_raw_deviations: bool = False,
         units: AgamaUnits | None = None,
     ) -> None:
@@ -103,6 +103,8 @@ class OrbitChaosDetector(_OrbitPlottingMixin):
             pattern speed of the rotating frame.
         iter_time : float, default 10.0
             Total time duration for orbit integrations.
+        traj_size : int, default 5000
+            if given, turns on the recording of trajectory for each orbit (should be either a single integer or an array of integers with length N). The trajectory of each orbit is stored either at every timestep of the integrator (if trajsize=0) or at regular intervals of time (`dt=abs(time)/(trajsize-1)`, so that the number of points is `trajsize`; the last stored point is always at the end of integration period, and if trajsize>1, the first point is the initial conditions).
         gali_threshold : float, default 1e-20
             Threshold limits to register chaos in GALI calculations.
         sali_threshold : float, default 1e-3
@@ -144,13 +146,15 @@ class OrbitChaosDetector(_OrbitPlottingMixin):
         self.num_orbits: int = len(self.ic)
 
         self.iter_time: float = iter_time
+        self.traj_size: int = traj_size
         self.gali_threshold: float = gali_threshold
         self.sali_threshold: float = sali_threshold
         self.gali_window_size: int = gali_window_size
         self.sali_window_size: int = sali_window_size
         self.accuracy: float = accuracy
         self.max_num_steps: int = int(max_num_steps)
-        self.plotting_backend: str = plotting_backend.lower()
+        # self.plotting_backend: str = plotting_backend.lower()
+        self.plotting_backend: str = "matplotlib"
         self.keep_raw_deviations: bool = keep_raw_deviations
         self.units: AgamaUnits | None = (
             units if units is not None else AgamaUnits.current()
@@ -187,7 +191,7 @@ class OrbitChaosDetector(_OrbitPlottingMixin):
             time=self.iter_time,
             der=True,
             separateTime=True,
-            trajsize=5000,
+            trajsize=self.traj_size,
             lyapunov=True,
             accuracy=self.accuracy,
             maxNumSteps=self.max_num_steps,
