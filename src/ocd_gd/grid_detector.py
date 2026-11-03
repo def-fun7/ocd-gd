@@ -226,6 +226,7 @@ class GridChaosDetector(_GridChaosPlottingMixin, OrbitChaosDetector):
             ic=grid_info.ics[self._physical_indices],
             pot=potential,
             omega=omega,
+            n_periods=None,
             iter_time=iter_time,
             gali_threshold=gali_threshold,
             sali_threshold=sali_threshold,
@@ -250,16 +251,22 @@ class GridChaosDetector(_GridChaosPlottingMixin, OrbitChaosDetector):
         `_physical_indices` in `__init__`), so its check arrays are compact —
         one entry per integrated orbit, not per grid cell.
         """
-        summary = self.detect_chaos()
+        dc = self.detect_chaos()
+        lyap_array = self._lyap[:, 0]
+        lyap_check = np.where(
+            np.isnan(lyap_array),
+            np.nan,
+            np.where(lyap_array > 0.1, 1.0, 0.0),
+        )
         return (
             _scatter_to_grid(
-                summary.sali_check, self._physical_indices, self.grid_size, fill=np.nan
+                dc.sali_check, self._physical_indices, self.grid_size, fill=np.nan
             ),
             _scatter_to_grid(
-                summary.gali_check, self._physical_indices, self.grid_size, fill=np.nan
+                dc.gali_check, self._physical_indices, self.grid_size, fill=np.nan
             ),
             _scatter_to_grid(
-                summary.lyapunov_check,
+                lyap_check,
                 self._physical_indices,
                 self.grid_size,
                 fill=np.nan,

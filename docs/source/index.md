@@ -22,13 +22,6 @@ examples/index
 
 ```{toctree}
 :maxdepth: 2
-:caption: Custom Scripts
-
-scripts/index
-```
-
-```{toctree}
-:maxdepth: 2
 :caption: API Reference
 
 modules

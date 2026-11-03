@@ -75,6 +75,3 @@ Homepage = "https://github.com/def-fun7/ocd-gd"
 Repository = "https://github.com/def-fun7/ocd-gd.git"
 Docs = "https://ocd-gd.readthedocs.io/en/latest/"
 Issues = "https://github.com/def-fun7/ocd-gd/issues"
-
-[project.scripts]
-setup-env = "scripts.setup_env:main"

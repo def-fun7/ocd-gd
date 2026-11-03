@@ -10,6 +10,7 @@ __all__ = [
     "ChaosFullReport",
     "ChaosSummary",
     "ChaosSurveySummary",
+    "DecayClassification",
     "GridInitialConditions",
     "IntegrationCriteria",
     "MethodChaosStats",
@@ -31,7 +32,7 @@ class IntegrationCriteria:
     Parameters
     ----------
     iter_time : float
-        The time duration for each integration step.
+        Total integration time in Agama time units.
     gali_threshold : float
         Convergence threshold for GALI.
     sali_threshold : float
@@ -61,7 +62,7 @@ class IntegrationCriteria:
     100.0
     """
 
-    iter_time: float
+    iter_time: float | npt.NDArray[np.float64]
     gali_threshold: float
     sali_threshold: float
     gali_window_size: int
@@ -153,6 +154,75 @@ class ChaosFullReport(NamedTuple):
     gali_array: npt.NDArray[np.float64]
     sali_array: npt.NDArray[np.float64]
     lyapunov_array: npt.NDArray[np.float64]
+
+
+class DecayClassification(NamedTuple):
+    """Decay-model classification results for a batch of integrated orbits.
+
+    Returned by `OrbitChaosDetector.detect_chaos()`. Each field is the raw
+    output dict from `classify_decay` applied to the corresponding indicator
+    array — see `_decay_classifier.LABELS` for the label convention
+    (odd = regular, even > 0 = chaotic, 0 = undetermined).
+
+    Parameters
+    ----------
+    sali : dict
+        ``classify_decay`` output for the SALI time series.  Keys include
+        ``"label"``, ``"score"``, ``"rate"``, ``"delta_bic"``, etc.
+    gali : dict
+        ``classify_decay`` output for the GALI time series.  Keys include
+        ``"label"``, ``"score"``, ``"rate"``, ``"delta_bic"``, etc.
+    lyapunov_check : ndarray, optional
+        Per-orbit Lyapunov classification: 1.0 = chaotic (exponent > 0.1),
+        0.0 = regular, NaN = undetermined.
+    lyapunov_time : ndarray, optional
+        Integration time at which the Lyapunov exponent was evaluated,
+        or ``inf`` for undetermined orbits.
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> from ocd_gd._types import DecayClassification
+    >>> dummy = {"label": np.array([1]), "score": np.array([0.1])}
+    >>> dc = DecayClassification(sali=dummy, gali=dummy)
+    >>> dc.sali["label"]
+    array([1])
+    """
+
+    sali: dict
+    gali: dict
+    lyapunov_check: npt.NDArray[np.float64] | None = None
+    lyapunov_time: npt.NDArray[np.float64] | None = None
+
+    @property
+    def sali_check(self) -> npt.NDArray[np.float64]:
+        lbl = np.asarray(self.sali["label"])
+        check = ((lbl > 0) & (lbl % 2 == 0)).astype(np.float64)
+        if check.ndim == 2 and check.shape[0] == 15:
+            return np.any(check > 0, axis=0).astype(np.float64)
+        return check
+
+    @property
+    def gali_check(self) -> npt.NDArray[np.float64]:
+        lbl = np.asarray(self.gali["label"])
+        return ((lbl > 0) & (lbl % 2 == 0)).astype(np.float64)
+
+    @property
+    def sali_time(self) -> npt.NDArray[np.float64]:
+        t_onset = np.asarray(self.sali.get("t_onset", np.nan), dtype=np.float64)
+        t_floor = np.asarray(self.sali.get("t_floor", np.nan), dtype=np.float64)
+        t_det = np.where(np.isfinite(t_onset), t_onset, t_floor)
+        t_det = np.where(np.isfinite(t_det), t_det, np.inf)
+        if t_det.ndim == 2 and t_det.shape[0] == 15:
+            return np.min(t_det, axis=0)
+        return t_det
+
+    @property
+    def gali_time(self) -> npt.NDArray[np.float64]:
+        t_onset = np.asarray(self.gali.get("t_onset", np.nan), dtype=np.float64)
+        t_floor = np.asarray(self.gali.get("t_floor", np.nan), dtype=np.float64)
+        t_det = np.where(np.isfinite(t_onset), t_onset, t_floor)
+        return np.where(np.isfinite(t_det), t_det, np.inf)
 
 
 class GridInitialConditions(NamedTuple):

@@ -87,8 +87,9 @@ def test_get_sali_slicing(multi_orbit_detector):
     full_sali = multi_orbit_detector.get_sali()
     sliced_sali = multi_orbit_detector.get_sali(orbit_idx=0)
 
-    assert full_sali.shape[0] == 3
-    assert np.array_equal(sliced_sali, full_sali[0])
+    assert full_sali.shape[0] == 15
+    assert full_sali.shape[1] == 3
+    assert np.array_equal(sliced_sali, full_sali[:, 0])
 
 
 def test_get_gali_slicing(multi_orbit_detector):

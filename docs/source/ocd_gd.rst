@@ -11,7 +11,6 @@ ocd_gd.orbit_detector module
    :members:
    :show-inheritance:
    :undoc-members:
-   :imported-members:
 
 ocd_gd.grid_detector module
 ---------------------------
@@ -20,7 +19,6 @@ ocd_gd.grid_detector module
    :members:
    :show-inheritance:
    :undoc-members:
-   :imported-members:
 
 Module contents
 ---------------

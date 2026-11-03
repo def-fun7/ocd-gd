@@ -53,6 +53,9 @@ def plot_sali_batch_mpl(
     Returns:
         list[plt.Figure]: List of generated matplotlib figure objects.
     """
+    if sali_array.ndim == 3 and sali_array.shape[0] == 15 and sali_array.shape[1] != 15:
+        sali_array = np.transpose(sali_array, (1, 0, 2))
+
     num_total_orbits = sali_array.shape[0]
     if orbit_indices is None:
         orbit_indices = list(range(num_total_orbits))
@@ -91,13 +94,16 @@ def plot_sali_batch_mpl(
                     det_time = val_float
             lyap_data = lyapunov_array[idx] if lyapunov_array is not None else None
 
+            t_orb = np.squeeze(t[idx]) if np.ndim(t) == 2 else np.squeeze(t)
+            w_time = window_size_time
+
             plot_sali_mpl(
-                t=t,
+                t=t_orb,
                 sali=sali_data,
                 threshold=threshold,
                 is_chaotic=is_chaotic,
                 detection_time=det_time,
-                window_size_time=window_size_time,
+                window_size_time=w_time,
                 lyapunov=lyap_data,
                 fig=fig,
                 ax=ax,
@@ -202,14 +208,17 @@ def plot_gali_batch_mpl(
                     det_time = val_float
             lyap_data = lyapunov_array[idx] if lyapunov_array is not None else None
 
+            t_orb = np.squeeze(t[idx]) if np.ndim(t) == 2 else np.squeeze(t)
+            w_time = window_size_time
+
             plot_gali_mpl(
-                t=t,
+                t=t_orb,
                 gali=gali_data,
                 k_orders=k_orders,
                 threshold=threshold,
                 is_chaotic=is_chaotic,
                 detection_time=det_time,
-                window_size_time=window_size_time,
+                window_size_time=w_time,
                 lyapunov=lyap_data,
                 fig=fig,
                 ax=ax,
@@ -286,6 +295,9 @@ def plot_sali_gali_dual_batch_mpl(
     Returns:
         list[plt.Figure]: List of generated matplotlib figure objects.
     """
+    if sali_array.ndim == 3 and sali_array.shape[0] == 15 and sali_array.shape[1] != 15:
+        sali_array = np.transpose(sali_array, (1, 0, 2))
+
     num_total_orbits = sali_array.shape[0]
     if orbit_indices is None:
         orbit_indices = list(range(num_total_orbits))
@@ -339,8 +351,10 @@ def plot_sali_gali_dual_batch_mpl(
 
             lyap_data = lyapunov_array[idx] if lyapunov_array is not None else None
 
+            t_orb = np.squeeze(t[idx]) if np.ndim(t) == 2 else np.squeeze(t)
+
             plot_sali_mpl(
-                t=t,
+                t=t_orb,
                 sali=sali_data,
                 threshold=sali_threshold,
                 is_chaotic=sali_is_chaotic,
@@ -355,7 +369,7 @@ def plot_sali_gali_dual_batch_mpl(
             )
 
             plot_gali_mpl(
-                t=t,
+                t=t_orb,
                 gali=gali_data,
                 k_orders=k_orders,
                 threshold=gali_threshold,

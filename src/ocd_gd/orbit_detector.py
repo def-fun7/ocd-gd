@@ -16,6 +16,7 @@ import numpy as np
 import numpy.typing as npt
 from astropy.table import QTable
 
+from ._decay_classifier import PRESETS, classify_decay, is_chaotic, is_regular
 from ._evaluate_chaos import evaluate_chaos
 from ._family_check import FamilyStats, classify_box_loop, summarize_family
 from ._plotting import _OrbitPlottingMixin
@@ -26,6 +27,7 @@ from ._types import (
     ChaosFullReport,
     ChaosSummary,
     ChaosSurveySummary,
+    DecayClassification,
     IntegrationCriteria,
     MethodChaosStats,
 )
@@ -34,8 +36,11 @@ from ._units import AgamaUnits, tag_unit
 logger = get_logger(__name__)
 
 
+_UNSET: Any = object()
+
 _METADATA_FIELD_UNITS: dict[str, str | None] = {
     "num_orbits": None,
+    "n_periods": None,
     "iter_time": "time",
     "gali_threshold": None,
     "sali_threshold": None,
@@ -80,7 +85,8 @@ class OrbitChaosDetector(_OrbitPlottingMixin):
         ic: Any,
         pot: Any,
         omega: float = 0.0,
-        iter_time: float = 10.0,
+        n_periods: float | None = _UNSET,
+        iter_time: float | None = None,
         traj_size: int = 5000,
         gali_threshold: float = 1e-20,
         sali_threshold: float = 1e-3,
@@ -88,6 +94,7 @@ class OrbitChaosDetector(_OrbitPlottingMixin):
         sali_window_size: int = 25,
         accuracy: float = 1e-8,
         max_num_steps: int = 100000000,
+        plotting_backend: str = "matplotlib",
         keep_raw_deviations: bool = False,
         units: AgamaUnits | None = None,
     ) -> None:
@@ -100,9 +107,17 @@ class OrbitChaosDetector(_OrbitPlottingMixin):
         pot : agama.Potential
             Agama gravitational potential object.
         omega : float, default 0.0
-            pattern speed of the rotating frame.
-        iter_time : float, default 10.0
-            Total time duration for orbit integrations.
+            Pattern speed of the rotating frame.
+        n_periods : float or None, optional
+            Number of orbital periods to integrate each orbit. Mutually
+            exclusive with ``iter_time``; provide at most one. When
+            ``n_periods`` is given, the actual integration time is computed
+            per-orbit as ``n_periods * pot.Tcirc(ic)``. Defaults to 30.0
+            when neither ``n_periods`` nor ``iter_time`` is provided.
+        iter_time : float or None, default None
+            Direct integration time in Agama time units. Mutually exclusive
+            with ``n_periods``; if provided, ``n_periods`` is computed via
+            ``iter_time / pot.Tcirc(ic)``.
         traj_size : int, default 5000
             if given, turns on the recording of trajectory for each orbit (should be either a single integer or an array of integers with length N). The trajectory of each orbit is stored either at every timestep of the integrator (if trajsize=0) or at regular intervals of time (`dt=abs(time)/(trajsize-1)`, so that the number of points is `trajsize`; the last stored point is always at the end of integration period, and if trajsize>1, the first point is the initial conditions).
         gali_threshold : float, default 1e-20
@@ -118,7 +133,7 @@ class OrbitChaosDetector(_OrbitPlottingMixin):
         max_num_steps : int, default 100000000
             Safety boundary cap for maximum integration steps allowed.
         plotting_backend : str, default "matplotlib"
-            setup which plotting library to use.
+            Plotting library to use. Must be "matplotlib" or "plotly".
         keep_raw_deviations : bool, default False
             If True, preserve the raw (un-normalized) deviation vectors so they
             remain accessible via `self._dev_arr` after normalisation.
@@ -127,6 +142,11 @@ class OrbitChaosDetector(_OrbitPlottingMixin):
             and in `GridChaosDetector`, `R_0`/`E_0`/`omega`/...) with real
             astropy units. If None (default), falls back to
             `AgamaUnits.current()`.
+
+        Raises
+        ------
+        ValueError
+            If both ``n_periods`` and ``iter_time`` are provided.
 
         Examples
         --------
@@ -139,13 +159,35 @@ class OrbitChaosDetector(_OrbitPlottingMixin):
         >>> isinstance(detector.pot, agama.Potential)
         True
         """
+        if n_periods is not _UNSET and n_periods is not None and iter_time is not None:
+            raise ValueError(
+                "Provide either 'n_periods' or 'iter_time', not both."
+            )
 
         self.ic: npt.NDArray[np.float64] = np.atleast_2d(ic)
         self.pot: Any = pot
         self.omega: float = omega
         self.num_orbits: int = len(self.ic)
 
-        self.iter_time: float = iter_time
+        if iter_time is not None:
+            self.iter_time: float | npt.NDArray[np.float64] = (
+                np.asarray(iter_time, dtype=np.float64)
+                if np.iterable(iter_time)
+                else float(iter_time)
+            )
+            dyn_time = self.pot.Tcirc(self.ic)
+            self.n_periods: float | npt.NDArray[np.float64] = (
+                self.iter_time / dyn_time
+            )
+        else:
+            _n_periods = (
+                30.0
+                if (n_periods is _UNSET or n_periods is None)
+                else float(n_periods)
+            )
+            self.n_periods = _n_periods
+            self.iter_time = self._compute_iter_time(_n_periods)
+
         self.traj_size: int = traj_size
         self.gali_threshold: float = gali_threshold
         self.sali_threshold: float = sali_threshold
@@ -153,8 +195,7 @@ class OrbitChaosDetector(_OrbitPlottingMixin):
         self.sali_window_size: int = sali_window_size
         self.accuracy: float = accuracy
         self.max_num_steps: int = int(max_num_steps)
-        # self.plotting_backend: str = plotting_backend.lower()
-        self.plotting_backend: str = "matplotlib"
+        self.plotting_backend: str = plotting_backend.lower()
         self.keep_raw_deviations: bool = keep_raw_deviations
         self.units: AgamaUnits | None = (
             units if units is not None else AgamaUnits.current()
@@ -168,7 +209,7 @@ class OrbitChaosDetector(_OrbitPlottingMixin):
         self._dev_arr_normalized: npt.NDArray[np.float64] | None = None
         self._sali_arr: npt.NDArray[np.float64] | None = None
         self._gali_arr: npt.NDArray[np.float64] | None = None
-        self._chaos_results_cache: tuple[npt.NDArray[np.float64], ... | None] = None
+        self._chaos_results_cache: DecayClassification | None = None
         self._orbit_family_cache: npt.NDArray[np.str_] | None = None
 
         sali_kernel(np.array([[[[1]]]]), np.array([0]), np.array([1]))
@@ -176,10 +217,16 @@ class OrbitChaosDetector(_OrbitPlottingMixin):
 
     def _integrate_orbits(self) -> None:
         """Run the expensive orbit integration exactly once and cache results."""
+        if isinstance(self.iter_time, np.ndarray) and self.iter_time.size > 1:
+            iter_time_repr = (
+                f"[{self.iter_time.min():.4g}..{self.iter_time.max():.4g}]"
+            )
+        else:
+            iter_time_repr = f"{float(np.mean(self.iter_time)):.4g}"
         logger.info(
-            "Integrating %d orbit(s) for iter_time=%.4g (accuracy=%.1e, max_num_steps=%d) ...",
+            "Integrating %d orbit(s) for iter_time=%s (accuracy=%.1e, max_num_steps=%d) ...",
             self.num_orbits,
-            self.iter_time,
+            iter_time_repr,
             self.accuracy,
             self.max_num_steps,
         )
@@ -202,6 +249,22 @@ class OrbitChaosDetector(_OrbitPlottingMixin):
         logger.info(
             "Finished integrating %d orbit(s) in %.3fs", self.num_orbits, elapsed
         )
+
+    def _compute_iter_time(self, n_periods: float) -> npt.NDArray[np.float64]:
+        """Computes the iteration time for a number of orbits based on dynamical time.
+
+        Parameters
+        ----------
+        n_periods : float
+            Total number of orbital periods.
+
+        Returns
+        -------
+        npt.NDArray[np.float64]
+            An array of required iteration time for that number of orbits.
+        """
+        dyn_time = self.pot.Tcirc(self.ic)
+        return n_periods * dyn_time
 
     def _normalize_deviation_vectors(self) -> npt.NDArray[np.float64]:
         """Clean and unit-normalize deviation vectors safely.
@@ -242,6 +305,9 @@ class OrbitChaosDetector(_OrbitPlottingMixin):
         arr = np.ascontiguousarray(self.deviation_vectors)
         idx_i, idx_j = np.triu_indices(6, k=1)
         result = sali_kernel(arr, idx_i.astype(np.int64), idx_j.astype(np.int64))
+        # Transpose from (n_orbits, 15, n_time) to (15, n_orbits, n_time)
+        # so each of the 15 pairs is shaped (num_orbits, time_steps), matching GALI.
+        result = np.ascontiguousarray(np.transpose(result, (1, 0, 2)))
         elapsed = time.perf_counter() - start
         logger.info(
             "Finished computing SALI for %d orbit(s) in %.3fs", self.num_orbits, elapsed
@@ -316,9 +382,9 @@ class OrbitChaosDetector(_OrbitPlottingMixin):
         >>> ic = [8.0, 0.0, 0.05, 0.0, 180.0, 5.0]
         >>> detector = OrbitChaosDetector(ic, pot, iter_time=1.0)
         >>> detector.timestamps.ndim
-        1
+        2
         """
-        return self._time_arr[0]
+        return self._time_arr
 
     @property
     def trajectories(self) -> npt.NDArray[np.float64] | None:
@@ -399,7 +465,7 @@ class OrbitChaosDetector(_OrbitPlottingMixin):
         -------
         ndarray
             The Small Alignment Index values for each orbit over time,
-            shaped (num_orbits, time_steps, 15).
+            shaped (15, num_orbits, time_steps).
 
         Examples
         --------
@@ -409,7 +475,7 @@ class OrbitChaosDetector(_OrbitPlottingMixin):
         >>> pot = agama.Potential(type="Spheroid", mass=1e10, scaleRadius=5.0)
         >>> ic = [8.0, 0.0, 0.05, 0.0, 180.0, 5.0]
         >>> detector = OrbitChaosDetector(ic, pot, iter_time=1.0)
-        >>> detector.sali_array.shape[1]
+        >>> detector.sali_array.shape[0]
         15
         """
         if self._sali_arr is None:
@@ -532,12 +598,14 @@ class OrbitChaosDetector(_OrbitPlottingMixin):
         Parameters
         ----------
         orbit_idx : int, optional
-            Specific orbit index to retrieve. If None, returns all SALI arrays.
+            Specific orbit index to retrieve. If None, returns all SALI arrays
+            of shape (15, num_orbits, time_steps).
 
         Returns
         -------
         ndarray
-            SALI values over time.
+            SALI values over time. Shape (15, time_steps) for a single orbit,
+            or (15, num_orbits, time_steps) for all orbits.
 
         Raises
         ------
@@ -556,7 +624,11 @@ class OrbitChaosDetector(_OrbitPlottingMixin):
         (15, 5000)
         """
         self._validate_index(orbit_idx)
-        return self.sali_array if orbit_idx is None else self.sali_array[orbit_idx]
+        if orbit_idx is None:
+            return self.sali_array
+        if self.sali_array.ndim == 3 and self.sali_array.shape[0] == 15:
+            return self.sali_array[:, orbit_idx]
+        return self.sali_array[orbit_idx]
 
     def get_gali(self, orbit_idx: int | None = None) -> npt.NDArray[np.float64]:
         """Return GALI calculation sequences filtered down to target orbit.
@@ -628,36 +700,56 @@ class OrbitChaosDetector(_OrbitPlottingMixin):
         self,
         orbit_idx: int | None = None,
         separate_sali: bool = False,
-        check_only: bool = True,
-        sali_threshold_override: float | None = None,
-        gali_threshold_override: float | None = None,
-        sali_window_override: float | None = None,
-        gali_window_override: float | None = None,
-    ) -> ChaosSummary | ChaosFullReport:
-        """Detect system deviations to distinguish chaotic from regular paths.
+        sali_preset: str | None = "sali",
+        gali_preset: str | None = "gali6_3dof",
+        sali_kwargs: dict | None = None,
+        gali_kwargs: dict | None = None,
+    ) -> DecayClassification:
+        """Classify each orbit as regular or chaotic via Bayesian decay-model selection.
+
+        Runs ``classify_decay`` independently on the SALI and GALI time series,
+        selecting among five decay laws (plateau, power law, exponential,
+        plateau→exponential, plateau→power law) using BIC-weighted model
+        averaging. Results are returned as a :class:`DecayClassification`
+        holding one dict per indicator (see ``_decay_classifier.LABELS`` for
+        the label convention: odd = regular, even > 0 = chaotic,
+        0 = undetermined).
+
+        The default run (no overrides) is cached so that repeated calls cost
+        nothing.
 
         Parameters
         ----------
         orbit_idx : int, optional
-            A target index tracking one explicit orbit. Default extracts all.
+            If given, returns results sliced to that single orbit. If ``None``
+            (default), returns results for all integrated orbits.
         separate_sali : bool, default False
-            Tracks cross evaluations individually if True (3D evaluation rule).
-        check_only : bool, default True
-            When True, provides a basic Summary data package. When False, wraps
-            it inside a Full Diagnostic Report package.
-        sali_threshold_override : float, optional
-            Change the baseline SALI convergence check threshold parameter.
-        gali_threshold_override : float, optional
-            Change the baseline GALI convergence check threshold parameter.
-        sali_window_override : float, optional
-            Change the baseline SALI window size parameter.
-        gali_window_override : float, optional
-            Change the baseline GALI window size parameter.
+            If False, evaluates the pointwise minimum envelope across all 15
+            SALI pairs, producing a single classification per orbit. If True,
+            evaluates each of the 15 deviation-vector pairs individually,
+            producing (15, num_orbits) results in the SALI dictionary.
+        sali_preset : str or None, default ``"sali"``
+            Key into ``_decay_classifier.PRESETS`` for SALI-specific defaults
+            (``floor``, ``max_power_exponent``). Pass ``None`` to use the
+            ``classify_decay`` module defaults; pass a key from ``PRESETS``
+            to override those defaults. Any ``sali_kwargs`` are merged on top.
+        gali_preset : str or None, default ``"gali6_3dof"``
+            Key into ``_decay_classifier.PRESETS`` for GALI-specific defaults.
+        sali_kwargs : dict, optional
+            Extra keyword arguments forwarded to ``classify_decay`` for SALI,
+            merged with (and taking precedence over) ``sali_preset`` defaults.
+        gali_kwargs : dict, optional
+            Extra keyword arguments forwarded to ``classify_decay`` for GALI.
 
         Returns
         -------
-        ChaosSummary or ChaosFullReport
-            The designated analysis container populated with convergence checks.
+        DecayClassification
+            Named tuple with fields ``sali`` and ``gali``, each a dict of
+            arrays (length ``num_orbits``, or 1/sliced when ``orbit_idx`` is given)
+            with keys: ``label``, ``score``, ``rate``, ``rate_norm``,
+            ``rate_lb``, ``rate_is_bound``, ``delta_bic``, ``t_onset``,
+            ``exponent``, ``t_floor``, ``n_eff``, ``p_plateau``, ``p_power``,
+            ``p_exp``, ``p_exp_onset``, ``p_power_onset``.
 
         Examples
         --------
@@ -667,133 +759,144 @@ class OrbitChaosDetector(_OrbitPlottingMixin):
         >>> pot = agama.Potential(type="Spheroid", mass=1e10, scaleRadius=5.0)
         >>> ic = [8.0, 0.0, 0.05, 0.0, 180.0, 5.0]
         >>> detector = OrbitChaosDetector(ic, pot, iter_time=1.0)
-        >>> report = detector.detect_chaos(check_only=True)
-        >>> hasattr(report, "sali_check")
+        >>> report = detector.detect_chaos()
+        >>> "label" in report.sali
         True
         """
         detect_chaos_start = time.perf_counter()
-
         self._validate_index(orbit_idx)
 
         is_default_run = (
-            (sali_threshold_override is None)
-            and (gali_threshold_override is None)
-            and (sali_window_override is None)
-            and (gali_window_override is None)
+            not separate_sali
+            and sali_preset == "sali"
+            and gali_preset == "gali6_3dof"
+            and sali_kwargs is None
+            and gali_kwargs is None
+            and orbit_idx is None
         )
 
         if is_default_run and self._chaos_results_cache is not None:
-            logger.info("Using cached GALI/SALI convergence results for detect_chaos")
-            gali_check, gali_time, sali_check, sali_time = self._chaos_results_cache
+            logger.info("Using cached decay-classifier results for detect_chaos")
+            return self._chaos_results_cache
+
+        s_kw: dict = dict(PRESETS.get(sali_preset, {})) if sali_preset else {}
+        if sali_kwargs:
+            s_kw.update(sali_kwargs)
+
+        g_kw: dict = dict(PRESETS.get(gali_preset, {})) if gali_preset else {}
+        if gali_kwargs:
+            g_kw.update(gali_kwargs)
+
+        t_orb = self.pot.Tcirc(self.ic)
+
+        if not separate_sali:
+            sali_ts = (
+                self.sali_array.min(axis=0)
+                if (self.sali_array.ndim == 3 and self.sali_array.shape[0] == 15)
+                else self.sali_array.min(axis=1) if self.sali_array.ndim == 3
+                else self.sali_array
+            )
+            sali_result = classify_decay(
+                sali_ts, self.timestamps, t_orb=t_orb, **s_kw
+            )
         else:
-            s_thresh = (
-                sali_threshold_override
-                if sali_threshold_override is not None
-                else self.sali_threshold
-            )
-            g_thresh = (
-                gali_threshold_override
-                if gali_threshold_override is not None
-                else self.gali_threshold
-            )
-            s_window = (
-                sali_window_override
-                if sali_window_override is not None
-                else self.sali_window_size
-            )
-            g_window = (
-                gali_window_override
-                if gali_window_override is not None
-                else self.gali_window_size
-            )
+            if self.sali_array.ndim == 3 and self.sali_array.shape[0] == 15:
+                n_pairs, n_orb, n_t = self.sali_array.shape
+                sali_flat = self.sali_array.reshape(n_pairs * n_orb, n_t)
+            elif self.sali_array.ndim == 3:
+                sali_transposed = np.transpose(self.sali_array, (1, 0, 2))
+                n_pairs, n_orb, n_t = sali_transposed.shape
+                sali_flat = sali_transposed.reshape(n_pairs * n_orb, n_t)
+            else:
+                n_pairs, n_orb = 1, self.num_orbits
+                sali_flat = self.sali_array
 
-            gali_check, gali_time = evaluate_chaos(
-                self.gali_array,
-                self.timestamps,
-                threshold=g_thresh,
-                window_size=g_window,
+            t_orb_expanded = (
+                np.tile(np.asarray(t_orb), n_pairs)
+                if t_orb is not None
+                else None
             )
-            sali_check, sali_time = evaluate_chaos(
-                self.sali_array,
-                self.timestamps,
-                threshold=s_thresh,
-                separate=separate_sali,
-                window_size=s_window,
+            time_expanded = (
+                np.tile(self.timestamps, (n_pairs, 1))
+                if np.ndim(self.timestamps) == 2
+                else self.timestamps
             )
+            raw_sali_out = classify_decay(
+                sali_flat, time_expanded, t_orb=t_orb_expanded, **s_kw
+            )
+            sali_result = {
+                k: v.reshape(n_pairs, n_orb)
+                for k, v in raw_sali_out.items()
+            }
 
-            if is_default_run:
-                self._chaos_results_cache = (
-                    gali_check,
-                    gali_time,
-                    sali_check,
-                    sali_time,
-                )
+        gali_result = classify_decay(
+            self.gali_array, self.timestamps, t_orb=t_orb, **g_kw
+        )
 
         lyap_array = self._lyap[:, 0]
         lyap_time = self._lyap[:, 1]
         is_nan = np.isnan(lyap_array)
-        lyap_check = np.where(lyap_array <= 0.1, 0, 1).astype(float)
-        lyap_check[is_nan] = np.nan
+        lyap_c = np.where(lyap_array <= 0.1, 0.0, 1.0)
+        lyap_c[is_nan] = np.nan
+        lyap_t = np.where(is_nan, np.inf, lyap_time)
+
+        result = DecayClassification(
+            sali=sali_result,
+            gali=gali_result,
+            lyapunov_check=lyap_c,
+            lyapunov_time=lyap_t,
+        )
+
+        if is_default_run:
+            self._chaos_results_cache = result
 
         if orbit_idx is not None:
-            gali_c = gali_check[orbit_idx]
-            gali_t = gali_time[orbit_idx]
-            sali_c = sali_check[orbit_idx]
-            sali_t = sali_time[orbit_idx]
-            gali_d = self.gali_array[orbit_idx]
-            sali_d = self.sali_array[orbit_idx]
-            lyap_c = lyap_check[orbit_idx]
-            lyap_t = lyap_time[orbit_idx]
-            lyap_d = lyap_array[orbit_idx]
-        else:
-            gali_c, gali_t, sali_c, sali_t = (
-                gali_check,
-                gali_time,
-                sali_check,
-                sali_time,
+            if separate_sali:
+                sliced_sali = {
+                    k: (v[:, orbit_idx] if hasattr(v, "__getitem__") and getattr(v, "ndim", 0) == 2 else v)
+                    for k, v in sali_result.items()
+                }
+            else:
+                sliced_sali = {
+                    k: (v[orbit_idx] if hasattr(v, "__getitem__") else v)
+                    for k, v in sali_result.items()
+                }
+            sliced_gali = {
+                k: (v[orbit_idx] if hasattr(v, "__getitem__") else v)
+                for k, v in gali_result.items()
+            }
+            result = DecayClassification(
+                sali=sliced_sali,
+                gali=sliced_gali,
+                lyapunov_check=lyap_c[orbit_idx],
+                lyapunov_time=lyap_t[orbit_idx],
             )
-            lyap_c, lyap_t = (lyap_check, lyap_time)
-
-            gali_d = self.gali_array
-            sali_d = self.sali_array
-            lyap_d = lyap_array
-
-        summary_data = ChaosSummary(gali_c, gali_t, sali_c, sali_t, lyap_c, lyap_t)
-        if check_only:
-            logger.info(
-                "detect_chaos completed in %.3fs (orbit_idx=%s, check_only=True)",
-                time.perf_counter() - detect_chaos_start,
-                orbit_idx,
-            )
-            return summary_data
 
         logger.info(
-            "detect_chaos completed in %.3fs (orbit_idx=%s, check_only=False)",
+            "detect_chaos completed in %.3fs (orbit_idx=%s, separate_sali=%s)",
             time.perf_counter() - detect_chaos_start,
             orbit_idx,
+            separate_sali,
         )
-        return ChaosFullReport(
-            summary=summary_data,
-            timestamps=self.timestamps,
-            gali_array=gali_d,
-            sali_array=sali_d,
-            lyapunov_array=lyap_d,
-        )
+        return result
 
-    def _method_stats(self, check: npt.NDArray[np.float64]) -> MethodChaosStats:
-        """Build a MethodChaosStats block for one indicator's check array.
+    def _method_stats(self, labels: npt.NDArray[np.int_]) -> MethodChaosStats:
+        """Build a MethodChaosStats block from a decay-classifier label array.
 
-        `check` is expected to hold 0 (regular), 1 (chaotic), or NaN
-        (undetermined - e.g. Lyapunov integration too short). sali_check and
-        gali_check never contain NaN, so for those this reduces to the
-        previous 0/1 behavior exactly.
+        ``labels`` follows the ``_decay_classifier.LABELS`` convention:
+        - odd > 0  → regular
+        - even > 0 → chaotic
+        - 0        → undetermined
         """
-        check = np.asarray(check, dtype=float)
-        is_nan = np.isnan(check)
+        labels = np.asarray(labels, dtype=int)
+        if labels.ndim == 2:
+            sali_chaotic = np.any(is_chaotic(labels), axis=0)
+            sali_regular = np.all(is_regular(labels), axis=0)
+            labels = np.where(sali_chaotic, 2, np.where(sali_regular, 1, 0))
 
-        chaotic_indices = np.where((check == 1) & ~is_nan)[0]
-        regular_indices = np.where((check == 0) & ~is_nan)[0]
-        undetermined_indices = np.where(is_nan)[0]
+        chaotic_indices = np.where(is_chaotic(labels))[0]
+        regular_indices = np.where(is_regular(labels))[0]
+        undetermined_indices = np.where(labels == 0)[0]
         n_chaotic = len(chaotic_indices)
         n_regular = len(regular_indices)
         n_undetermined = len(undetermined_indices)
@@ -816,21 +919,22 @@ class OrbitChaosDetector(_OrbitPlottingMixin):
     def chaos_summary(self, **detect_chaos_kwargs: Any) -> ChaosSurveySummary:
         """Summarize chaos classification across every integrated orbit.
 
-        Computes per-indicator counts/fractions/indices/ICs, plus how often SALI,
-        GALI, and Lyapunov agree with each other.
+        Derives per-indicator statistics from the decay-model labels produced
+        by :meth:`detect_chaos`, plus Lyapunov-based classification, and
+        computes pairwise and three-way agreement between all three indicators.
 
         Parameters
         ----------
         **detect_chaos_kwargs : dict
-            Forwarded to `detect_chaos()` — e.g. `sali_threshold_override`,
-            `gali_window_override`, etc., to summarize under different
-            settings than the detector's own defaults.
+            Forwarded to :meth:`detect_chaos` — e.g. ``separate_sali``,
+            ``sali_preset``, ``gali_preset``, ``sali_kwargs``, ``gali_kwargs``.
 
         Returns
         -------
         ChaosSurveySummary
-            `n_total`, one `MethodChaosStats` per indicator (`.sali`,
-            `.gali`, `.lyapunov`), and a `ChaosAgreement` block.
+            ``n_total``, one :class:`MethodChaosStats` per indicator
+            (``.sali``, ``.gali``, ``.lyapunov``), and a
+            :class:`ChaosAgreement` block.
 
         Examples
         --------
@@ -844,18 +948,31 @@ class OrbitChaosDetector(_OrbitPlottingMixin):
         >>> summary.n_total
         1
         """
-        summary = self.detect_chaos(check_only=True, **detect_chaos_kwargs)
+        dc = self.detect_chaos(**detect_chaos_kwargs)
 
-        sali_stats = self._method_stats(summary.sali_check)
-        gali_stats = self._method_stats(summary.gali_check)
-        lyap_stats = self._method_stats(summary.lyapunov_check)
+        sali_labels = np.asarray(dc.sali["label"])
+        gali_labels = np.asarray(dc.gali["label"])
 
-        sali_bool = np.asarray(summary.sali_check).astype(bool)
-        gali_bool = np.asarray(summary.gali_check).astype(bool)
-        lyap_raw = np.asarray(summary.lyapunov_check, dtype=float)
-        lyap_undetermined = np.isnan(lyap_raw)
-        lyap_bool = np.where(lyap_undetermined, False, lyap_raw).astype(bool)
+        if sali_labels.ndim == 2:
+            sali_chaotic = np.any(is_chaotic(sali_labels), axis=0)
+            sali_regular = np.all(is_regular(sali_labels), axis=0)
+            orbit_sali_labels = np.where(sali_chaotic, 2, np.where(sali_regular, 1, 0))
+        else:
+            orbit_sali_labels = sali_labels
 
+        sali_stats = self._method_stats(orbit_sali_labels)
+        gali_stats = self._method_stats(gali_labels)
+
+        lyap_array = self._lyap[:, 0]
+        lyap_labels = np.zeros(self.num_orbits, dtype=int)
+        lyap_undetermined = np.isnan(lyap_array)
+        lyap_labels[~lyap_undetermined & (lyap_array > 0.1)] = 2  # chaotic (even)
+        lyap_labels[~lyap_undetermined & (lyap_array <= 0.1)] = 1  # regular (odd)
+        lyap_stats = self._method_stats(lyap_labels)
+
+        sali_bool = is_chaotic(orbit_sali_labels)
+        gali_bool = is_chaotic(gali_labels)
+        lyap_bool = is_chaotic(lyap_labels)
         classified = ~lyap_undetermined
 
         all_agree = (sali_bool == gali_bool) & (gali_bool == lyap_bool) & classified
@@ -864,9 +981,13 @@ class OrbitChaosDetector(_OrbitPlottingMixin):
             sali_gali_agreement=float(np.mean(sali_bool == gali_bool)),
             sali_lyapunov_agreement=float(
                 np.mean((sali_bool == lyap_bool)[classified])
+                if np.any(classified)
+                else float("nan")
             ),
             gali_lyapunov_agreement=float(
                 np.mean((gali_bool == lyap_bool)[classified])
+                if np.any(classified)
+                else float("nan")
             ),
             all_agree_chaotic=int(np.sum(all_agree & sali_bool)),
             all_agree_regular=int(np.sum(all_agree & ~sali_bool)),
@@ -936,6 +1057,7 @@ class OrbitChaosDetector(_OrbitPlottingMixin):
         criteria = self.criteria
         raw_columns: dict[str, Any] = {
             "num_orbits": self.num_orbits,
+            "n_periods": self.n_periods,
             "iter_time": criteria.iter_time,
             "gali_threshold": criteria.gali_threshold,
             "sali_threshold": criteria.sali_threshold,

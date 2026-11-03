@@ -1,6 +1,6 @@
 # 02. Single Orbit Chaos Check
 
-This example demonstrates how to perform chaos detection on an integrated orbit using `OrbitChaosDetector.detect_chaos()`. It highlights the distinction between a quick convergence summary (`check_only=True`) and a detailed diagnostic report (`check_only=False`).
+This example demonstrates how to perform chaos detection on an integrated orbit using `OrbitChaosDetector.detect_chaos()`. It shows how to inspect the resulting `DecayClassification` named tuple (including chaos checks, convergence times, and model weights) alongside the raw indicator evolution.
 
 ## Overview
 

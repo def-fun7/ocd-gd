@@ -29,7 +29,7 @@ class TestChaosSensitivity:
 
         # Run detection on all benchmark ICs
         detector = OrbitChaosDetector(ic=ics, pot=mw_potential)
-        summary = detector.detect_chaos(check_only=True)
+        summary = detector.detect_chaos()
 
         sali_passed = summary.sali_check.flatten().astype(bool)
         gali_passed = summary.gali_check.flatten().astype(bool)

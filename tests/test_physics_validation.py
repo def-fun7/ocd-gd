@@ -45,7 +45,7 @@ class TestPhysicalPotentials:
             pot=spherical_potential,
         )
 
-        summary = detector.detect_chaos(check_only=True)
+        summary = detector.detect_chaos()
 
         # In integrable systems:
         # 1. SALI levels off to a non-zero constant (~1.0 - 2.0).
@@ -68,7 +68,7 @@ class TestPhysicalPotentials:
             pot=triaxial_potential,
         )
 
-        summary = detector.detect_chaos(check_only=True)
+        summary = detector.detect_chaos()
 
         # In chaotic motion, SALI and GALI decay exponentially toward 0.0
         assert (

@@ -128,10 +128,24 @@ def plot_sali_mpl(
     else:
         ax.set_title(base_title)
 
+    t = np.squeeze(t)
+    sali = np.squeeze(sali)
+    if sali.ndim == 2 and sali.shape[0] != len(t) and sali.shape[1] == len(t):
+        sali = sali.T
+
     color = kwargs.get("color", "crimson")
     lw = kwargs.get("linewidth", kwargs.get("lw", 1.5))
     label = kwargs.get("label", "SALI")
-    ax.plot(t, sali, color=color, lw=lw, label=label)
+
+    if sali.ndim == 2:
+        num_lines = sali.shape[1]
+        colors = kwargs.get("colors", plt.cm.tab20(np.linspace(0, 1, num_lines)))
+        for i in range(num_lines):
+            lbl = f"SALI_{i+1}" if kwargs.get("legend_all", False) else (label if i == 0 else None)
+            c = colors[i] if "color" not in kwargs else color
+            ax.plot(t, sali[:, i], color=c, lw=lw, alpha=kwargs.get("alpha", 0.7), label=lbl)
+    else:
+        ax.plot(t, sali, color=color, lw=lw, label=label)
 
     if threshold is not None:
         thresh_color = kwargs.get("thresh_color", "black")
@@ -247,6 +261,11 @@ def plot_gali_mpl(
         )
     else:
         ax.set_title(base_title)
+
+    t = np.squeeze(t)
+    gali = np.squeeze(gali)
+    if gali.ndim == 2 and gali.shape[0] != len(t) and gali.shape[1] == len(t):
+        gali = gali.T
 
     if gali.ndim == 1:
         label = f"GALI_{k_orders[0]}" if k_orders else "GALI"
@@ -538,6 +557,8 @@ def plot_energy_drift_mpl(
     """
     fig, ax = _setup_fig_ax(fig, ax, figsize=kwargs.get("figsize", (7, 4.5)))
 
+    t = np.squeeze(t)
+    energy = np.squeeze(energy)
     e0 = energy[0]
     drift = np.abs((energy - e0) / e0)
 
@@ -603,6 +624,7 @@ def plot_colored_trajectory_2d_mpl(
     norm = kwargs.get("norm", None)
 
     lc = LineCollection(segments, cmap=cmap, norm=norm)
+    c_values = np.squeeze(c_values)
     lc.set_array(c_values)
     lc.set_linewidth(kwargs.get("lw", 1.5))
     lc.set_alpha(kwargs.get("alpha", 0.9))

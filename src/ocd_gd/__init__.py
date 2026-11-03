@@ -13,13 +13,16 @@ __all__ = [
     "ChaosSummary",
     "ChaosSurveySummary",
     "CorotationSetup",
+    "DecayClassification",
     "FamilyStats",
     "GridChaosDetector",
     "IntegrationCriteria",
+    "LABELS",
     "MethodChaosStats",
     "OrbitChaosDetector",
     "ResonanceRadii",
     "chaos_summary_row",
+    "classify_decay",
     "console",
     "get_logger",
     "omega_for_corotation_ratio",
@@ -32,6 +35,7 @@ __all__ = [
     "tag_unit",
 ]
 
+from ._decay_classifier import LABELS, classify_decay
 from ._family_check import FamilyStats
 from ._resonance import CorotationSetup, ResonanceRadii, omega_for_corotation_ratio
 from ._terminal_config import (
@@ -48,6 +52,7 @@ from ._types import (
     ChaosFullReport,
     ChaosSummary,
     ChaosSurveySummary,
+    DecayClassification,
     IntegrationCriteria,
     MethodChaosStats,
     chaos_summary_row,

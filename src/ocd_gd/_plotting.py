@@ -4,7 +4,7 @@ Plotting mixin for OrbitChaosDetector.
 Isolated from the core detector module because visualization is a distinct
 concern from integration/chaos-computation, and this is by far the largest
 chunk of the class's surface area. `_OrbitPlottingMixin` is combined with the
-core class via inheritance in `orbit_chaos_detector.py`; it assumes the host
+core class via inheritance in `orbit_detector.py`; it assumes the host
 class provides `_validate_index`, `_resolve_backend`, `detect_chaos`,
 `timestamps`, `trajectories`, `sali_array`, `gali_array`,
 `lyapunov_exponents`, `sali_threshold`, `gali_threshold`, `sali_window_size`,
@@ -82,9 +82,18 @@ class _OrbitPlottingMixin:
         plot_fn = mpl_fn if engine == "matplotlib" else plotly_fn
         return plot_fn(*args, **kwargs)
 
-    def _get_dt(self) -> float:
+    def _get_dt(self, orbit_idx: int = 0) -> float:
         """Return the spacing between the first two recorded timestamps."""
-        return self.timestamps[1] - self.timestamps[0]
+        if self.timestamps is None:
+            return 1.0
+        t = (
+            self.timestamps[orbit_idx]
+            if np.ndim(self.timestamps) == 2
+            else self.timestamps
+        )
+        if len(t) < 2:
+            return 1.0
+        return float(t[1] - t[0])
 
     @staticmethod
     def _detection_info(
@@ -141,14 +150,14 @@ class _OrbitPlottingMixin:
         """
         self._validate_index(orbit_idx)
 
-        chaos_report = self.detect_chaos(orbit_idx=orbit_idx, check_only=True)
+        chaos_report = self.detect_chaos(orbit_idx=orbit_idx)
         is_chaotic, det_time = self._detection_info(
             chaos_report.sali_check, chaos_report.sali_time
         )
 
-        window_time = self.sali_window_size * self._get_dt()
+        window_time = self.sali_window_size * self._get_dt(orbit_idx)
 
-        sali_data = np.squeeze(self.sali_array[orbit_idx])
+        sali_data = np.squeeze(self.get_sali(orbit_idx))
         if sali_data.ndim > 1 and not all_pairs:
             sali_data = np.min(sali_data, axis=0)
         lyap_data = (
@@ -157,11 +166,16 @@ class _OrbitPlottingMixin:
             else None
         )
 
+        t_orbit = (
+            self.timestamps[orbit_idx]
+            if np.ndim(self.timestamps) == 2
+            else self.timestamps
+        )
         return self._dispatch_plot(
             plot_sali_mpl,
             plot_sali_plotly,
             backend,
-            t=self.timestamps,
+            t=t_orbit,
             sali=sali_data,
             threshold=self.sali_threshold,
             is_chaotic=is_chaotic,
@@ -212,12 +226,12 @@ class _OrbitPlottingMixin:
         """
         self._validate_index(orbit_idx)
 
-        chaos_report = self.detect_chaos(orbit_idx=orbit_idx, check_only=True)
+        chaos_report = self.detect_chaos(orbit_idx=orbit_idx)
         is_chaotic, det_time = self._detection_info(
             chaos_report.gali_check, chaos_report.gali_time
         )
 
-        window_time = self.gali_window_size * self._get_dt()
+        window_time = self.gali_window_size * self._get_dt(orbit_idx)
 
         gali_data = np.squeeze(self.gali_array[orbit_idx])
         lyap_data = (
@@ -226,11 +240,16 @@ class _OrbitPlottingMixin:
             else None
         )
 
+        t_orbit = (
+            self.timestamps[orbit_idx]
+            if np.ndim(self.timestamps) == 2
+            else self.timestamps
+        )
         return self._dispatch_plot(
             plot_gali_mpl,
             plot_gali_plotly,
             backend,
-            t=self.timestamps,
+            t=t_orbit,
             gali=gali_data,
             k_orders=k_orders,
             threshold=self.gali_threshold,
@@ -427,11 +446,15 @@ class _OrbitPlottingMixin:
         pos = self.trajectories[orbit_idx][:, :3]
 
         if color_by.lower() == "sali":
-            sali = np.squeeze(self.sali_array[orbit_idx])
+            sali = np.squeeze(self.get_sali(orbit_idx))
             c_values = np.log10(np.min(sali, axis=0) if sali.ndim > 1 else sali)
             c_label = "log10(SALI)"
         else:
-            c_values = self.timestamps
+            c_values = (
+                self.timestamps[orbit_idx]
+                if np.ndim(self.timestamps) == 2
+                else self.timestamps
+            )
             c_label = "Time"
 
         return self._dispatch_plot(
@@ -481,16 +504,16 @@ class _OrbitPlottingMixin:
         """
         self._validate_index(orbit_idx)
 
-        chaos_report = self.detect_chaos(orbit_idx=orbit_idx, check_only=True)
+        chaos_report = self.detect_chaos(orbit_idx=orbit_idx)
         sali_is_chaotic, sali_det_time = self._detection_info(
             chaos_report.sali_check, chaos_report.sali_time
         )
         gali_is_chaotic, gali_det_time = self._detection_info(
             chaos_report.gali_check, chaos_report.gali_time
         )
-        dt = self._get_dt()
+        dt = self._get_dt(orbit_idx)
 
-        sali = np.squeeze(self.sali_array[orbit_idx])
+        sali = np.squeeze(self.get_sali(orbit_idx))
         if sali.ndim > 1:
             sali = np.min(sali, axis=0)
 
@@ -500,8 +523,13 @@ class _OrbitPlottingMixin:
             else None
         )
 
+        t_orbit = (
+            self.timestamps[orbit_idx]
+            if np.ndim(self.timestamps) == 2
+            else self.timestamps
+        )
         data = {
-            "t": self.timestamps,
+            "t": t_orbit,
             "pos": self.trajectories[orbit_idx][:, :3],
             "vel": self.trajectories[orbit_idx][:, 3:6],
             "sali": sali,
@@ -561,12 +589,17 @@ class _OrbitPlottingMixin:
         >>> # Assuming `detector` is an integrated OrbitChaosDetector:
         >>> # figs = detector.plot_sali_batch(orbit_indices=[0, 1, 2], show=False)
         """
-        chaos_report = self.detect_chaos(check_only=True)
-        dt = self._get_dt()
+        chaos_report = self.detect_chaos()
+        dt = self._get_dt(0)
+        sali_arr = (
+            np.transpose(self.sali_array, (1, 0, 2))
+            if (self.sali_array.ndim == 3 and self.sali_array.shape[0] == 15)
+            else self.sali_array
+        )
 
         return plot_sali_batch_mpl(
             t=self.timestamps,
-            sali_array=self.sali_array,
+            sali_array=sali_arr,
             orbit_indices=orbit_indices,
             sali_checks=chaos_report.sali_check,
             sali_times=chaos_report.sali_time,
@@ -615,8 +648,8 @@ class _OrbitPlottingMixin:
         >>> # Assuming `detector` is an integrated OrbitChaosDetector:
         >>> # figs = detector.plot_gali_batch(orbit_indices=[0, 1], show=False)
         """
-        chaos_report = self.detect_chaos(check_only=True)
-        dt = self._get_dt()
+        chaos_report = self.detect_chaos()
+        dt = self._get_dt(0)
 
         return plot_gali_batch_mpl(
             t=self.timestamps,
@@ -670,12 +703,17 @@ class _OrbitPlottingMixin:
         >>> # Assuming `detector` is an integrated OrbitChaosDetector:
         >>> # figs = detector.plot_sali_gali_batch(orbit_indices=[0], show=False)
         """
-        chaos_report = self.detect_chaos(check_only=True)
-        dt = self._get_dt()
+        chaos_report = self.detect_chaos()
+        dt = self._get_dt(0)
+        sali_arr = (
+            np.transpose(self.sali_array, (1, 0, 2))
+            if (self.sali_array.ndim == 3 and self.sali_array.shape[0] == 15)
+            else self.sali_array
+        )
 
         return plot_sali_gali_dual_batch_mpl(
             t=self.timestamps,
-            sali_array=self.sali_array,
+            sali_array=sali_arr,
             gali_array=self.gali_array,
             orbit_indices=orbit_indices,
             sali_checks=chaos_report.sali_check,

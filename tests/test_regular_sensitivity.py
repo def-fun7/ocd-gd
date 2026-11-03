@@ -37,7 +37,7 @@ class TestRegularSensitivity:
             ic=ics,
             pot=mw_potential,
         )
-        summary = detector.detect_chaos(check_only=True)
+        summary = detector.detect_chaos()
 
         # Flatten check arrays (True = Chaos detected, False = Regular detected)
         sali_chaotic = summary.sali_check.flatten().astype(bool)

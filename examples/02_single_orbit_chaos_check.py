@@ -52,27 +52,24 @@ def main() -> None:
         gali_threshold=1e-20,
     )
 
-    # 3. Detect Chaos (Summary)
-    summary = detector.detect_chaos(check_only=True)
-
-    # 4. Detect Chaos (Full Report for deeper inspectability)
-    full_report = detector.detect_chaos(check_only=False)
+    # 3. Detect Chaos
+    classification = detector.detect_chaos()
 
     # Clean scalar conversions for formatted printing
-    sali_chk = _to_scalar(summary.sali_check)
-    sali_t = _to_scalar(summary.sali_time)
-    gali_chk = _to_scalar(summary.gali_check)
-    gali_t = _to_scalar(summary.gali_time)
-    lyap_chk = _to_scalar(summary.lyapunov_check)
-    lyap_v = _to_scalar(summary.lyapunov_time)
+    sali_chk = _to_scalar(classification.sali_check)
+    sali_t = _to_scalar(classification.sali_time)
+    gali_chk = _to_scalar(classification.gali_check)
+    gali_t = _to_scalar(classification.gali_time)
+    lyap_chk = _to_scalar(classification.lyapunov_check)
+    lyap_v = _to_scalar(classification.lyapunov_time)
 
-    # Extract full-report array values safely
-    sali_final = _to_scalar(full_report.sali_array[-1])
-    gali_final = _to_scalar(full_report.gali_array[-1])
+    # Extract indicator values safely from detector
+    sali_final = _to_scalar(detector.sali_array[..., -1].min())
+    gali_final = _to_scalar(detector.gali_array[..., -1])
     lyap_final = (
-        (full_report.lyapunov_array[-1])
-        if np.ndim(full_report.lyapunov_array) > 0
-        else (full_report.lyapunov_array)
+        _to_scalar(detector.lyapunov_exponents[-1])
+        if detector.lyapunov_exponents is not None and len(detector.lyapunov_exponents) > 0
+        else float("nan")
     )
 
     # ------------------------------------------------------------------
@@ -81,26 +78,27 @@ def main() -> None:
 
     # Classification Summary Table
     print_kv_table(
-        title="Chaos Detection Summary (check_only=True)",
+        title="Chaos Detection Summary",
         data={
             "SALI Chaos Check": "Chaotic (1.0)" if sali_chk == 1.0 else "Regular (0.0)",
             "SALI Convergence Time": f"{sali_t:.2f} time units",
             "GALI Chaos Check": "Chaotic (1.0)" if gali_chk == 1.0 else "Regular (0.0)",
             "GALI Convergence Time": f"{gali_t:.2f} time units",
             "Lyapunov Check": "Chaotic (1.0)" if lyap_chk == 1.0 else "Regular (0.0)",
-            "Lyapunov Value": f"{lyap_v:.4e}",
+            "Lyapunov Time": f"{lyap_v:.2f}" if np.isfinite(lyap_v) else "inf",
         },
         header_style="bold magenta",
     )
 
-    # Full Report Details Table
+    # Full Indicator Details Table
+    n_pts = len(detector.timestamps[0]) if detector.timestamps.ndim == 2 else len(detector.timestamps)
     print_kv_table(
-        title="Full Diagnostic Report (check_only=False)",
+        title="Diagnostic Indicator Metrics",
         data={
-            "Time Array Points": str(len(full_report.timestamps)),
-            "SALI Sequence Length": str(len(full_report.sali_array)),
-            "GALI Sequence Length": str(len(full_report.gali_array)),
-            "Final SALI Value": f"{sali_final:.4e}",
+            "Time Array Points": str(n_pts),
+            "SALI Envelope Length": str(detector.sali_array.shape[-1]),
+            "GALI Sequence Length": str(detector.gali_array.shape[-1]),
+            "Final Min SALI Value": f"{sali_final:.4e}",
             "Final GALI Value": f"{gali_final:.4e}",
             "Final Lyapunov Exp": f"{lyap_final:.4e}",
         },

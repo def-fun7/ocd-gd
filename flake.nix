@@ -22,6 +22,11 @@
       inputs.uv2nix.follows = "uv2nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    agama-src = {
+      url = "github:GalacticDynamics-Oxford/AGAMA";
+      flake = false;
+    };
+
   };
 
   outputs =
@@ -32,6 +37,7 @@
       pyproject-nix,
       uv2nix,
       pyproject-build-systems,
+      agama-src,
     }:
     flake-utils.lib.eachDefaultSystem (
       system:
@@ -48,7 +54,7 @@
         # Patch AGAMA with required native C libraries and build tools
         agama-python = final: prev: {
           agama = prev.agama.overrideAttrs (old: {
-            # C dependencies for linking
+            src = agama-src;
             buildInputs = (old.buildInputs or [ ]) ++ [
               pkgs.gsl
               pkgs.gmp
