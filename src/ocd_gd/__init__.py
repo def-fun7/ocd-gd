@@ -1,7 +1,7 @@
 """
 Chaos Analysis Package.
 
-A package for evaluating orbit integration data, checking convergence,
+A package for evaluating orbit integration data, detection/onset times,
 and detecting chaotic vs. regular dynamical behavior using SALI/GALI metrics.
 """
 

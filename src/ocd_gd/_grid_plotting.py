@@ -239,12 +239,15 @@ class _GridChaosPlottingMixin:
 
         Examples
         --------
+        >>> import os, tempfile
         >>> import agama
         >>> from ocd_gd.grid_detector import GridChaosDetector
         >>> agama.setUnits(mass=1, length=1, velocity=1)
         >>> pot = agama.Potential(type="Spheroid", mass=1e10, scaleRadius=5.0)
         >>> detector = GridChaosDetector(potential=pot, R_0=8.0, grid_size=3)
-        >>> detector.save_chaos_maps(side_by_side_path="grid.png", composite_path="composite.png")
+        >>> with tempfile.TemporaryDirectory() as tmp:
+        ...     detector.save_chaos_maps(side_by_side_path=os.path.join(tmp, "grid.png"),
+        ...                              composite_path=os.path.join(tmp, "composite.png"))
         """
         if side_by_side_path is not None:
             self.plot_chaos_map(

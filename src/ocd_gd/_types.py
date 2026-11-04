@@ -6,6 +6,7 @@ containers with no behavior of their own.
 """
 
 __all__ = [
+    "LYAPUNOV_CHAOS_THRESHOLD",
     "_UNSET",
     "ChaosAgreement",
     "ChaosSurveySummary",
@@ -24,6 +25,7 @@ import numpy.typing as npt
 from astropy.table import QTable
 
 _UNSET: Any = object()
+LYAPUNOV_CHAOS_THRESHOLD: float = 0.1
 
 
 @dataclass(frozen=True)
@@ -32,7 +34,7 @@ class IntegrationCriteria:
 
     Parameters
     ----------
-    iter_time : float
+    iter_time : float | npt.NDArray[np.float64]
         Total integration time in Agama time units.
     traj_size : int
         size of trajectory array

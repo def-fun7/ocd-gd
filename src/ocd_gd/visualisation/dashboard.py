@@ -126,7 +126,6 @@ def plot_dashboard_mpl(
 
 def plot_dashboard_plotly(
     data: dict[str, npt.NDArray[np.float64]],
-    threshold: float = 1e-8,
     save_path: str | None = None,
     show: bool = True,
     **kwargs,
@@ -138,7 +137,6 @@ def plot_dashboard_plotly(
             - "pos": Position array of shape (N, 3).
             - "t": Time array.
             - "sali": SALI evolution array.
-        threshold: Chaos detection threshold for SALI. Defaults to 1e-8.
         save_path: Path to save the interactive plots. If set, saves three files with
             prefixes _3d, _2d, and _sali appended to the base filename. Defaults to None.
         show: If True, opens the plots in a browser. Defaults to True.
@@ -147,9 +145,7 @@ def plot_dashboard_plotly(
 
     fig_3d = plot_trajectory_3d_plotly(data["pos"], show=False)
     fig_2d = plot_trajectory_2d_plotly(data["pos"], show=False)
-    fig_sali = plot_sali_plotly(
-        data["t"], data["sali"], threshold=threshold, show=False
-    )
+    fig_sali = plot_sali_plotly(data["t"], data["sali"], show=False)
 
     if show:
         fig_3d.show()

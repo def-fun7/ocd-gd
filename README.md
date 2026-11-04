@@ -1,6 +1,6 @@
 # Orbital Chaos Detector - Galactic Dynamics (ocd-gd)
 
-[![License: GPL-3.0](https://img.shields.io/badge/License-GPL--3.0-blue.svg)](LICENSE) [![Python Version](https://img.shields.io/badge/03.13+-3776AB.svg?logo=python&logoColor=white)](https://www.python.org/) [![AGAMA Core](https://img.shields.io/badge/C%2B%2B%20Core-AGAMA-orange.svg)](https://github.com/gaspicker/agama) [![Build Tool](https://img.shields.io/badge/package%20manager-uv-de5b44.svg?logo=python&logoColor=white)](https://github.com/astral-sh/uv)
+[![License: GPL-3.0](https://img.shields.io/badge/License-GPL--3.0-blue.svg)](LICENSE) [![Python Version](https://img.shields.io/badge/3.13+-3776AB.svg?logo=python&logoColor=white)](https://www.python.org/) [![AGAMA Core](https://img.shields.io/badge/C%2B%2B%20Core-AGAMA-orange.svg)](https://github.com/GalacticDynamics-Oxford/AGAMA) [![Build Tool](https://img.shields.io/badge/package%20manager-uv-de5b44.svg?logo=python&logoColor=white)](https://github.com/astral-sh/uv)
 [![Nix Support](https://img.shields.io/badge/Nix-Flake-5277C3.svg?logo=nixos&logoColor=white)](flake.nix) [![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Linux%20%7C%20Windows-lightgrey.svg)](#setup--installation)
 
 `ocd-gd` is a toolkit for analyzing chaotic dynamics in galactic potential models. It builds on top of the **AGAMA** library for galactic dynamics, providing automated tools for orbit integration, chaos detection, and phase-space classification.
@@ -28,8 +28,7 @@ The repository includes a cross-platform shell script that detects your operatin
 
 ```bash
 # Make the setup script executable (first time only)
-chmod +x scripts/setup-env.sh
-
+chmod +x setup.sh
 # Run the automated setup
 ./setup.sh
 ```
@@ -89,6 +88,30 @@ uv run pytest
 ```
 
 ---
+
+## Quick example
+
+```python
+import agama
+from ocd_gd import OrbitChaosDetector
+
+agama.setUnits(mass=1, length=1, velocity=1)  # Msun, kpc, km/s
+pot = agama.Potential(type="Spheroid", mass=1e10, scaleRadius=5.0, gamma=1.0, beta=4.0)
+
+detector = OrbitChaosDetector(
+    ic=[8.0, 0.0, 0.05, 0.0, 180.0, 5.0], pot=pot, n_periods=30
+)
+report = detector.detect_chaos()
+
+report.gali_check  # 1.0 if GALI_6 classifies the orbit as chaotic, else 0.0
+report.gali["score"]  # chaos score in [0, 1]
+report.gali["rate_norm"]  # normalised decay rate (decay rate x orbital period)
+```
+
+Each orbit is classified by fitting decay laws to the SALI and GALI_6 time series (plateau, power
+law, exponential, plateau -> exponential, plateau -> power law) and selecting among them with the
+BIC. See the [Getting Started Guide](https://ocd-gd.readthedocs.io/en/latest/quickstart.html)
+for the result fields, the integration-length options, and 2D chaos maps.
 
 ## 📚 Documentation & Resources
 

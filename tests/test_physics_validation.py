@@ -36,7 +36,7 @@ class TestPhysicalPotentials:
     """Physics-driven integration tests verifying true/false chaos classification."""
 
     def test_spherical_potential_is_strictly_regular(self, spherical_potential):
-        """Spherical potentials must yield strictly regular orbits (SALI > threshold, GALI > threshold)."""
+        """Spherical potentials must yield strictly regular orbits."""
         # Circular-like orbit in spherical potential
         ic = [10.0, 0.0, 0.0, 0.0, 150.0, 0.0]
 

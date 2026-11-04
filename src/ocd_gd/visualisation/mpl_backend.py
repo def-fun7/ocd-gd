@@ -83,7 +83,6 @@ def _format_lyap_text(lyap_data: npt.NDArray[np.float64] | None) -> str | None:
 def plot_sali_mpl(
     t: npt.NDArray[np.float64],
     sali: npt.NDArray[np.float64],
-    threshold: float | None = 1e-8,
     is_chaotic: bool | None = None,
     detection_time: float | None = None,
     lyapunov: npt.NDArray[np.float64] | None = None,
@@ -98,7 +97,6 @@ def plot_sali_mpl(
     Args:
         t: Time array.
         sali: SALI evolution array.
-        threshold: Chaos detection threshold line value. Defaults to 1e-8.
         is_chaotic: Flag indicating if classified as chaotic. Defaults to None.
         detection_time: Time of chaos detection. Defaults to None.
         lyapunov: Lyapunov exponents/evolution data to format and show. Defaults to None.
@@ -154,33 +152,15 @@ def plot_sali_mpl(
     else:
         ax.plot(t, sali, color=color, lw=lw, label=label)
 
-    if threshold is not None:
-        thresh_color = kwargs.get("thresh_color", "black")
-        thresh_ls = kwargs.get("thresh_ls", "--")
-        ax.axhline(
-            threshold,
-            color=thresh_color,
-            linestyle=thresh_ls,
-            alpha=0.7,
-            label=kwargs.get("thresh_label", f"Threshold ({threshold:.0e})"),
-        )
-
     if is_chaotic and detection_time is not None and np.isfinite(detection_time):
-        t_start = max(t[0], detection_time - 0)
-        t_end = detection_time
-
-        ax.axvspan(
-            t_start,
-            t_end,
-            ymin=0,
-            ymax=1,
+        ax.axvline(
+            detection_time,
             color="orange",
-            alpha=0.3,
-            zorder=0,
-            label=f"Detection Window (t={t_end:.2f})",
+            linestyle=":",
+            lw=1.5,
+            zorder=2,
+            label=f"Onset (t={detection_time:.2f})",
         )
-        ax.axvline(t_end, color="orange", linestyle=":", lw=1.5, zorder=2)
-
     lyap_str = _format_lyap_text(lyapunov)
     if lyap_str and kwargs.get("show_lyapunov", True):
         ax.text(
@@ -216,7 +196,6 @@ def plot_gali_mpl(
     t: npt.NDArray[np.float64],
     gali: npt.NDArray[np.float64],
     k_orders: list[int | None] | None = None,
-    threshold: float | None = 1e-16,
     is_chaotic: bool | None = None,
     detection_time: float | None = None,
     lyapunov: npt.NDArray[np.float64] | None = None,
@@ -232,7 +211,6 @@ def plot_gali_mpl(
         t: Time array.
         gali: GALI evolution array of shape (N, k) or (N,).
         k_orders: GALI order list to plot. Defaults to None.
-        threshold: Chaos detection threshold line value. Defaults to 1e-16.
         is_chaotic: Flag indicating if classified as chaotic. Defaults to None.
         detection_time: Time of chaos detection. Defaults to None.
         lyapunov: Lyapunov exponents/evolution data to format and show. Defaults to None.
@@ -282,33 +260,15 @@ def plot_gali_mpl(
             )
             ax.plot(t, gali[:, i], color=colors[i], lw=kwargs.get("lw", 1.5), label=lbl)
 
-    if threshold is not None:
-        thresh_color = kwargs.get("thresh_color", "black")
-        thresh_ls = kwargs.get("thresh_ls", "--")
-        ax.axhline(
-            threshold,
-            color=thresh_color,
-            linestyle=thresh_ls,
-            alpha=0.7,
-            label=kwargs.get("thresh_label", f"Threshold ({threshold:.0e})"),
-        )
-
     if is_chaotic and detection_time is not None and np.isfinite(detection_time):
-        t_start = max(t[0], detection_time - 0)
-        t_end = detection_time
-
-        ax.axvspan(
-            t_start,
-            t_end,
-            ymin=0,
-            ymax=1,
+        ax.axvline(
+            detection_time,
             color="orange",
-            alpha=0.3,
-            zorder=0,
-            label=f"Detection Window (t={t_end:.2f})",
+            linestyle=":",
+            lw=1.5,
+            zorder=2,
+            label=f"Onset (t={detection_time:.2f})",
         )
-        ax.axvline(t_end, color="orange", linestyle=":", lw=1.5, zorder=2)
-
     lyap_str = _format_lyap_text(lyapunov)
     if lyap_str and kwargs.get("show_lyapunov", True):
         ax.text(

@@ -45,7 +45,6 @@ def _handle_save_show(
 def plot_sali_plotly(
     t: npt.NDArray[np.float64],
     sali: npt.NDArray[np.float64],
-    threshold: float | None = 1e-8,
     is_chaotic: bool | None = None,
     detection_time: float | None = None,
     window_size_time: float | None = None,
@@ -58,7 +57,6 @@ def plot_sali_plotly(
     Args:
         t: Time array.
         sali: SALI evolution array.
-        threshold: Chaos detection threshold line value. Defaults to 1e-8.
         is_chaotic: Flag indicating if classified as chaotic. Defaults to None.
         detection_time: Time of chaos detection. Defaults to None.
         window_size_time: Size of the sliding detection window. Defaults to None.
@@ -90,15 +88,6 @@ def plot_sali_plotly(
         )
     )
 
-    if threshold is not None:
-        thresh_color = kwargs.get("thresh_color", "gray")
-        fig.add_hline(
-            y=threshold,
-            line_dash="dash",
-            line_color=thresh_color,
-            annotation_text=f"Threshold ({threshold:.0e})",
-            annotation_position="bottom right",
-        )
     if (
         is_chaotic
         and detection_time is not None

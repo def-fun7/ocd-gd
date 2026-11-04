@@ -18,7 +18,7 @@ from ._grid_ics import _circular_velocity, _generate_grid_ics, _reference_energy
 from ._grid_plotting import _GridChaosPlottingMixin
 from ._resonance import ResonanceRadii, compute_resonance_radii
 from ._terminal_config import get_logger
-from ._types import _UNSET
+from ._types import _UNSET, LYAPUNOV_CHAOS_THRESHOLD
 from ._units import AgamaUnits
 from .orbit_detector import OrbitChaosDetector
 
@@ -148,11 +148,34 @@ class GridChaosDetector(_GridChaosPlottingMixin, OrbitChaosDetector):
             Range to scan when locating the physical x turning points at E_0.
         search_resolution : int, default 1000
             Number of scan points used to locate the turning points.
-        omega, n_periods, iter_time, traj_size, accuracy, max_num_steps, plotting_backend,
-        map_values: str , default "checks"
-        keep_raw_deviations :
-            Forwarded to `OrbitChaosDetector.__init__` — see its docstring
-            for details.
+                omega : float, default 0.0
+            Pattern speed of the rotating frame (also used for the resonance overlays).
+        n_periods : float or None, optional
+            Number of orbital periods to integrate each orbit; the duration is
+            ``n_periods * pot.Tcirc(ic)``, as in `OrbitChaosDetector`. Mutually
+            exclusive with ``iter_time``. Defaults to 30.0 when neither is given.
+        iter_time : float or None, default None
+            Direct integration time in Agama time units. Mutually exclusive with
+            ``n_periods``.
+        traj_size : int, default 5000
+            Number of stored trajectory points per orbit, at regular time
+            intervals (first point = initial conditions, last = end of integration).
+        accuracy : float, default 1e-8
+            Integration precision for Agama.
+        max_num_steps : int, default 100000000
+            Safety cap on the number of integration steps per orbit.
+        plotting_backend : str, default "matplotlib"
+            "matplotlib" or "plotly".
+        map_values : {"checks", "score", "rate_norm"}, default "checks"
+            What the SALI/GALI/Lyapunov chaos maps (`chaos_grids`) show.
+            "checks": binary chaotic flags (undetermined orbits count as regular).
+            "score": chaos score in [0, 1], NaN where undetermined; the Lyapunov
+            panel shows its 0/1 flag. "rate_norm": normalised decay rate (0 for
+            regular orbits, NaN where undetermined); the Lyapunov panel shows
+            Agama's Lyapunov value. Composite and consensus maps always use the
+            binary checks (`check_grids`).
+        keep_raw_deviations : bool, default False
+            Forwarded to `OrbitChaosDetector.__init__`.
         units : AgamaUnits, optional
             Forwarded to `OrbitChaosDetector.__init__`. Used here to tag
             `R_0`, `E_0`, `y_0`, `z_0`, and `omega` as physical `Quantity`
@@ -265,7 +288,9 @@ class GridChaosDetector(_GridChaosPlottingMixin, OrbitChaosDetector):
         """
         dc = self.detect_chaos()
         lyap = self._lyap[:, 0]
-        lyap_check = np.where(np.isnan(lyap), np.nan, np.where(lyap > 0.1, 1.0, 0.0))
+        lyap_check = np.where(
+            np.isnan(lyap), np.nan, np.where(lyap > LYAPUNOV_CHAOS_THRESHOLD, 1.0, 0.0)
+        )
         if mode == "checks":
             values = (dc.sali_check, dc.gali_check, lyap_check)
         elif (

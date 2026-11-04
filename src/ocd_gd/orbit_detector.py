@@ -28,6 +28,7 @@ from ._sali_kernel import sali_kernel
 from ._terminal_config import get_logger
 from ._types import (
     _UNSET,
+    LYAPUNOV_CHAOS_THRESHOLD,
     ChaosAgreement,
     ChaosSurveySummary,
     DecayClassification,
@@ -737,14 +738,16 @@ class OrbitChaosDetector(_OrbitPlottingMixin):
         detect_chaos_start = time.perf_counter()
         self._validate_index(orbit_idx)
 
-        is_default_run = (
+        is_default_config = (
             not separate_sali
             and sali_preset == "sali"
             and gali_preset == "gali6_3dof"
             and sali_kwargs is None
             and gali_kwargs is None
-            and orbit_idx is None
         )
+        is_default_run = is_default_config and orbit_idx is None
+        if is_default_config and orbit_idx is not None:
+            return self._slice_classification(self.detect_chaos(), orbit_idx)
 
         if is_default_run and self._chaos_results_cache is not None:
             logger.info("Using cached decay-classifier results for detect_chaos")
@@ -761,28 +764,11 @@ class OrbitChaosDetector(_OrbitPlottingMixin):
         t_orb = self.pot.Tcirc(self.ic)
 
         if not separate_sali:
-            sali_ts = (
-                self.sali_array.min(axis=0)
-                if (self.sali_array.ndim == 3 and self.sali_array.shape[0] == 15)
-                else (
-                    self.sali_array.min(axis=1)
-                    if self.sali_array.ndim == 3
-                    else self.sali_array
-                )
-            )
+            sali_ts = self.sali_array.min(axis=0)
             sali_result = classify_decay(sali_ts, self.timestamps, t_orb=t_orb, **s_kw)
         else:
-            if self.sali_array.ndim == 3 and self.sali_array.shape[0] == 15:
-                n_pairs, n_orb, n_t = self.sali_array.shape
-                sali_flat = self.sali_array.reshape(n_pairs * n_orb, n_t)
-            elif self.sali_array.ndim == 3:
-                sali_transposed = np.transpose(self.sali_array, (1, 0, 2))
-                n_pairs, n_orb, n_t = sali_transposed.shape
-                sali_flat = sali_transposed.reshape(n_pairs * n_orb, n_t)
-            else:
-                n_pairs, n_orb = 1, self.num_orbits
-                sali_flat = self.sali_array
-
+            n_pairs, n_orb, n_t = self.sali_array.shape
+            sali_flat = self.sali_array.reshape(n_pairs * n_orb, n_t)
             t_orb_expanded = (
                 np.tile(np.asarray(t_orb), n_pairs) if t_orb is not None else None
             )
@@ -805,7 +791,7 @@ class OrbitChaosDetector(_OrbitPlottingMixin):
         lyap_array = self._lyap[:, 0]
         lyap_time = self._lyap[:, 1]
         is_nan = np.isnan(lyap_array)
-        lyap_c = np.where(lyap_array <= 0.1, 0.0, 1.0)
+        lyap_c = np.where(lyap_array <= LYAPUNOV_CHAOS_THRESHOLD, 0.0, 1.0)
         lyap_c[is_nan] = np.nan
         lyap_t = np.where(is_nan, np.inf, lyap_time)
 
@@ -820,31 +806,7 @@ class OrbitChaosDetector(_OrbitPlottingMixin):
             self._chaos_results_cache = result
 
         if orbit_idx is not None:
-            if separate_sali:
-                sliced_sali = {
-                    k: (
-                        v[:, orbit_idx]
-                        if hasattr(v, "__getitem__") and getattr(v, "ndim", 0) == 2
-                        else v
-                    )
-                    for k, v in sali_result.items()
-                }
-            else:
-                sliced_sali = {
-                    k: (v[orbit_idx] if hasattr(v, "__getitem__") else v)
-                    for k, v in sali_result.items()
-                }
-            sliced_gali = {
-                k: (v[orbit_idx] if hasattr(v, "__getitem__") else v)
-                for k, v in gali_result.items()
-            }
-            result = DecayClassification(
-                sali=sliced_sali,
-                gali=sliced_gali,
-                lyapunov_check=lyap_c[orbit_idx],
-                lyapunov_time=lyap_t[orbit_idx],
-            )
-
+            result = self._slice_classification(result, orbit_idx, separate_sali)
         logger.info(
             "detect_chaos completed in %.3fs (orbit_idx=%s, separate_sali=%s)",
             time.perf_counter() - detect_chaos_start,
@@ -852,6 +814,23 @@ class OrbitChaosDetector(_OrbitPlottingMixin):
             separate_sali,
         )
         return result
+
+    @staticmethod
+    def _slice_classification(result, orbit_idx, separate_sali=False):
+        def take(values, pairs_first):
+            values = np.asarray(values)
+            return (
+                values[:, orbit_idx]
+                if pairs_first and values.ndim == 2
+                else values[orbit_idx]
+            )
+
+        return DecayClassification(
+            sali={k: take(v, separate_sali) for k, v in result.sali.items()},
+            gali={k: take(v, False) for k, v in result.gali.items()},
+            lyapunov_check=result.lyapunov_check[orbit_idx],
+            lyapunov_time=result.lyapunov_time[orbit_idx],
+        )
 
     def _method_stats(self, labels: npt.NDArray[np.int_]) -> MethodChaosStats:
         """Build a MethodChaosStats block from a decay-classifier label array.
@@ -939,8 +918,12 @@ class OrbitChaosDetector(_OrbitPlottingMixin):
         lyap_array = self._lyap[:, 0]
         lyap_labels = np.zeros(self.num_orbits, dtype=int)
         lyap_undetermined = np.isnan(lyap_array)
-        lyap_labels[~lyap_undetermined & (lyap_array > 0.1)] = 2  # chaotic (even)
-        lyap_labels[~lyap_undetermined & (lyap_array <= 0.1)] = 1  # regular (odd)
+        lyap_labels[~lyap_undetermined & (lyap_array > LYAPUNOV_CHAOS_THRESHOLD)] = (
+            2  # chaotic (even)
+        )
+        lyap_labels[~lyap_undetermined & (lyap_array <= LYAPUNOV_CHAOS_THRESHOLD)] = (
+            1  # regular (odd)
+        )
         lyap_stats = self._method_stats(lyap_labels)
 
         sali_bool = is_chaotic(orbit_sali_labels)
