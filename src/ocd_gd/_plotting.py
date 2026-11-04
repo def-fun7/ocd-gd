@@ -145,8 +145,10 @@ class _OrbitPlottingMixin:
 
         Examples
         --------
-        >>> # Assuming `detector` is an integrated OrbitChaosDetector:
-        >>> # fig = detector.plot_sali(orbit_idx=0, backend="matplotlib", show=False)
+        >>> import agama
+        >>> from ocd_gd.orbit_detector import OrbitChaosDetector
+        >>> detector = OrbitChaosDetector(ic=[8.0, 0.0, 0.05, 0.0, 180.0, 5.0], pot=agama.Potential(type="Spheroid", mass=1e10, scaleRadius=5.0), iter_time=1.0)
+        >>> fig = detector.plot_sali(orbit_idx=0, backend="matplotlib", show=False)
         """
         self._validate_index(orbit_idx)
 
@@ -221,8 +223,10 @@ class _OrbitPlottingMixin:
 
         Examples
         --------
-        >>> # Assuming `detector` is an integrated OrbitChaosDetector:
-        >>> # fig = detector.plot_gali(orbit_idx=0, backend="plotly", show=False)
+        >>> import agama
+        >>> from ocd_gd.orbit_detector import OrbitChaosDetector
+        >>> detector = OrbitChaosDetector(ic=[8.0, 0.0, 0.05, 0.0, 180.0, 5.0], pot=agama.Potential(type="Spheroid", mass=1e10, scaleRadius=5.0), iter_time=1.0)
+        >>> fig = detector.plot_gali(orbit_idx=0, backend="plotly", show=False)
         """
         self._validate_index(orbit_idx)
 
@@ -292,8 +296,10 @@ class _OrbitPlottingMixin:
 
         Examples
         --------
-        >>> # Assuming `detector` is an integrated OrbitChaosDetector:
-        >>> # fig = detector.plot_trajectory_2d(orbit_idx=0, show=False)
+        >>> import agama
+        >>> from ocd_gd.orbit_detector import OrbitChaosDetector
+        >>> detector = OrbitChaosDetector(ic=[8.0, 0.0, 0.05, 0.0, 180.0, 5.0], pot=agama.Potential(type="Spheroid", mass=1e10, scaleRadius=5.0), iter_time=1.0)
+        >>> fig = detector.plot_trajectory_2d(orbit_idx=0, show=False)
         """
         self._validate_index(orbit_idx)
         pos = self.trajectories[orbit_idx][:, :3]
@@ -338,8 +344,10 @@ class _OrbitPlottingMixin:
 
         Examples
         --------
-        >>> # Assuming `detector` is an integrated OrbitChaosDetector:
-        >>> # fig = detector.plot_trajectory_3d(orbit_idx=0, show=False)
+        >>> import agama
+        >>> from ocd_gd.orbit_detector import OrbitChaosDetector
+        >>> detector = OrbitChaosDetector(ic=[8.0, 0.0, 0.05, 0.0, 180.0, 5.0], pot=agama.Potential(type="Spheroid", mass=1e10, scaleRadius=5.0), iter_time=1.0)
+        >>> fig = detector.plot_trajectory_3d(orbit_idx=0, show=False)
         """
         self._validate_index(orbit_idx)
         pos = self.trajectories[orbit_idx][:, :3]
@@ -387,8 +395,10 @@ class _OrbitPlottingMixin:
 
         Examples
         --------
-        >>> # Assuming `detector` is an integrated OrbitChaosDetector:
-        >>> # fig = detector.plot_phase_space(orbit_idx=0, plane="x", show=False)
+        >>> import agama
+        >>> from ocd_gd.orbit_detector import OrbitChaosDetector
+        >>> detector = OrbitChaosDetector(ic=[8.0, 0.0, 0.05, 0.0, 180.0, 5.0], pot=agama.Potential(type="Spheroid", mass=1e10, scaleRadius=5.0), iter_time=1.0)
+        >>> fig = detector.plot_phase_space(orbit_idx=0, plane="x", show=False)
         """
         self._validate_index(orbit_idx)
         pos = self.trajectories[orbit_idx][:, :3]
@@ -439,8 +449,10 @@ class _OrbitPlottingMixin:
 
         Examples
         --------
-        >>> # Assuming `detector` is an integrated OrbitChaosDetector:
-        >>> # fig = detector.plot_colored_trajectory(orbit_idx=0, color_by="sali", show=False)
+        >>> import agama
+        >>> from ocd_gd.orbit_detector import OrbitChaosDetector
+        >>> detector = OrbitChaosDetector(ic=[8.0, 0.0, 0.05, 0.0, 180.0, 5.0], pot=agama.Potential(type="Spheroid", mass=1e10, scaleRadius=5.0), iter_time=1.0)
+        >>> fig = detector.plot_colored_trajectory(orbit_idx=0, color_by="sali", show=False)
         """
         self._validate_index(orbit_idx)
         pos = self.trajectories[orbit_idx][:, :3]
@@ -499,8 +511,10 @@ class _OrbitPlottingMixin:
 
         Examples
         --------
-        >>> # Assuming `detector` is an integrated OrbitChaosDetector:
-        >>> # fig = detector.plot_dashboard(orbit_idx=0, show=False)
+        >>> import agama
+        >>> from ocd_gd.orbit_detector import OrbitChaosDetector
+        >>> detector = OrbitChaosDetector(ic=[8.0, 0.0, 0.05, 0.0, 180.0, 5.0], pot=agama.Potential(type="Spheroid", mass=1e10, scaleRadius=5.0), iter_time=1.0)
+        >>> fig = detector.plot_dashboard(orbit_idx=0, show=False)
         """
         self._validate_index(orbit_idx)
 
@@ -535,7 +549,6 @@ class _OrbitPlottingMixin:
             "sali": sali,
             "gali": np.squeeze(self.gali_array[orbit_idx]),
             "lyapunov": lyap_data,
-
             "sali_is_chaotic": sali_is_chaotic,
             "sali_det_time": sali_det_time if np.isfinite(sali_det_time) else None,
             "sali_window_time": self.sali_window_size * dt,
@@ -586,8 +599,11 @@ class _OrbitPlottingMixin:
 
         Examples
         --------
-        >>> # Assuming `detector` is an integrated OrbitChaosDetector:
-        >>> # figs = detector.plot_sali_batch(orbit_indices=[0, 1, 2], show=False)
+        >>> import agama
+        >>> from ocd_gd.orbit_detector import OrbitChaosDetector
+        >>> ics = [[8.0, 0.0, 0.05, 0.0, 180.0, 5.0], [8.0, 0.0, 0.05, 0.0, 180.0, 5.0], [8.0, 0.0, 0.05, 0.0, 180.0, 5.0]]
+        >>> detector = OrbitChaosDetector(ic=ics, pot=agama.Potential(type="Spheroid", mass=1e10, scaleRadius=5.0), iter_time=1.0)
+        >>> fig = detector.plot_sali_batch(orbit_indices=[0, 1, 2], show=False)
         """
         chaos_report = self.detect_chaos()
         dt = self._get_dt(0)
@@ -645,8 +661,11 @@ class _OrbitPlottingMixin:
 
         Examples
         --------
-        >>> # Assuming `detector` is an integrated OrbitChaosDetector:
-        >>> # figs = detector.plot_gali_batch(orbit_indices=[0, 1], show=False)
+        >>> import agama
+        >>> from ocd_gd.orbit_detector import OrbitChaosDetector
+        >>> ics = [[8.0, 0.0, 0.05, 0.0, 180.0, 5.0], [8.0, 0.0, 0.05, 0.0, 180.0, 5.0], [8.0, 0.0, 0.05, 0.0, 180.0, 5.0]]
+        >>> detector = OrbitChaosDetector(ic=ics, pot=agama.Potential(type="Spheroid", mass=1e10, scaleRadius=5.0), iter_time=1.0)
+        >>> fig = detector.plot_gali_batch(orbit_indices=[0, 1], show=False)
         """
         chaos_report = self.detect_chaos()
         dt = self._get_dt(0)
@@ -700,8 +719,10 @@ class _OrbitPlottingMixin:
 
         Examples
         --------
-        >>> # Assuming `detector` is an integrated OrbitChaosDetector:
-        >>> # figs = detector.plot_sali_gali_batch(orbit_indices=[0], show=False)
+        >>> import agama
+        >>> from ocd_gd.orbit_detector import OrbitChaosDetector
+        >>> detector = OrbitChaosDetector(ic=[8.0, 0.0, 0.05, 0.0, 180.0, 5.0], pot=agama.Potential(type="Spheroid", mass=1e10, scaleRadius=5.0), iter_time=1.0)
+        >>> fig = detector.plot_sali_gali_batch(orbit_indices=[0], show=False)
         """
         chaos_report = self.detect_chaos()
         dt = self._get_dt(0)

@@ -11,7 +11,7 @@ __all__ = [
 import matplotlib.pyplot as plt
 import numpy as np
 import numpy.typing as npt
-from matplotlib.colors import BoundaryNorm, ListedColormap
+from matplotlib.colors import BoundaryNorm, ListedColormap, LinearSegmentedColormap
 from matplotlib.lines import Line2D
 from matplotlib.patches import Patch
 
@@ -148,24 +148,28 @@ def _build_side_by_side_legend_elements(
     has_zvc: bool,
     resonance_specs: list[tuple[float, str, str]],
     has_family_boundary: bool,
+    binary: bool = True,
 ) -> list:
-    elements = [
-        Patch(
-            facecolor=theme.color_regular,
-            edgecolor="none",
-            label=SIDE_BY_SIDE_LEGEND_LABELS["regular"],
-        ),
-        Patch(
-            facecolor=theme.color_chaotic,
-            edgecolor="none",
-            label=SIDE_BY_SIDE_LEGEND_LABELS["chaotic"],
-        ),
-        Patch(
-            facecolor=theme.color_masked,
-            edgecolor="none",
-            label=SIDE_BY_SIDE_LEGEND_LABELS["masked"],
-        ),
-    ]
+    if binary:
+        elements = [
+            Patch(
+                facecolor=theme.color_regular,
+                edgecolor="none",
+                label=SIDE_BY_SIDE_LEGEND_LABELS["regular"],
+            ),
+            Patch(
+                facecolor=theme.color_chaotic,
+                edgecolor="none",
+                label=SIDE_BY_SIDE_LEGEND_LABELS["chaotic"],
+            ),
+            Patch(
+                facecolor=theme.color_masked,
+                edgecolor="none",
+                label=SIDE_BY_SIDE_LEGEND_LABELS["masked"],
+            ),
+        ]
+    else:
+        elements = []
     if has_zvc:
         elements.append(_zvc_legend_handle(theme.zvc_color))
     if has_family_boundary:
@@ -202,6 +206,7 @@ def plot_chaos_maps_mpl(
     sali_grid: npt.NDArray[np.float64],
     gali_grid: npt.NDArray[np.float64],
     lyapunov_grid: npt.NDArray[np.float64],
+    map_values: str,
     x_vals: npt.NDArray[np.float64],
     v_x_vals: npt.NDArray[np.float64],
     E_rem_vals: npt.NDArray[np.float64] | None = None,
@@ -241,7 +246,7 @@ def plot_chaos_maps_mpl(
         >>> lyap = np.zeros((10, 10))
         >>> x = np.linspace(-1, 1, 10)
         >>> vx = np.linspace(-1, 1, 10)
-        >>> fig, axes = plot_chaos_maps_mpl(sali, gali, lyap, x, vx, show=False)
+        >>> fig, axes = plot_chaos_maps_mpl(sali, gali, lyap, "checks", x, vx, show=False)
     """
     th = get_theme(theme)
     grid_size_y, grid_size_x = sali_grid.shape
@@ -254,8 +259,26 @@ def plot_chaos_maps_mpl(
         v_x_vals[-1] + dy / 2,
     ]
 
-    cmap = ListedColormap([th.color_regular, th.color_chaotic])
-    cmap.with_extremes(bad=th.color_masked)
+    continuous = map_values != "checks"
+    if continuous:
+        cmap = LinearSegmentedColormap.from_list(
+            "chaos", [th.color_regular, th.color_chaotic]
+        )
+        if map_values == "score":
+            vmin, vmax = 0.0, 1.0
+        else:
+            finite = np.concatenate(
+                [g[np.isfinite(g)] for g in (sali_grid, gali_grid, lyapunov_grid)]
+            )
+            vmin = 0.0
+            vmax = float(
+                kwargs.get("vmax", np.percentile(finite, 99) if finite.size else 1.0)
+            )
+            vmax = vmax if vmax > 0 else 1.0
+    else:
+        cmap = ListedColormap([th.color_regular, th.color_chaotic])
+        vmin, vmax = 0, 1
+    cmap = cmap.with_extremes(bad=th.color_masked)  # fixes the discarded copy
 
     fig, axes = plt.subplots(
         1, 3, figsize=SIDE_BY_SIDE_FIGSIZE_MPL, sharex=True, sharey=True
@@ -267,13 +290,25 @@ def plot_chaos_maps_mpl(
     family_drawn = False
 
     panel_configs = [
-        (axes[0], sali_grid, f"SALI Chaos Map ({grid_size_x}x{grid_size_y})"),
-        (axes[1], gali_grid, f"GALI Chaos Map ({grid_size_x}x{grid_size_y})"),
-        (axes[2], lyapunov_grid, f"Lyapunov Map ({grid_size_x}x{grid_size_y})"),
+        (
+            axes[0],
+            sali_grid,
+            f"SALI Chaos Map ({grid_size_x}x{grid_size_y}) [{map_values}]",
+        ),
+        (
+            axes[1],
+            gali_grid,
+            f"GALI Chaos Map ({grid_size_x}x{grid_size_y}) [{map_values}]",
+        ),
+        (
+            axes[2],
+            lyapunov_grid,
+            f"Lyapunov Map ({grid_size_x}x{grid_size_y}) [{map_values}]",
+        ),
     ]
 
     for ax, grid, title in panel_configs:
-        ax.imshow(
+        im = ax.imshow(
             grid,
             extent=extent,
             origin="lower",
@@ -296,9 +331,13 @@ def plot_chaos_maps_mpl(
         ax.set_ylim(v_x_vals[0], v_x_vals[-1])
 
     axes[0].set_ylabel("$v_x$", fontsize=12)
+    binary = True
+    if continuous:
+        fig.colorbar(im, ax=list(axes), pad=0.02, shrink=0.9, label=f"{map_values}")
+        binary = False
 
     legend_elements = _build_side_by_side_legend_elements(
-        th, v_zvc is not None, resonance_specs, family_drawn
+        th, v_zvc is not None, resonance_specs, family_drawn, binary=binary
     )
     axes[2].legend(
         handles=legend_elements, bbox_to_anchor=(1.0, 1.0), **MPL_LEGEND_KWARGS

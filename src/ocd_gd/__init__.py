@@ -9,8 +9,6 @@ __all__ = [
     "HAS_RICH",
     "AgamaUnits",
     "ChaosAgreement",
-    "ChaosFullReport",
-    "ChaosSummary",
     "ChaosSurveySummary",
     "CorotationSetup",
     "DecayClassification",
@@ -49,8 +47,6 @@ from ._terminal_config import (
 )
 from ._types import (
     ChaosAgreement,
-    ChaosFullReport,
-    ChaosSummary,
     ChaosSurveySummary,
     DecayClassification,
     IntegrationCriteria,

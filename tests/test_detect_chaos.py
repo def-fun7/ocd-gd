@@ -56,8 +56,9 @@ class TestChaosDetection:
 
     def test_overrides_bypass_cache(self, chaos_detector):
         report1 = chaos_detector.detect_chaos()
-        report2 = chaos_detector.detect_chaos(sali_preset="conservative")
-        assert report1 is not report2
+        report2 = chaos_detector.detect_chaos(sali_kwargs={"floor": 1e-10})
+        assert report2 is not report1
+        assert chaos_detector.detect_chaos() is report1
 
     def test_separate_sali(self, chaos_detector):
         report = chaos_detector.detect_chaos(separate_sali=True)
@@ -70,6 +71,7 @@ class TestChaosDetection:
         assert isinstance(summary, DecayClassification)
         assert summary.gali["label"].size == 1
 
-    def test_invalid_index_raises(self, chaos_detector):
-        with pytest.raises(IndexError):
-            chaos_detector.detect_chaos(orbit_idx=99)
+    @pytest.mark.parametrize("kwarg", ["sali_preset", "gali_preset"])
+    def test_unknown_preset_raises(self, chaos_detector, kwarg):
+        with pytest.raises(ValueError, match="Unknown preset"):
+            chaos_detector.detect_chaos(**{kwarg: "conservative"})

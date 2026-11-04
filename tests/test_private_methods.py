@@ -88,7 +88,7 @@ def test_compute_sali_output_range(mock_detector):
     sali = mock_detector._compute_sali()
 
     assert np.all(sali >= 0.0)
-    assert np.all(sali <= 2.0 + 1e-12)
+    assert np.all(sali <= np.sqrt(2) + 1e-12)
 
 
 # =========================================================================

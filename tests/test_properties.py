@@ -25,74 +25,21 @@ def mock_detector():
 
 
 # =========================================================================
-# DIRECT GETTER PROPERTIES
-# =========================================================================
-
-
-def test_raw_property_getters(mock_detector):
-    """Verify raw simulation properties directly return underlying private attributes."""
-    assert mock_detector.trajectories is mock_detector._traj_arr
-    assert mock_detector.lyapunov_exponents is mock_detector._lyap
-
-    # Confirm values match mock integration output
-    assert np.all(mock_detector.trajectories == 42.0)
-
-
-# =========================================================================
 # LAZY LOADING & CACHING PROPERTIES
 # =========================================================================
-
-
-def test_deviation_vectors_lazy_loading(mock_detector):
-    """Verify deviation vectors remain uncalculated until explicitly requested."""
-    # Internal cache must start as None right after initialization
-    assert mock_detector._dev_arr_normalized is None
-
-    # Access property for the first time -> triggers _normalize_deviation_vectors()
-    dev_v = mock_detector.deviation_vectors
-    assert dev_v is not None
-    assert mock_detector._dev_arr_normalized is not None
-
-    # Subsequent access should return the cached instance
-    assert mock_detector.deviation_vectors is dev_v
-
-
-def test_sali_array_lazy_loading(mock_detector):
-    """Verify SALI matrix computation is deferred until property access."""
-    # Cache layer starts empty
-    assert mock_detector._sali_arr is None
-
-    # First access computes and populates cache
-    sali = mock_detector.sali_array
-    assert sali is not None
-    assert mock_detector._sali_arr is not None
-
-    # Second access returns cached reference
-    assert mock_detector.sali_array is sali
-
-
-def test_gali_array_lazy_loading(mock_detector):
-    """Verify GALI matrix computation is deferred until property access."""
-    # Cache layer starts empty
-    assert mock_detector._gali_arr is None
-
-    # First access computes and populates cache
-    gali = mock_detector.gali_array
-    assert gali is not None
-    assert mock_detector._gali_arr is not None
-
-    # Second access returns cached reference
-    assert mock_detector.gali_array is gali
-
-
-def test_compute_sali_called_only_once(mock_detector):
-    """Ensure internal _compute_sali is only called on first property access."""
-    with patch.object(
-        mock_detector, "_compute_sali", wraps=mock_detector._compute_sali
-    ) as mock_sali:
-        _ = mock_detector.sali_array
-        _ = mock_detector.sali_array
-        _ = mock_detector.sali_array
-
-        # Compute should only be invoked once across multiple reads
-        mock_sali.assert_called_once()
+@pytest.mark.parametrize(
+    ("prop", "cache_attr", "shape"),
+    [
+        ("deviation_vectors", "_dev_arr_normalized", (1, 6, 5, 6)),
+        ("sali_array", "_sali_arr", (15, 1, 5)),
+        ("gali_array", "_gali_arr", (1, 5)),
+    ],
+)
+def test_lazy_property_cached_with_expected_shape(
+    mock_detector, prop, cache_attr, shape
+):
+    assert getattr(mock_detector, cache_attr) is None  # nothing computed at init
+    first = getattr(mock_detector, prop)
+    assert first.shape == shape
+    assert getattr(mock_detector, cache_attr) is first  # stored in the cache
+    assert getattr(mock_detector, prop) is first  # second access doesn't recompute

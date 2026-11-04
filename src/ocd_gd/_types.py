@@ -7,22 +7,23 @@ containers with no behavior of their own.
 
 __all__ = [
     "ChaosAgreement",
-    "ChaosFullReport",
-    "ChaosSummary",
     "ChaosSurveySummary",
     "DecayClassification",
     "GridInitialConditions",
     "IntegrationCriteria",
     "MethodChaosStats",
     "chaos_summary_row",
+    "_UNSET",
 ]
 
 from dataclasses import dataclass
-from typing import NamedTuple
+from typing import NamedTuple, Any
 
 import numpy as np
 import numpy.typing as npt
 from astropy.table import QTable
+
+_UNSET: Any = object()
 
 
 @dataclass(frozen=True)
@@ -69,91 +70,6 @@ class IntegrationCriteria:
     sali_window_size: int
     accuracy: float
     max_num_steps: int
-
-
-class ChaosSummary(NamedTuple):
-    """Structured container holding processed summary chaos classifications.
-
-    Parameters
-    ----------
-    gali_check : ndarray
-        Flags indicating whether each orbit is chaotic according to GALI.
-    gali_time : ndarray
-        The time of chaos detection (or np.inf) for GALI.
-    sali_check : ndarray
-        Flags indicating whether each orbit is chaotic according to SALI.
-    sali_time : ndarray
-        The time of chaos detection (or np.inf) for SALI.
-    lyapunov_check : ndarray
-        Flags indicating whether each orbit is chaotic according to Lyapunov.
-    lyapunov_time : ndarray
-        The time of chaos detection (or np.inf) for Lyapunov.
-
-    Examples
-    --------
-    >>> import numpy as np
-    >>> from ocd_gd._types import ChaosSummary
-    >>> summary = ChaosSummary(
-    ...     gali_check=np.array([1, 0]),
-    ...     gali_time=np.array([5.2, np.inf]),
-    ...     sali_check=np.array([1, 0]),
-    ...     sali_time=np.array([3.4, np.inf]),
-    ...     lyapunov_check=np.array([0, 0]),
-    ...     lyapunov_time=np.array([np.inf, np.inf]),
-    ... )
-    >>> summary.sali_check
-    array([1, 0])
-    """
-
-    gali_check: npt.NDArray[np.float64]
-    gali_time: npt.NDArray[np.float64]
-    sali_check: npt.NDArray[np.float64]
-    sali_time: npt.NDArray[np.float64]
-    lyapunov_check: npt.NDArray[np.float64]
-    lyapunov_time: npt.NDArray[np.float64]
-
-
-class ChaosFullReport(NamedTuple):
-    """Complete diagnostic bundle containing summaries alongside raw arrays.
-
-    Parameters
-    ----------
-    summary : ChaosSummary
-        Structured container with classification summaries.
-    timestamps : ndarray
-        The timestamps at which chaos metrics were recorded.
-    gali_array : ndarray
-        Raw GALI values over time for each orbit.
-    sali_array : ndarray
-        Raw SALI values over time for each orbit.
-    lyapunov_array : ndarray
-        Raw Lyapunov exponent estimates over time.
-
-    Examples
-    --------
-    >>> import numpy as np
-    >>> from ocd_gd._types import ChaosFullReport, ChaosSummary
-    >>> summary = ChaosSummary(
-    ...     gali_check=np.array([0]), gali_time=np.array([np.inf]),
-    ...     sali_check=np.array([0]), sali_time=np.array([np.inf]),
-    ...     lyapunov_check=np.array([0]), lyapunov_time=np.array([np.inf]),
-    ... )
-    >>> report = ChaosFullReport(
-    ...     summary=summary,
-    ...     timestamps=np.array([0.0, 1.0]),
-    ...     gali_array=np.array([[1.0, 1.0]]),
-    ...     sali_array=np.array([[1.0, 1.0]]),
-    ...     lyapunov_array=np.array([[0.0, 0.0]]),
-    ... )
-    >>> isinstance(report.summary, ChaosSummary)
-    True
-    """
-
-    summary: ChaosSummary
-    timestamps: npt.NDArray[np.float64]
-    gali_array: npt.NDArray[np.float64]
-    sali_array: npt.NDArray[np.float64]
-    lyapunov_array: npt.NDArray[np.float64]
 
 
 class DecayClassification(NamedTuple):

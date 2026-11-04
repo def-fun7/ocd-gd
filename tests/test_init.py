@@ -82,3 +82,34 @@ def test_init_triggers_agama_integration(mock_agama_orbit):
     assert detector.timestamps is not None
     assert detector.trajectories is not None
     assert detector.lyapunov_exponents is not None
+
+
+def test_init_n_periods_sets_per_orbit_time(mock_agama_orbit):
+    pot = MagicMock()
+    pot.Tcirc.return_value = np.array([2.0])
+    detector = OrbitChaosDetector(ic=[1.0, 0, 0, 0, 220.0, 0], pot=pot, n_periods=10.0)
+    _, kwargs = mock_agama_orbit.call_args
+    np.testing.assert_allclose(kwargs["time"], [20.0])
+    assert detector.n_periods == 10.0
+
+
+def test_init_default_is_30_periods(mock_agama_orbit):
+    pot = MagicMock()
+    pot.Tcirc.return_value = np.array([2.0])
+    detector = OrbitChaosDetector(ic=[1.0, 0, 0, 0, 220.0, 0], pot=pot)
+    assert detector.n_periods == 30.0
+    np.testing.assert_allclose(detector.iter_time, [60.0])
+
+
+def test_init_iter_time_derives_n_periods(mock_agama_orbit):
+    pot = MagicMock()
+    pot.Tcirc.return_value = np.array([2.0])
+    detector = OrbitChaosDetector(ic=[1.0, 0, 0, 0, 220.0, 0], pot=pot, iter_time=50.0)
+    np.testing.assert_allclose(detector.n_periods, [25.0])
+
+
+def test_init_both_time_options_raises(mock_agama_orbit):
+    with pytest.raises(ValueError, match="not both"):
+        OrbitChaosDetector(
+            ic=[1.0, 0, 0, 0, 220.0, 0], pot=MagicMock(), n_periods=10.0, iter_time=50.0
+        )

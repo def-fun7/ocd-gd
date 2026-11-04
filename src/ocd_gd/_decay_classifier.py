@@ -30,6 +30,7 @@ from __future__ import annotations
 __all__ = [
     "LABELS",
     "PRESETS",
+    "get_preset",
     "classify_decay",
     "crossover_onset",
     "is_chaotic",
@@ -50,7 +51,7 @@ LABELS = {
     6: "chaotic (floor hit, censored)",
 }
 # label convention: odd = regular, even (and > 0) = chaotic, 0 = undetermined
-_MODEL_TO_LABEL = np.array([1, 3, 2, 4, 5])   # models 0..4 -> label
+_MODEL_TO_LABEL = np.array([1, 3, 2, 4, 5])  # models 0..4 -> label
 
 
 def is_chaotic(label):
@@ -92,7 +93,7 @@ def _hinge_fit(x, y, min_side=3):
         rss = np.sum(res**2)
         if best is None or rss < best[0]:
             best = (rss, s, x[j], res)
-    if best is None:                       # grid too short
+    if best is None:  # grid too short
         s, _, res = _line_fit(x, y)
         return s, x[0], res
     return best[1], best[2], best[3]
@@ -174,9 +175,21 @@ def classify_decay(
         time = np.broadcast_to(time, ts.shape)
     n_orb = ts.shape[0]
 
-    names = ("score", "delta_bic", "rate", "rate_lb", "t_onset", "exponent",
-             "t_floor", "n_eff", "p_plateau", "p_power", "p_exp",
-             "p_exp_onset", "p_power_onset")
+    names = (
+        "score",
+        "delta_bic",
+        "rate",
+        "rate_lb",
+        "t_onset",
+        "exponent",
+        "t_floor",
+        "n_eff",
+        "p_plateau",
+        "p_power",
+        "p_exp",
+        "p_exp_onset",
+        "p_power_onset",
+    )
     out = {k: np.full(n_orb, np.nan) for k in names}
     out["label"] = np.full(n_orb, 0, dtype=int)
     out["rate_is_bound"] = np.zeros(n_orb, dtype=int)
@@ -186,20 +199,22 @@ def classify_decay(
     for i in range(n_orb):
         t, s = time[i], ts[i]
         ok = np.isfinite(t) & np.isfinite(s) & (t > 0)
-        t, s = t[ok], np.maximum(s[ok], 1e-300)    # zeros count as floor hits
+        t, s = t[ok], np.maximum(s[ok], 1e-300)  # zeros count as floor hits
         if t.size < min_points:
             continue
 
         # ---- censoring by the numerical floor --------------------------------
         hit = np.flatnonzero(s <= floor)
         end = hit[0] if hit.size else t.size
+        if hit.size and hit[0] == 0:
+            continue
         if hit.size:
             t_f = t[hit[0]]
             out["t_floor"][i] = t_f
             if t_f > t[0] and s[0] > floor:
                 out["rate_lb"][i] = np.log(s[0] / floor) / (t_f - t[0])
             span = np.log10(t_f / t[0])
-            p_req = -log_floor / span if span > 0 else np.inf   # exponent needed
+            p_req = -log_floor / span if span > 0 else np.inf  # exponent needed
             if p_req > max_power_exponent:
                 out["score"][i] = 1.0
                 out["p_exp"][i] = 1.0
@@ -229,10 +244,12 @@ def classify_decay(
         slope = np.zeros(5)
         onset = np.full(5, np.nan)
         res[0] = yg - yg.mean()
-        slope[1], _, res[1] = _line_fit(xl, yg)                  # b  [dec / dec]
-        slope[2], _, res[2] = _line_fit(tg, yg)                  # c  [dec / time]
-        slope[3], tau, res[3] = _hinge_fit(tg, yg); onset[3] = tau
-        slope[4], xtau, res[4] = _hinge_fit(xl, yg); onset[4] = 10**xtau
+        slope[1], _, res[1] = _line_fit(xl, yg)  # b  [dec / dec]
+        slope[2], _, res[2] = _line_fit(tg, yg)  # c  [dec / time]
+        slope[3], tau, res[3] = _hinge_fit(tg, yg)
+        onset[3] = tau
+        slope[4], xtau, res[4] = _hinge_fit(xl, yg)
+        onset[4] = 10**xtau
         rss = np.array([np.sum(r**2) for r in res])
 
         # ---- effective sample size (AR(1) correction) -------------------------
@@ -246,13 +263,15 @@ def classify_decay(
         bic = n_eff * np.log(rss_f / n) + _K * np.log(n_eff)
 
         # ---- physical admissibility: decaying models must really decay --------
-        drop = np.array([
-            np.inf,
-            -slope[1] * span_log,
-            -slope[2] * span_lin,
-            -slope[3] * (tg[-1] - onset[3]),
-            -slope[4] * (xl[-1] - np.log10(onset[4])),
-        ])
+        drop = np.array(
+            [
+                np.inf,
+                -slope[1] * span_log,
+                -slope[2] * span_lin,
+                -slope[3] * (tg[-1] - onset[3]),
+                -slope[4] * (xl[-1] - np.log10(onset[4])),
+            ]
+        )
         bic[(np.arange(5) > 0) & ~(drop >= min_drop_decades)] = np.inf
 
         w = np.exp(-0.5 * (bic - bic.min()))
@@ -261,15 +280,22 @@ def classify_decay(
         # ---- outputs ----------------------------------------------------------
         reg_b = bic[~_CHAOTIC].min()
         cha_b = bic[_CHAOTIC].min()
-        out["p_plateau"][i], out["p_power"][i], out["p_exp"][i], \
-            out["p_exp_onset"][i], out["p_power_onset"][i] = w
+        (
+            out["p_plateau"][i],
+            out["p_power"][i],
+            out["p_exp"][i],
+            out["p_exp_onset"][i],
+            out["p_power_onset"][i],
+        ) = w
         out["score"][i] = w[2] + w[3]
         out["label"][i] = _MODEL_TO_LABEL[int(np.argmax(w))]
         if np.isfinite(reg_b) and np.isfinite(cha_b):
             out["delta_bic"][i] = reg_b - cha_b
         best_c = 3 if bic[3] < bic[2] else 2
         out["rate"][i] = -slope[best_c] * LN10
-        out["t_onset"][i] = onset[3] if best_c == 3 else np.nan   # only defined for hinge fits
+        out["t_onset"][i] = (
+            onset[3] if out["label"][i] == 4 else np.nan
+        )  # chaotic hinge only
         out["exponent"][i] = -slope[1]
         out["n_eff"][i] = n_eff
 
@@ -281,11 +307,6 @@ def classify_decay(
         rn[is_regular(out["label"])] = 0.0
     out["rate_norm"] = rn
     return out
-
-
-def c_model_comparison_score(ts, time, **kwargs):
-    """Drop-in replacement for the old function: returns the chaos score only."""
-    return classify_decay(ts, time, **kwargs)["score"]
 
 
 # --------------------------------------------------------------------------- #
@@ -302,9 +323,22 @@ PRESETS = {
 }
 
 
+def get_preset(name):
+    """Return a copy of the classify_decay keyword preset `name` ({} for None)."""
+    if name is None:
+        return {}
+    try:
+        return dict(PRESETS[name])
+    except KeyError:
+        raise ValueError(
+            f"Unknown preset {name!r}; valid presets are {sorted(PRESETS)} or None."
+        ) from None
+
+
 # --------------------------------------------------------------------------- #
 # optional helper: onset of exponential decay on top of a power law
 # --------------------------------------------------------------------------- #
+
 
 def crossover_onset(ts, time, floor_fit=1e-30, n_grid=80, t_min_frac=0.02, min_side=4):
     """
@@ -328,7 +362,9 @@ def crossover_onset(ts, time, floor_fit=1e-30, n_grid=80, t_min_frac=0.02, min_s
     if time.ndim == 1:
         time = np.broadcast_to(time, ts.shape)
     n = ts.shape[0]
-    tau = np.full(n, np.nan); rate = np.full(n, np.nan); b_out = np.full(n, np.nan)
+    tau = np.full(n, np.nan)
+    rate = np.full(n, np.nan)
+    b_out = np.full(n, np.nan)
     edge = np.zeros(n, dtype=bool)
     for i in range(n):
         t, s = time[i], np.maximum(ts[i], 1e-300)
@@ -336,7 +372,7 @@ def crossover_onset(ts, time, floor_fit=1e-30, n_grid=80, t_min_frac=0.02, min_s
         t, s = t[ok], s[ok]
         hit = np.flatnonzero(s <= floor_fit)
         if hit.size:
-            t, s = t[:hit[0]], s[:hit[0]]
+            t, s = t[: hit[0]], s[: hit[0]]
         if t.size < 12:
             continue
         lo, hi = max(t_min_frac * t[-1], t[0]), t[-1]

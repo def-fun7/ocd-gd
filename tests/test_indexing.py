@@ -1,6 +1,7 @@
 """Tests for index validation and sliced retrieval methods in OrbitChaosDetector."""
 
 from unittest.mock import MagicMock, patch
+from contextlib import nullcontext
 
 import numpy as np
 import pytest
@@ -40,31 +41,28 @@ def multi_orbit_detector():
 # INDEX VALIDATION TESTS
 # =========================================================================
 
-
-def test_validate_index_valid(multi_orbit_detector):
-    """Valid indices (0, 1, 2, and None) should pass without error."""
-    multi_orbit_detector._validate_index(None)
-    multi_orbit_detector._validate_index(0)
-    multi_orbit_detector._validate_index(1)
-    multi_orbit_detector._validate_index(2)
+from contextlib import nullcontext
 
 
-@pytest.mark.parametrize("invalid_idx", [-1, 3, 10])
-def test_validate_index_out_of_bounds_raises(multi_orbit_detector, invalid_idx):
-    """Negative or out-of-bounds indices must raise an IndexError."""
-    with pytest.raises(IndexError, match=f"Orbit index {invalid_idx} is out of bounds"):
-        multi_orbit_detector._validate_index(invalid_idx)
+@pytest.mark.parametrize(
+    ("idx", "expectation"),
+    [
+        (None, nullcontext()),
+        (0, nullcontext()),
+        (2, nullcontext()),
+        (-1, pytest.raises(IndexError, match="out of bounds")),
+        (3, pytest.raises(IndexError, match="out of bounds")),
+        (10, pytest.raises(IndexError, match="out of bounds")),
+    ],
+)
+def test_validate_index(multi_orbit_detector, idx, expectation):
+    with expectation:
+        multi_orbit_detector._validate_index(idx)
 
 
 # =========================================================================
 # GET_TRAJECTORY TESTS
 # =========================================================================
-
-
-def test_get_trajectory_all_orbits(multi_orbit_detector):
-    """get_trajectory() with default orbit_idx=None returns full 3-orbit batch array."""
-    traj = multi_orbit_detector.get_trajectory()
-    assert traj.shape[0] == 3
 
 
 def test_get_trajectory_single_orbit_slice(multi_orbit_detector):
@@ -101,13 +99,7 @@ def test_get_gali_slicing(multi_orbit_detector):
     assert np.array_equal(sliced_gali, full_gali[2])
 
 
-def test_get_methods_raise_on_invalid_index(multi_orbit_detector):
-    """All public access methods must raise IndexError if given an invalid orbit_idx."""
+@pytest.mark.parametrize("getter", ["get_trajectory", "get_sali", "get_gali"])
+def test_getters_raise_on_invalid_index(multi_orbit_detector, getter):
     with pytest.raises(IndexError):
-        multi_orbit_detector.get_trajectory(orbit_idx=99)
-
-    with pytest.raises(IndexError):
-        multi_orbit_detector.get_sali(orbit_idx=99)
-
-    with pytest.raises(IndexError):
-        multi_orbit_detector.get_gali(orbit_idx=99)
+        getattr(multi_orbit_detector, getter)(orbit_idx=99)

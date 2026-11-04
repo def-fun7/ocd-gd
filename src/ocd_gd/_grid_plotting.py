@@ -32,6 +32,7 @@ class _GridChaosPlottingMixin:
 
     def plot_chaos_map(
         self,
+        map_values: str | None = None,
         backend: str | None = None,
         save_path: str | None = None,
         show: bool = True,
@@ -67,14 +68,20 @@ class _GridChaosPlottingMixin:
 
         Examples
         --------
-        >>> # With a constructed GridChaosDetector instance `detector`:
-        >>> # fig = detector.plot_chaos_map(backend="matplotlib", show=False)
+        >>> import agama
+        >>> from ocd_gd.grid_detector import GridChaosDetector
+        >>> agama.setUnits(mass=1, length=1, velocity=1)
+        >>> pot = agama.Potential(type="Spheroid", mass=1e10, scaleRadius=5.0)
+        >>> detector = GridChaosDetector(potential=pot, R_0=8.0, grid_size=3)
+        >>> fig = detector.plot_chaos_map(backend="matplotlib", show=False)
         """
-        sali_grid, gali_grid, lyap_grid = self.chaos_grids
+        mode = map_values or self.map_values
+        sali_grid, gali_grid, lyap_grid = self._grids_for(mode)
         return self._dispatch_plot(
             plot_chaos_maps_mpl,
             plot_chaos_maps_plotly,
             backend,
+            map_values=mode,
             sali_grid=sali_grid,
             gali_grid=gali_grid,
             lyapunov_grid=lyap_grid,
@@ -123,10 +130,14 @@ class _GridChaosPlottingMixin:
 
         Examples
         --------
-        >>> # With a constructed GridChaosDetector instance `detector`:
-        >>> # fig = detector.plot_composite_chaos_map(backend="plotly", show=False)
+        >>> import agama
+        >>> from ocd_gd.grid_detector import GridChaosDetector
+        >>> agama.setUnits(mass=1, length=1, velocity=1)
+        >>> pot = agama.Potential(type="Spheroid", mass=1e10, scaleRadius=5.0)
+        >>> detector = GridChaosDetector(potential=pot, R_0=8.0, grid_size=3)
+        >>> fig = detector.plot_composite_chaos_map(backend="plotly", show=False)
         """
-        sali_grid, gali_grid, lyap_grid = self.chaos_grids
+        sali_grid, gali_grid, lyap_grid = self.check_grids
         return self._dispatch_plot(
             plot_composite_chaos_map_mpl,
             plot_composite_chaos_map_plotly,
@@ -177,10 +188,14 @@ class _GridChaosPlottingMixin:
 
         Examples
         --------
-        >>> # With a constructed GridChaosDetector instance `detector`:
-        >>> # fig = detector.plot_consensus_chaos_map(backend="matplotlib", show=False)
+        >>> import agama
+        >>> from ocd_gd.grid_detector import GridChaosDetector
+        >>> agama.setUnits(mass=1, length=1, velocity=1)
+        >>> pot = agama.Potential(type="Spheroid", mass=1e10, scaleRadius=5.0)
+        >>> detector = GridChaosDetector(potential=pot, R_0=8.0, grid_size=3)
+        >>> fig = detector.plot_consensus_chaos_map(backend="matplotlib", show=False)
         """
-        sali_grid, gali_grid, lyap_grid = self.chaos_grids
+        sali_grid, gali_grid, lyap_grid = self.check_grids
         return self._dispatch_plot(
             plot_consensus_chaos_map_mpl,
             plot_consensus_chaos_map_plotly,
@@ -224,8 +239,12 @@ class _GridChaosPlottingMixin:
 
         Examples
         --------
-        >>> # With a constructed GridChaosDetector instance `detector`:
-        >>> # detector.save_chaos_maps(side_by_side_path="grid.png", composite_path="composite.png")
+        >>> import agama
+        >>> from ocd_gd.grid_detector import GridChaosDetector
+        >>> agama.setUnits(mass=1, length=1, velocity=1)
+        >>> pot = agama.Potential(type="Spheroid", mass=1e10, scaleRadius=5.0)
+        >>> detector = GridChaosDetector(potential=pot, R_0=8.0, grid_size=3)
+        >>> detector.save_chaos_maps(side_by_side_path="grid.png", composite_path="composite.png")
         """
         if side_by_side_path is not None:
             self.plot_chaos_map(

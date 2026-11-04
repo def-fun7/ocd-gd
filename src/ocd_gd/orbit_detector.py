@@ -16,27 +16,27 @@ import numpy as np
 import numpy.typing as npt
 from astropy.table import QTable
 
-from ._decay_classifier import PRESETS, classify_decay, is_chaotic, is_regular
-from ._evaluate_chaos import evaluate_chaos
+from ._decay_classifier import (
+    classify_decay,
+    is_chaotic,
+    is_regular,
+    get_preset,
+)
 from ._family_check import FamilyStats, classify_box_loop, summarize_family
 from ._plotting import _OrbitPlottingMixin
 from ._sali_kernel import sali_kernel
 from ._terminal_config import get_logger
 from ._types import (
     ChaosAgreement,
-    ChaosFullReport,
-    ChaosSummary,
     ChaosSurveySummary,
     DecayClassification,
     IntegrationCriteria,
     MethodChaosStats,
+    _UNSET,
 )
 from ._units import AgamaUnits, tag_unit
 
 logger = get_logger(__name__)
-
-
-_UNSET: Any = object()
 
 _METADATA_FIELD_UNITS: dict[str, str | None] = {
     "num_orbits": None,
@@ -160,9 +160,7 @@ class OrbitChaosDetector(_OrbitPlottingMixin):
         True
         """
         if n_periods is not _UNSET and n_periods is not None and iter_time is not None:
-            raise ValueError(
-                "Provide either 'n_periods' or 'iter_time', not both."
-            )
+            raise ValueError("Provide either 'n_periods' or 'iter_time', not both.")
 
         self.ic: npt.NDArray[np.float64] = np.atleast_2d(ic)
         self.pot: Any = pot
@@ -176,14 +174,10 @@ class OrbitChaosDetector(_OrbitPlottingMixin):
                 else float(iter_time)
             )
             dyn_time = self.pot.Tcirc(self.ic)
-            self.n_periods: float | npt.NDArray[np.float64] = (
-                self.iter_time / dyn_time
-            )
+            self.n_periods: float | npt.NDArray[np.float64] = self.iter_time / dyn_time
         else:
             _n_periods = (
-                30.0
-                if (n_periods is _UNSET or n_periods is None)
-                else float(n_periods)
+                30.0 if (n_periods is _UNSET or n_periods is None) else float(n_periods)
             )
             self.n_periods = _n_periods
             self.iter_time = self._compute_iter_time(_n_periods)
@@ -218,9 +212,7 @@ class OrbitChaosDetector(_OrbitPlottingMixin):
     def _integrate_orbits(self) -> None:
         """Run the expensive orbit integration exactly once and cache results."""
         if isinstance(self.iter_time, np.ndarray) and self.iter_time.size > 1:
-            iter_time_repr = (
-                f"[{self.iter_time.min():.4g}..{self.iter_time.max():.4g}]"
-            )
+            iter_time_repr = f"[{self.iter_time.min():.4g}..{self.iter_time.max():.4g}]"
         else:
             iter_time_repr = f"{float(np.mean(self.iter_time)):.4g}"
         logger.info(
@@ -755,12 +747,13 @@ class OrbitChaosDetector(_OrbitPlottingMixin):
         --------
         >>> import agama
         >>> from ocd_gd.orbit_detector import OrbitChaosDetector
+        >>> from ocd_gd import LABELS
         >>> agama.setUnits(mass=1, length=1, velocity=1)
         >>> pot = agama.Potential(type="Spheroid", mass=1e10, scaleRadius=5.0)
         >>> ic = [8.0, 0.0, 0.05, 0.0, 180.0, 5.0]
         >>> detector = OrbitChaosDetector(ic, pot, iter_time=1.0)
         >>> report = detector.detect_chaos()
-        >>> "label" in report.sali
+        >>> int(report.sali["label"][0]) in LABELS
         True
         """
         detect_chaos_start = time.perf_counter()
@@ -779,11 +772,11 @@ class OrbitChaosDetector(_OrbitPlottingMixin):
             logger.info("Using cached decay-classifier results for detect_chaos")
             return self._chaos_results_cache
 
-        s_kw: dict = dict(PRESETS.get(sali_preset, {})) if sali_preset else {}
+        s_kw: dict = get_preset(sali_preset)
         if sali_kwargs:
             s_kw.update(sali_kwargs)
 
-        g_kw: dict = dict(PRESETS.get(gali_preset, {})) if gali_preset else {}
+        g_kw: dict = get_preset(gali_preset)
         if gali_kwargs:
             g_kw.update(gali_kwargs)
 
@@ -793,12 +786,13 @@ class OrbitChaosDetector(_OrbitPlottingMixin):
             sali_ts = (
                 self.sali_array.min(axis=0)
                 if (self.sali_array.ndim == 3 and self.sali_array.shape[0] == 15)
-                else self.sali_array.min(axis=1) if self.sali_array.ndim == 3
-                else self.sali_array
+                else (
+                    self.sali_array.min(axis=1)
+                    if self.sali_array.ndim == 3
+                    else self.sali_array
+                )
             )
-            sali_result = classify_decay(
-                sali_ts, self.timestamps, t_orb=t_orb, **s_kw
-            )
+            sali_result = classify_decay(sali_ts, self.timestamps, t_orb=t_orb, **s_kw)
         else:
             if self.sali_array.ndim == 3 and self.sali_array.shape[0] == 15:
                 n_pairs, n_orb, n_t = self.sali_array.shape
@@ -812,9 +806,7 @@ class OrbitChaosDetector(_OrbitPlottingMixin):
                 sali_flat = self.sali_array
 
             t_orb_expanded = (
-                np.tile(np.asarray(t_orb), n_pairs)
-                if t_orb is not None
-                else None
+                np.tile(np.asarray(t_orb), n_pairs) if t_orb is not None else None
             )
             time_expanded = (
                 np.tile(self.timestamps, (n_pairs, 1))
@@ -825,8 +817,7 @@ class OrbitChaosDetector(_OrbitPlottingMixin):
                 sali_flat, time_expanded, t_orb=t_orb_expanded, **s_kw
             )
             sali_result = {
-                k: v.reshape(n_pairs, n_orb)
-                for k, v in raw_sali_out.items()
+                k: v.reshape(n_pairs, n_orb) for k, v in raw_sali_out.items()
             }
 
         gali_result = classify_decay(
@@ -853,7 +844,11 @@ class OrbitChaosDetector(_OrbitPlottingMixin):
         if orbit_idx is not None:
             if separate_sali:
                 sliced_sali = {
-                    k: (v[:, orbit_idx] if hasattr(v, "__getitem__") and getattr(v, "ndim", 0) == 2 else v)
+                    k: (
+                        v[:, orbit_idx]
+                        if hasattr(v, "__getitem__") and getattr(v, "ndim", 0) == 2
+                        else v
+                    )
                     for k, v in sali_result.items()
                 }
             else:

@@ -20,9 +20,11 @@ from ._resonance import ResonanceRadii, compute_resonance_radii
 from ._terminal_config import get_logger
 from ._units import AgamaUnits
 from .orbit_detector import OrbitChaosDetector
+from ._types import _UNSET
 
 logger = get_logger(__name__)
 
+MAP_VALUES = ("checks", "score", "rate_norm")
 
 _GRID_METADATA_FIELD_UNITS: dict[str, str | None] = {
     "R_0": "length",
@@ -102,7 +104,8 @@ class GridChaosDetector(_GridChaosPlottingMixin, OrbitChaosDetector):
         x_search_range: tuple[float, float] = (-10.0, 10.0),
         search_resolution: int = 1000,
         omega: float = 0.0,
-        iter_time: float = 10.0,
+        n_periods: float | None = _UNSET,
+        iter_time: float | None = None,
         gali_threshold: float = 1e-20,
         sali_threshold: float = 1e-3,
         gali_window_size: int = 50,
@@ -110,6 +113,7 @@ class GridChaosDetector(_GridChaosPlottingMixin, OrbitChaosDetector):
         accuracy: float = 1e-8,
         max_num_steps: int = 100000000,
         plotting_backend: str = "matplotlib",
+        map_values: str = "checks",
         keep_raw_deviations: bool = False,
         units: AgamaUnits | None = None,
     ) -> None:
@@ -147,8 +151,9 @@ class GridChaosDetector(_GridChaosPlottingMixin, OrbitChaosDetector):
             Range to scan when locating the physical x turning points at E_0.
         search_resolution : int, default 1000
             Number of scan points used to locate the turning points.
-        omega, iter_time, gali_threshold, sali_threshold, gali_window_size,
+        omega, n_periods, iter_time, gali_threshold, sali_threshold, gali_window_size,
         sali_window_size, accuracy, max_num_steps, plotting_backend,
+        map_values: str , default "checks"
         keep_raw_deviations :
             Forwarded to `OrbitChaosDetector.__init__` — see its docstring
             for details.
@@ -190,6 +195,11 @@ class GridChaosDetector(_GridChaosPlottingMixin, OrbitChaosDetector):
         logger.info(
             "Finished generating grid in %.3fs", time.perf_counter() - grid_gen_start
         )
+        if map_values not in MAP_VALUES:
+            raise ValueError(
+                f"map_values must be one of {MAP_VALUES}, got {map_values!r}"
+            )
+
         self.grid_size = grid_size
         self.R_0 = R_0
         self.E_0 = grid_info.E_0
@@ -201,11 +211,8 @@ class GridChaosDetector(_GridChaosPlottingMixin, OrbitChaosDetector):
         self.x_grid = grid_info.x_vals
         self.vx_grid = grid_info.v_x_vals
         self.energy_remainder = grid_info.E_rem_vals
-        self._chaos_grids_cache: tuple[
-            npt.NDArray[np.float64],
-            npt.NDArray[np.float64],
-            npt.NDArray[np.float64] | None,
-        ] = None
+        self.map_values = map_values
+        self._grids_cache: dict[str, tuple] = {}
         self._family_grid_cache: npt.NDArray[np.str_] | None = None
         self._orbit_idx_lookup_cache: npt.NDArray[np.float64] | None = None
         self._resonance_radii_cache: ResonanceRadii | None = None
@@ -226,7 +233,7 @@ class GridChaosDetector(_GridChaosPlottingMixin, OrbitChaosDetector):
             ic=grid_info.ics[self._physical_indices],
             pot=potential,
             omega=omega,
-            n_periods=None,
+            n_periods=n_periods,
             iter_time=iter_time,
             gali_threshold=gali_threshold,
             sali_threshold=sali_threshold,
@@ -241,37 +248,62 @@ class GridChaosDetector(_GridChaosPlottingMixin, OrbitChaosDetector):
 
     def _compute_chaos_grids(
         self,
+        mode: str,
     ) -> tuple[
         npt.NDArray[np.float64], npt.NDArray[np.float64], npt.NDArray[np.float64]
     ]:
-        """Reshape SALI/GALI/Lyapunov chaos checks into (grid_size, grid_size)
+        """Reshape SALI/GALI/Lyapunov chaos checks, score or rate_norm into (grid_size, grid_size)
         maps via `_scatter_to_grid`, masking unphysical grid cells as NaN.
 
         `detect_chaos()` only ever ran on the physical orbits (see
         `_physical_indices` in `__init__`), so its check arrays are compact —
         one entry per integrated orbit, not per grid cell.
+
+        Parameters
+        ----------
+        mode : str
+            The map mode to compute. Must be one of `"checks"`, `"score"`, or `"rate_norm"`.
+
+        Returns
+        -------
+        tuple of ndarray
+            A 3-tuple containing the SALI, GALI, and Lyapunov maps reshaped into
+            `(grid_size, grid_size)` grids with unphysical cells set to NaN.
         """
         dc = self.detect_chaos()
-        lyap_array = self._lyap[:, 0]
-        lyap_check = np.where(
-            np.isnan(lyap_array),
-            np.nan,
-            np.where(lyap_array > 0.1, 1.0, 0.0),
+        lyap = self._lyap[:, 0]
+        lyap_check = np.where(np.isnan(lyap), np.nan, np.where(lyap > 0.1, 1.0, 0.0))
+        if mode == "checks":
+            values = (dc.sali_check, dc.gali_check, lyap_check)
+        elif (
+            mode == "score"
+        ):  # Lyapunov has no score; its 0/1 flag sits on the same 0-1 scale
+            values = (dc.sali["score"], dc.gali["score"], lyap_check)
+        elif mode == "rate_norm":
+            values = (dc.sali["rate_norm"], dc.gali["rate_norm"], lyap)
+        else:
+            raise ValueError(f"unknown map mode {mode!r}")
+        return tuple(
+            _scatter_to_grid(v, self._physical_indices, self.grid_size, fill=np.nan)
+            for v in values
         )
-        return (
-            _scatter_to_grid(
-                dc.sali_check, self._physical_indices, self.grid_size, fill=np.nan
-            ),
-            _scatter_to_grid(
-                dc.gali_check, self._physical_indices, self.grid_size, fill=np.nan
-            ),
-            _scatter_to_grid(
-                lyap_check,
-                self._physical_indices,
-                self.grid_size,
-                fill=np.nan,
-            ),
-        )
+
+    def _grids_for(self, mode: str):
+        """Retrieve cached chaos grids for the given mode, computing and caching them if necessary.
+
+        Parameters
+        ----------
+        mode : str
+            The map mode to retrieve (`"checks"`, `"score"`, or `"rate_norm"`).
+
+        Returns
+        -------
+        tuple of ndarray
+            A 3-tuple of `(sali_grid, gali_grid, lyapunov_grid)` maps.
+        """
+        if mode not in self._grids_cache:
+            self._grids_cache[mode] = self._compute_chaos_grids(mode)
+        return self._grids_cache[mode]
 
     @property
     def chaos_grids(
@@ -298,9 +330,20 @@ class GridChaosDetector(_GridChaosPlottingMixin, OrbitChaosDetector):
         >>> sali.shape
         (3, 3)
         """
-        if self._chaos_grids_cache is None:
-            self._chaos_grids_cache = self._compute_chaos_grids()
-        return self._chaos_grids_cache
+        return self._grids_for(self.map_values)
+
+    @property
+    def check_grids(self):
+        """Lazy-loaded binary check grids (`sali_check`, `gali_check`, `lyapunov_check`),
+        each shaped (grid_size, grid_size) with unphysical cells set to NaN.
+        Always binary, used for composite or consensus classification.
+
+        Returns
+        -------
+        tuple of ndarray
+            The binary check grids for SALI, GALI, and Lyapunov indicators.
+        """
+        return self._grids_for("checks")
 
     @property
     def family_grid(self) -> npt.NDArray[np.str_]:
