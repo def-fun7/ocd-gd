@@ -50,12 +50,12 @@ class TestPhysicalPotentials:
         # In integrable systems:
         # 1. SALI levels off to a non-zero constant (~1.0 - 2.0).
         # 2. Maximum Lyapunov Exponent (MLE) drops to ~0.0.
-        assert (
-            summary.sali_check[0] == 0
-        ), "Spherical orbit misclassified as chaotic by SALI"
-        assert (
-            summary.gali_check[0] == 0
-        ), "Spherical orbit misclassified as chaotic by GALI"
+        assert summary.sali_check[0] == 0, (
+            "Spherical orbit misclassified as chaotic by SALI"
+        )
+        assert summary.gali_check[0] == 0, (
+            "Spherical orbit misclassified as chaotic by GALI"
+        )
         assert np.isclose(detector.lyapunov_exponents[0, 0], 0.0, atol=1e-2)
 
     def test_triaxial_potential_detects_chaos(self, triaxial_potential):
@@ -71,12 +71,12 @@ class TestPhysicalPotentials:
         summary = detector.detect_chaos()
 
         # In chaotic motion, SALI and GALI decay exponentially toward 0.0
-        assert (
-            detector.lyapunov_exponents[0, 0] > 1e-3
-        ), "Lyapunov exponent failed to grow"
-        assert (
-            summary.sali_check[0] == 1
-        ), "Chaotic triaxial orbit went undetected by SALI"
-        assert (
-            summary.gali_check[0] == 1
-        ), "Chaotic triaxial orbit went undetected by GALI"
+        assert detector.lyapunov_exponents[0, 0] > 1e-3, (
+            "Lyapunov exponent failed to grow"
+        )
+        assert summary.sali_check[0] == 1, (
+            "Chaotic triaxial orbit went undetected by SALI"
+        )
+        assert summary.gali_check[0] == 1, (
+            "Chaotic triaxial orbit went undetected by GALI"
+        )

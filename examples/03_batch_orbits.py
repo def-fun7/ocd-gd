@@ -58,8 +58,6 @@ def main() -> None:
         ic=ics,
         pot=pot,
         iter_time=10.0,
-        sali_threshold=1e-3,
-        gali_threshold=1e-20,
     )
 
     # 4. Extract Survey Statistics Across the Batch

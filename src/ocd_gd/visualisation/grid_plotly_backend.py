@@ -54,12 +54,14 @@ def _save_plotly_figure(fig: go.Figure, save_path: str) -> None:
     else:
         fig.write_image(save_path)
 
+
 def _finalize_plotly_figure(fig: go.Figure, save_path: str | None, show: bool) -> None:
     """Shared save/show handling for the plotly chaos-map plots."""
     if save_path:
         _save_plotly_figure(fig, save_path)
     if show:
         fig.show()
+
 
 def _add_zvc_plotly(
     fig: go.Figure,
@@ -94,6 +96,7 @@ def _add_zvc_plotly(
         **subplot_kwargs,
     )
 
+
 def _add_resonance_plotly(
     fig: go.Figure,
     resonance_specs: list[tuple[float, str, str]],
@@ -115,6 +118,7 @@ def _add_resonance_plotly(
             line={"color": color, "dash": linestyle, "width": linewidth},
             **subplot_kwargs,
         )
+
 
 def _add_family_boundary_plotly(
     fig: go.Figure,
@@ -153,6 +157,7 @@ def _add_family_boundary_plotly(
     )
     return True
 
+
 def _legend_proxy_traces(
     labels_and_colors: Sequence[tuple[str, str | tuple[float, float, float]]],
 ) -> list:
@@ -172,6 +177,7 @@ def _legend_proxy_traces(
         )
         for label, color in labels_and_colors
     ]
+
 
 def _line_legend_proxy_traces(
     labels_and_colors: Sequence[tuple[str, str]],
@@ -193,6 +199,7 @@ def _line_legend_proxy_traces(
         )
         for label, color in labels_and_colors
     ]
+
 
 def plot_chaos_maps_plotly(
     sali_grid: npt.NDArray[np.float64],
@@ -308,6 +315,7 @@ def plot_chaos_maps_plotly(
     _finalize_plotly_figure(fig, save_path, show)
     return fig
 
+
 def plot_composite_chaos_map_plotly(
     sali_grid: npt.NDArray[np.float64],
     gali_grid: npt.NDArray[np.float64],
@@ -397,6 +405,7 @@ def plot_composite_chaos_map_plotly(
 
     _finalize_plotly_figure(fig, save_path, show)
     return fig
+
 
 def plot_consensus_chaos_map_plotly(
     sali_grid: npt.NDArray[np.float64],

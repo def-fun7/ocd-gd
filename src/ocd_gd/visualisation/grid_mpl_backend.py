@@ -11,7 +11,7 @@ __all__ = [
 import matplotlib.pyplot as plt
 import numpy as np
 import numpy.typing as npt
-from matplotlib.colors import BoundaryNorm, ListedColormap, LinearSegmentedColormap
+from matplotlib.colors import BoundaryNorm, LinearSegmentedColormap, ListedColormap
 from matplotlib.lines import Line2D
 from matplotlib.patches import Patch
 
@@ -265,19 +265,18 @@ def plot_chaos_maps_mpl(
             "chaos", [th.color_regular, th.color_chaotic]
         )
         if map_values == "score":
-            vmin, vmax = 0.0, 1.0
+            _vmin, vmax = 0.0, 1.0
         else:
             finite = np.concatenate(
                 [g[np.isfinite(g)] for g in (sali_grid, gali_grid, lyapunov_grid)]
             )
-            vmin = 0.0
             vmax = float(
                 kwargs.get("vmax", np.percentile(finite, 99) if finite.size else 1.0)
             )
             vmax = vmax if vmax > 0 else 1.0
     else:
         cmap = ListedColormap([th.color_regular, th.color_chaotic])
-        vmin, vmax = 0, 1
+        _vmin, vmax = 0, 1
     cmap = cmap.with_extremes(bad=th.color_masked)  # fixes the discarded copy
 
     fig, axes = plt.subplots(

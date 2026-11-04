@@ -30,9 +30,9 @@ from __future__ import annotations
 __all__ = [
     "LABELS",
     "PRESETS",
-    "get_preset",
     "classify_decay",
     "crossover_onset",
+    "get_preset",
     "is_chaotic",
     "is_regular",
 ]
@@ -194,7 +194,6 @@ def classify_decay(
     out["label"] = np.full(n_orb, 0, dtype=int)
     out["rate_is_bound"] = np.zeros(n_orb, dtype=int)
     log_floor = np.log10(floor)
-    ln_inv_floor = -np.log(floor)
 
     for i in range(n_orb):
         t, s = time[i], ts[i]
@@ -318,8 +317,8 @@ def classify_decay(
 #                The floor was tuned in-sample - re-check it on new potentials.
 #   sali       : defaults tuned on Henon-Heiles (2 DOF); NOT yet validated on 3-DOF data.
 PRESETS = {
-    "gali6_3dof": dict(floor=1e-30, max_power_exponent=8.0),
-    "sali": dict(floor=1e-12, max_power_exponent=4.0),
+    "gali6_3dof": {"floor": 1e-30, "max_power_exponent": 8.0},
+    "sali": {"floor": 1e-12, "max_power_exponent": 4.0},
 }
 
 

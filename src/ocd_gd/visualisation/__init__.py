@@ -3,7 +3,6 @@ Visualization subpackage for galactic orbit chaos detection.
 """
 
 __all__ = [
-
     "plot_chaos_maps_mpl",
     "plot_chaos_maps_plotly",
     "plot_colored_trajectory_2d_mpl",
@@ -12,7 +11,6 @@ __all__ = [
     "plot_composite_chaos_map_plotly",
     "plot_consensus_chaos_map_mpl",
     "plot_consensus_chaos_map_plotly",
-
     "plot_dashboard_mpl",
     "plot_dashboard_plotly",
     "plot_energy_drift_mpl",
@@ -22,12 +20,9 @@ __all__ = [
     "plot_gali_plotly",
     "plot_phase_space_mpl",
     "plot_phase_space_plotly",
-
     "plot_sali_batch_mpl",
     "plot_sali_gali_dual_batch_mpl",
-
     "plot_sali_mpl",
-
     "plot_sali_plotly",
     "plot_trajectory_2d_mpl",
     "plot_trajectory_2d_plotly",

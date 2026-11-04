@@ -39,10 +39,12 @@ def _hex_to_rgb01(hex_color: str) -> tuple[float, float, float]:
     h = hex_color.lstrip("#")
     return tuple(int(h[i : i + 2], 16) / 255.0 for i in (0, 2, 4))
 
+
 def _lerp_rgb(
     lo: tuple[float, float, float], hi: tuple[float, float, float], t: float
 ) -> tuple[float, float, float]:
     return tuple(lo[i] + (hi[i] - lo[i]) * t for i in range(3))
+
 
 @dataclass(frozen=True)
 class ChaosMapTheme:
@@ -139,11 +141,13 @@ class ChaosMapTheme:
         """Get the blue channel of the composite chaotic color."""
         return _hex_to_rgb01(self.composite_chaotic_color)[2]
 
+
 THEMES: dict[str, ChaosMapTheme] = {}
 
 
 def _register(theme: ChaosMapTheme) -> None:
     THEMES[theme.name] = theme
+
 
 _register(
     ChaosMapTheme(

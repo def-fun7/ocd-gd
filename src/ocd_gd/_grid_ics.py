@@ -20,7 +20,6 @@ import numpy as np
 
 from ._types import GridInitialConditions
 
-
 _MAX_VY0_FRAC = 0.6
 _MAX_VZ0_FRAC = 0.3
 _MAX_TRANSVERSE_FRAC_SQ = 0.8

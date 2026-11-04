@@ -18,21 +18,21 @@ from astropy.table import QTable
 
 from ._decay_classifier import (
     classify_decay,
+    get_preset,
     is_chaotic,
     is_regular,
-    get_preset,
 )
 from ._family_check import FamilyStats, classify_box_loop, summarize_family
 from ._plotting import _OrbitPlottingMixin
 from ._sali_kernel import sali_kernel
 from ._terminal_config import get_logger
 from ._types import (
+    _UNSET,
     ChaosAgreement,
     ChaosSurveySummary,
     DecayClassification,
     IntegrationCriteria,
     MethodChaosStats,
-    _UNSET,
 )
 from ._units import AgamaUnits, tag_unit
 
@@ -42,10 +42,7 @@ _METADATA_FIELD_UNITS: dict[str, str | None] = {
     "num_orbits": None,
     "n_periods": None,
     "iter_time": "time",
-    "gali_threshold": None,
-    "sali_threshold": None,
-    "gali_window_size": None,
-    "sali_window_size": None,
+    "traj_size": None,
     "accuracy": None,
     "max_num_steps": None,
 }
@@ -88,10 +85,6 @@ class OrbitChaosDetector(_OrbitPlottingMixin):
         n_periods: float | None = _UNSET,
         iter_time: float | None = None,
         traj_size: int = 5000,
-        gali_threshold: float = 1e-20,
-        sali_threshold: float = 1e-3,
-        gali_window_size: int = 50,
-        sali_window_size: int = 25,
         accuracy: float = 1e-8,
         max_num_steps: int = 100000000,
         plotting_backend: str = "matplotlib",
@@ -120,14 +113,6 @@ class OrbitChaosDetector(_OrbitPlottingMixin):
             ``iter_time / pot.Tcirc(ic)``.
         traj_size : int, default 5000
             if given, turns on the recording of trajectory for each orbit (should be either a single integer or an array of integers with length N). The trajectory of each orbit is stored either at every timestep of the integrator (if trajsize=0) or at regular intervals of time (`dt=abs(time)/(trajsize-1)`, so that the number of points is `trajsize`; the last stored point is always at the end of integration period, and if trajsize>1, the first point is the initial conditions).
-        gali_threshold : float, default 1e-20
-            Threshold limits to register chaos in GALI calculations.
-        sali_threshold : float, default 1e-3
-            Threshold limits to register chaos in SALI calculations.
-        gali_window_size : int, default 50
-            The sliding window size required to confirm sustained convergence.
-        sali_window_size : int, default 25
-            The sliding window size required to confirm sustained convergence.
         accuracy : float, default 1e-8
             Integration precision tracking for Agama.
         max_num_steps : int, default 100000000
@@ -183,10 +168,6 @@ class OrbitChaosDetector(_OrbitPlottingMixin):
             self.iter_time = self._compute_iter_time(_n_periods)
 
         self.traj_size: int = traj_size
-        self.gali_threshold: float = gali_threshold
-        self.sali_threshold: float = sali_threshold
-        self.gali_window_size: int = gali_window_size
-        self.sali_window_size: int = sali_window_size
         self.accuracy: float = accuracy
         self.max_num_steps: int = int(max_num_steps)
         self.plotting_backend: str = plotting_backend.lower()
@@ -348,10 +329,7 @@ class OrbitChaosDetector(_OrbitPlottingMixin):
         """
         return IntegrationCriteria(
             iter_time=self.iter_time,
-            gali_threshold=self.gali_threshold,
-            sali_threshold=self.sali_threshold,
-            gali_window_size=self.gali_window_size,
-            sali_window_size=self.sali_window_size,
+            traj_size=self.traj_size,
             accuracy=self.accuracy,
             max_num_steps=self.max_num_steps,
         )
@@ -1054,10 +1032,7 @@ class OrbitChaosDetector(_OrbitPlottingMixin):
             "num_orbits": self.num_orbits,
             "n_periods": self.n_periods,
             "iter_time": criteria.iter_time,
-            "gali_threshold": criteria.gali_threshold,
-            "sali_threshold": criteria.sali_threshold,
-            "gali_window_size": criteria.gali_window_size,
-            "sali_window_size": criteria.sali_window_size,
+            "traj_size": criteria.traj_size,
             "accuracy": criteria.accuracy,
             "max_num_steps": criteria.max_num_steps,
         }

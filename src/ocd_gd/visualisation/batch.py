@@ -25,7 +25,6 @@ def plot_sali_batch_mpl(
     sali_times: npt.NDArray[np.float64] | None = None,
     lyapunov_array: npt.NDArray[np.float64] | None = None,
     threshold: float = 1e-2,
-    window_size_time: float | None = None,
     max_per_page: int = 10,
     save_path: str | None = None,
     show: bool = True,
@@ -43,7 +42,6 @@ def plot_sali_batch_mpl(
         sali_times: Array of chaos detection times. Defaults to None.
         lyapunov_array: Array of Lyapunov exponents/evolutions. Defaults to None.
         threshold: Chaos detection threshold for SALI. Defaults to 1e-2.
-        window_size_time: Detection window size. Defaults to None.
         max_per_page: Maximum subplots per figure page. Defaults to 10.
         save_path: Base path to save the generated figures. If paginated, page indices
             are appended to the name. Defaults to None.
@@ -95,7 +93,6 @@ def plot_sali_batch_mpl(
             lyap_data = lyapunov_array[idx] if lyapunov_array is not None else None
 
             t_orb = np.squeeze(t[idx]) if np.ndim(t) == 2 else np.squeeze(t)
-            w_time = window_size_time
 
             plot_sali_mpl(
                 t=t_orb,
@@ -103,7 +100,6 @@ def plot_sali_batch_mpl(
                 threshold=threshold,
                 is_chaotic=is_chaotic,
                 detection_time=det_time,
-                window_size_time=w_time,
                 lyapunov=lyap_data,
                 fig=fig,
                 ax=ax,
@@ -134,6 +130,7 @@ def plot_sali_batch_mpl(
 
     return figures
 
+
 def plot_gali_batch_mpl(
     t: npt.NDArray[np.float64],
     gali_array: npt.NDArray[np.float64],
@@ -142,7 +139,6 @@ def plot_gali_batch_mpl(
     gali_times: npt.NDArray[np.float64] | None = None,
     lyapunov_array: npt.NDArray[np.float64] | None = None,
     threshold: float = 1e-16,
-    window_size_time: float | None = None,
     k_orders: list[int] | None = None,
     max_per_page: int = 10,
     save_path: str | None = None,
@@ -161,7 +157,6 @@ def plot_gali_batch_mpl(
         gali_times: Array of chaos detection times. Defaults to None.
         lyapunov_array: Array of Lyapunov exponents/evolutions. Defaults to None.
         threshold: Chaos detection threshold for GALI. Defaults to 1e-16.
-        window_size_time: Detection window size. Defaults to None.
         k_orders: GALI order list to plot. Defaults to None.
         max_per_page: Maximum subplots per figure page. Defaults to 10.
         save_path: Base path to save the generated figures. If paginated, page indices
@@ -209,7 +204,6 @@ def plot_gali_batch_mpl(
             lyap_data = lyapunov_array[idx] if lyapunov_array is not None else None
 
             t_orb = np.squeeze(t[idx]) if np.ndim(t) == 2 else np.squeeze(t)
-            w_time = window_size_time
 
             plot_gali_mpl(
                 t=t_orb,
@@ -218,7 +212,6 @@ def plot_gali_batch_mpl(
                 threshold=threshold,
                 is_chaotic=is_chaotic,
                 detection_time=det_time,
-                window_size_time=w_time,
                 lyapunov=lyap_data,
                 fig=fig,
                 ax=ax,
@@ -249,6 +242,7 @@ def plot_gali_batch_mpl(
 
     return figures
 
+
 def plot_sali_gali_dual_batch_mpl(
     t: npt.NDArray[np.float64],
     sali_array: npt.NDArray[np.float64],
@@ -259,10 +253,6 @@ def plot_sali_gali_dual_batch_mpl(
     gali_checks: npt.NDArray[np.float64 | None] = None,
     gali_times: npt.NDArray[np.float64 | None] = None,
     lyapunov_array: npt.NDArray[np.float64 | None] = None,
-    sali_threshold: float = 1e-2,
-    gali_threshold: float = 1e-16,
-    sali_window_time: float | None = None,
-    gali_window_time: float | None = None,
     k_orders: list[int | None] | None = None,
     max_orbits_per_page: int = 5,
     save_path: str | None = None,
@@ -281,10 +271,6 @@ def plot_sali_gali_dual_batch_mpl(
         gali_checks: Array of chaotic classification status flags for GALI. Defaults to None.
         gali_times: Array of chaos detection times for GALI. Defaults to None.
         lyapunov_array: Array of Lyapunov exponents/evolutions. Defaults to None.
-        sali_threshold: Chaos detection threshold for SALI. Defaults to 1e-2.
-        gali_threshold: Chaos detection threshold for GALI. Defaults to 1e-16.
-        sali_window_time: Detection window size for SALI. Defaults to None.
-        gali_window_time: Detection window size for GALI. Defaults to None.
         k_orders: GALI order list to plot. Defaults to None.
         max_orbits_per_page: Maximum number of orbits (rows, total subplots = 2 * rows) per page. Defaults to 5.
         save_path: Base path to save the generated figures. If paginated, page indices
@@ -356,10 +342,8 @@ def plot_sali_gali_dual_batch_mpl(
             plot_sali_mpl(
                 t=t_orb,
                 sali=sali_data,
-                threshold=sali_threshold,
                 is_chaotic=sali_is_chaotic,
                 detection_time=sali_det_time,
-                window_size_time=sali_window_time,
                 lyapunov=lyap_data,
                 fig=fig,
                 ax=ax_sali,
@@ -372,10 +356,8 @@ def plot_sali_gali_dual_batch_mpl(
                 t=t_orb,
                 gali=gali_data,
                 k_orders=k_orders,
-                threshold=gali_threshold,
                 is_chaotic=gali_is_chaotic,
                 detection_time=gali_det_time,
-                window_size_time=gali_window_time,
                 lyapunov=lyap_data,
                 fig=fig,
                 ax=ax_gali,

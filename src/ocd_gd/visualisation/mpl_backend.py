@@ -39,6 +39,7 @@ def _setup_fig_ax(
         fig = ax.get_figure()
     return fig, ax
 
+
 def _handle_save_show(
     fig,
     save_path: str | None = None,
@@ -54,6 +55,7 @@ def _handle_save_show(
         fig.savefig(save_path, dpi=dpi, bbox_inches=bbox_inches)
     if show:
         plt.show()
+
 
 def _format_lyap_text(lyap_data: npt.NDArray[np.float64] | None) -> str | None:
     """Format AGAMA's Lyapunov array [lambda * Torb, Tchaos / Torb] cleanly."""
@@ -77,13 +79,13 @@ def _format_lyap_text(lyap_data: npt.NDArray[np.float64] | None) -> str | None:
             + rf"$T_{{\mathrm{{chaos}}}} = {t_chaos:.1f} \, T_{{\mathrm{{orb}}}}$"
         )
 
+
 def plot_sali_mpl(
     t: npt.NDArray[np.float64],
     sali: npt.NDArray[np.float64],
     threshold: float | None = 1e-8,
     is_chaotic: bool | None = None,
     detection_time: float | None = None,
-    window_size_time: float | None = None,
     lyapunov: npt.NDArray[np.float64] | None = None,
     fig: plt.Figure | None = None,
     ax: plt.Axes | None = None,
@@ -99,7 +101,6 @@ def plot_sali_mpl(
         threshold: Chaos detection threshold line value. Defaults to 1e-8.
         is_chaotic: Flag indicating if classified as chaotic. Defaults to None.
         detection_time: Time of chaos detection. Defaults to None.
-        window_size_time: Size of the sliding detection window. Defaults to None.
         lyapunov: Lyapunov exponents/evolution data to format and show. Defaults to None.
         fig: Matplotlib Figure object to reuse. Defaults to None.
         ax: Matplotlib Axes object to reuse. Defaults to None.
@@ -141,9 +142,15 @@ def plot_sali_mpl(
         num_lines = sali.shape[1]
         colors = kwargs.get("colors", plt.cm.tab20(np.linspace(0, 1, num_lines)))
         for i in range(num_lines):
-            lbl = f"SALI_{i+1}" if kwargs.get("legend_all", False) else (label if i == 0 else None)
+            lbl = (
+                f"SALI_{i + 1}"
+                if kwargs.get("legend_all", False)
+                else (label if i == 0 else None)
+            )
             c = colors[i] if "color" not in kwargs else color
-            ax.plot(t, sali[:, i], color=c, lw=lw, alpha=kwargs.get("alpha", 0.7), label=lbl)
+            ax.plot(
+                t, sali[:, i], color=c, lw=lw, alpha=kwargs.get("alpha", 0.7), label=lbl
+            )
     else:
         ax.plot(t, sali, color=color, lw=lw, label=label)
 
@@ -158,13 +165,8 @@ def plot_sali_mpl(
             label=kwargs.get("thresh_label", f"Threshold ({threshold:.0e})"),
         )
 
-    if (
-        is_chaotic
-        and detection_time is not None
-        and np.isfinite(detection_time)
-        and window_size_time is not None
-    ):
-        t_start = max(t[0], detection_time - window_size_time)
+    if is_chaotic and detection_time is not None and np.isfinite(detection_time):
+        t_start = max(t[0], detection_time - 0)
         t_end = detection_time
 
         ax.axvspan(
@@ -209,6 +211,7 @@ def plot_sali_mpl(
     )
     return fig, ax
 
+
 def plot_gali_mpl(
     t: npt.NDArray[np.float64],
     gali: npt.NDArray[np.float64],
@@ -216,7 +219,6 @@ def plot_gali_mpl(
     threshold: float | None = 1e-16,
     is_chaotic: bool | None = None,
     detection_time: float | None = None,
-    window_size_time: float | None = None,
     lyapunov: npt.NDArray[np.float64] | None = None,
     fig: plt.Figure | None = None,
     ax: plt.Axes | None = None,
@@ -233,7 +235,6 @@ def plot_gali_mpl(
         threshold: Chaos detection threshold line value. Defaults to 1e-16.
         is_chaotic: Flag indicating if classified as chaotic. Defaults to None.
         detection_time: Time of chaos detection. Defaults to None.
-        window_size_time: Size of the sliding detection window. Defaults to None.
         lyapunov: Lyapunov exponents/evolution data to format and show. Defaults to None.
         fig: Matplotlib Figure object to reuse. Defaults to None.
         ax: Matplotlib Axes object to reuse. Defaults to None.
@@ -277,7 +278,7 @@ def plot_gali_mpl(
             lbl = (
                 f"GALI_{k_orders[i]}"
                 if k_orders and i < len(k_orders)
-                else f"GALI_{i+2}"
+                else f"GALI_{i + 2}"
             )
             ax.plot(t, gali[:, i], color=colors[i], lw=kwargs.get("lw", 1.5), label=lbl)
 
@@ -292,13 +293,8 @@ def plot_gali_mpl(
             label=kwargs.get("thresh_label", f"Threshold ({threshold:.0e})"),
         )
 
-    if (
-        is_chaotic
-        and detection_time is not None
-        and np.isfinite(detection_time)
-        and window_size_time is not None
-    ):
-        t_start = max(t[0], detection_time - window_size_time)
+    if is_chaotic and detection_time is not None and np.isfinite(detection_time):
+        t_start = max(t[0], detection_time - 0)
         t_end = detection_time
 
         ax.axvspan(
@@ -342,6 +338,7 @@ def plot_gali_mpl(
         fig, save_path=save_path, show=show, backend="matplotlib", **kwargs
     )
     return fig, ax
+
 
 def plot_trajectory_2d_mpl(
     pos: npt.NDArray[np.float64],
@@ -400,6 +397,7 @@ def plot_trajectory_2d_mpl(
 
     _handle_save_show(fig, save_path=save_path, show=show, **kwargs)
     return fig, axes_arr
+
 
 def plot_trajectory_3d_mpl(
     pos: npt.NDArray[np.float64],
@@ -460,6 +458,7 @@ def plot_trajectory_3d_mpl(
 
     _handle_save_show(fig, save_path=save_path, show=show, **kwargs)
     return fig, ax
+
 
 def plot_phase_space_mpl(
     pos: npt.NDArray[np.float64],
@@ -524,6 +523,7 @@ def plot_phase_space_mpl(
     _handle_save_show(fig, save_path=save_path, show=show, **kwargs)
     return fig, ax
 
+
 def plot_energy_drift_mpl(
     t: npt.NDArray[np.float64],
     energy: npt.NDArray[np.float64],
@@ -580,6 +580,7 @@ def plot_energy_drift_mpl(
 
     _handle_save_show(fig, save_path=save_path, show=show, **kwargs)
     return fig, ax
+
 
 def plot_colored_trajectory_2d_mpl(
     pos: npt.NDArray[np.float64],

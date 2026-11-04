@@ -7,6 +7,7 @@ and detecting chaotic vs. regular dynamical behavior using SALI/GALI metrics.
 
 __all__ = [
     "HAS_RICH",
+    "LABELS",
     "AgamaUnits",
     "ChaosAgreement",
     "ChaosSurveySummary",
@@ -15,7 +16,6 @@ __all__ = [
     "FamilyStats",
     "GridChaosDetector",
     "IntegrationCriteria",
-    "LABELS",
     "MethodChaosStats",
     "OrbitChaosDetector",
     "ResonanceRadii",

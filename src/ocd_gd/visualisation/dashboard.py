@@ -25,8 +25,6 @@ from .plotly_backend import (
 
 def plot_dashboard_mpl(
     data: dict[str, Any],
-    sali_threshold: float = 1e-2,
-    gali_threshold: float = 1e-16,
     k_orders: list[int | None] | None = None,
     save_path: str | None = None,
     show: bool = True,
@@ -45,13 +43,9 @@ def plot_dashboard_mpl(
             - "gali": GALI evolution array/dict.
             - "sali_is_chaotic" (optional): Chaotic classification from SALI.
             - "sali_det_time" (optional): SALI detection time.
-            - "sali_window_time" (optional): SALI window time size.
             - "gali_is_chaotic" (optional): Chaotic classification from GALI.
             - "gali_det_time" (optional): GALI detection time.
-            - "gali_window_time" (optional): GALI window time size.
             - "lyapunov" (optional): Lyapunov exponent/evolution.
-        sali_threshold: Chaos detection threshold for SALI. Defaults to 1e-2.
-        gali_threshold: Chaos detection threshold for GALI. Defaults to 1e-16.
         k_orders: GALI order list to plot. Defaults to None.
         save_path: Path to save the figure. If None, it is not saved. Defaults to None.
         show: If True, calls `plt.show()`. Defaults to True.
@@ -93,10 +87,8 @@ def plot_dashboard_mpl(
     plot_sali_mpl(
         t=t,
         sali=data["sali"],
-        threshold=sali_threshold,
         is_chaotic=data.get("sali_is_chaotic"),
         detection_time=data.get("sali_det_time"),
-        window_size_time=data.get("sali_window_time"),
         lyapunov=data.get("lyapunov"),
         fig=fig,
         ax=ax_sali,
@@ -107,10 +99,8 @@ def plot_dashboard_mpl(
         t=t,
         gali=data["gali"],
         k_orders=k_orders,
-        threshold=gali_threshold,
         is_chaotic=data.get("gali_is_chaotic"),
         detection_time=data.get("gali_det_time"),
-        window_size_time=data.get("gali_window_time"),
         lyapunov=data.get("lyapunov"),
         fig=fig,
         ax=ax_gali,

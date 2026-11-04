@@ -6,6 +6,7 @@ containers with no behavior of their own.
 """
 
 __all__ = [
+    "_UNSET",
     "ChaosAgreement",
     "ChaosSurveySummary",
     "DecayClassification",
@@ -13,11 +14,10 @@ __all__ = [
     "IntegrationCriteria",
     "MethodChaosStats",
     "chaos_summary_row",
-    "_UNSET",
 ]
 
 from dataclasses import dataclass
-from typing import NamedTuple, Any
+from typing import Any, NamedTuple
 
 import numpy as np
 import numpy.typing as npt
@@ -34,14 +34,8 @@ class IntegrationCriteria:
     ----------
     iter_time : float
         Total integration time in Agama time units.
-    gali_threshold : float
-        Convergence threshold for GALI.
-    sali_threshold : float
-        Convergence threshold for SALI.
-    gali_window_size : int
-        Window size to verify GALI convergence.
-    sali_window_size : int
-        Window size to verify SALI convergence.
+    traj_size : int
+        size of trajectory array
     accuracy : float
         The target integration accuracy.
     max_num_steps : int
@@ -51,11 +45,7 @@ class IntegrationCriteria:
     --------
     >>> from ocd_gd._types import IntegrationCriteria
     >>> criteria = IntegrationCriteria(
-    ...     iter_time=100.0,
-    ...     gali_threshold=1e-12,
-    ...     sali_threshold=1e-12,
-    ...     gali_window_size=10,
-    ...     sali_window_size=10,
+    ...     iter_time=100.0, traj_size=1000,
     ...     accuracy=1e-8,
     ...     max_num_steps=100000,
     ... )
@@ -64,10 +54,7 @@ class IntegrationCriteria:
     """
 
     iter_time: float | npt.NDArray[np.float64]
-    gali_threshold: float
-    sali_threshold: float
-    gali_window_size: int
-    sali_window_size: int
+    traj_size: int
     accuracy: float
     max_num_steps: int
 

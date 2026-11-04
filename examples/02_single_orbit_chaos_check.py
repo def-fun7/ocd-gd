@@ -48,8 +48,6 @@ def main() -> None:
         ic=ic,
         pot=pot,
         iter_time=10.0,
-        sali_threshold=1e-3,
-        gali_threshold=1e-20,
     )
 
     # 3. Detect Chaos
@@ -68,7 +66,8 @@ def main() -> None:
     gali_final = _to_scalar(detector.gali_array[..., -1])
     lyap_final = (
         _to_scalar(detector.lyapunov_exponents[-1])
-        if detector.lyapunov_exponents is not None and len(detector.lyapunov_exponents) > 0
+        if detector.lyapunov_exponents is not None
+        and len(detector.lyapunov_exponents) > 0
         else float("nan")
     )
 
@@ -91,7 +90,11 @@ def main() -> None:
     )
 
     # Full Indicator Details Table
-    n_pts = len(detector.timestamps[0]) if detector.timestamps.ndim == 2 else len(detector.timestamps)
+    n_pts = (
+        len(detector.timestamps[0])
+        if detector.timestamps.ndim == 2
+        else len(detector.timestamps)
+    )
     print_kv_table(
         title="Diagnostic Indicator Metrics",
         data={

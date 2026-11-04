@@ -18,9 +18,9 @@ from ._grid_ics import _circular_velocity, _generate_grid_ics, _reference_energy
 from ._grid_plotting import _GridChaosPlottingMixin
 from ._resonance import ResonanceRadii, compute_resonance_radii
 from ._terminal_config import get_logger
+from ._types import _UNSET
 from ._units import AgamaUnits
 from .orbit_detector import OrbitChaosDetector
-from ._types import _UNSET
 
 logger = get_logger(__name__)
 
@@ -106,10 +106,7 @@ class GridChaosDetector(_GridChaosPlottingMixin, OrbitChaosDetector):
         omega: float = 0.0,
         n_periods: float | None = _UNSET,
         iter_time: float | None = None,
-        gali_threshold: float = 1e-20,
-        sali_threshold: float = 1e-3,
-        gali_window_size: int = 50,
-        sali_window_size: int = 25,
+        traj_size: int = 5000,
         accuracy: float = 1e-8,
         max_num_steps: int = 100000000,
         plotting_backend: str = "matplotlib",
@@ -151,8 +148,7 @@ class GridChaosDetector(_GridChaosPlottingMixin, OrbitChaosDetector):
             Range to scan when locating the physical x turning points at E_0.
         search_resolution : int, default 1000
             Number of scan points used to locate the turning points.
-        omega, n_periods, iter_time, gali_threshold, sali_threshold, gali_window_size,
-        sali_window_size, accuracy, max_num_steps, plotting_backend,
+        omega, n_periods, iter_time, traj_size, accuracy, max_num_steps, plotting_backend,
         map_values: str , default "checks"
         keep_raw_deviations :
             Forwarded to `OrbitChaosDetector.__init__` — see its docstring
@@ -235,10 +231,7 @@ class GridChaosDetector(_GridChaosPlottingMixin, OrbitChaosDetector):
             omega=omega,
             n_periods=n_periods,
             iter_time=iter_time,
-            gali_threshold=gali_threshold,
-            sali_threshold=sali_threshold,
-            gali_window_size=gali_window_size,
-            sali_window_size=sali_window_size,
+            traj_size=traj_size,
             accuracy=accuracy,
             max_num_steps=max_num_steps,
             plotting_backend=plotting_backend,

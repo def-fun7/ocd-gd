@@ -34,13 +34,13 @@ def _handle_save_show(
         if save_path.endswith(".html"):
             fig.write_html(save_path)
         else:
-
             width = kwargs.get("width", 900)
             height = kwargs.get("height", 600)
             scale = kwargs.get("scale", 2)
             fig.write_image(save_path, width=width, height=height, scale=scale)
     if show:
         fig.show()
+
 
 def plot_sali_plotly(
     t: npt.NDArray[np.float64],
@@ -178,7 +178,7 @@ def plot_gali_plotly(
             lbl = (
                 f"GALI_{k_orders[i]}"
                 if k_orders and i < len(k_orders)
-                else f"GALI_{i+2}"
+                else f"GALI_{i + 2}"
             )
             fig.add_trace(
                 go.Scatter(x=t, y=gali[:, i], mode="lines", name=lbl, line={"width": 2})
@@ -196,6 +196,7 @@ def plot_gali_plotly(
 
     _handle_save_show(fig, save_path=save_path, show=show, **kwargs)
     return fig
+
 
 def plot_trajectory_2d_plotly(
     pos: npt.NDArray[np.float64],
@@ -263,6 +264,7 @@ def plot_trajectory_2d_plotly(
 
     _handle_save_show(fig, save_path=save_path, show=show, **kwargs)
     return fig
+
 
 def plot_trajectory_3d_plotly(
     pos: npt.NDArray[np.float64],
@@ -340,6 +342,7 @@ def plot_trajectory_3d_plotly(
     _handle_save_show(fig, save_path=save_path, show=show, **kwargs)
     return fig
 
+
 def plot_phase_space_plotly(
     pos: npt.NDArray[np.float64],
     vel: npt.NDArray[np.float64],
@@ -402,6 +405,7 @@ def plot_phase_space_plotly(
 
     _handle_save_show(fig, save_path=save_path, show=show, **kwargs)
     return fig
+
 
 def plot_energy_drift_plotly(
     t: npt.NDArray[np.float64],

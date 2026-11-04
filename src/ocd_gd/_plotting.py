@@ -7,8 +7,7 @@ chunk of the class's surface area. `_OrbitPlottingMixin` is combined with the
 core class via inheritance in `orbit_detector.py`; it assumes the host
 class provides `_validate_index`, `_resolve_backend`, `detect_chaos`,
 `timestamps`, `trajectories`, `sali_array`, `gali_array`,
-`lyapunov_exponents`, `sali_threshold`, `gali_threshold`, `sali_window_size`,
-and `gali_window_size`.
+`lyapunov_exponents`.
 """
 
 __all__ = ["_OrbitPlottingMixin"]
@@ -157,8 +156,6 @@ class _OrbitPlottingMixin:
             chaos_report.sali_check, chaos_report.sali_time
         )
 
-        window_time = self.sali_window_size * self._get_dt(orbit_idx)
-
         sali_data = np.squeeze(self.get_sali(orbit_idx))
         if sali_data.ndim > 1 and not all_pairs:
             sali_data = np.min(sali_data, axis=0)
@@ -179,10 +176,8 @@ class _OrbitPlottingMixin:
             backend,
             t=t_orbit,
             sali=sali_data,
-            threshold=self.sali_threshold,
             is_chaotic=is_chaotic,
             detection_time=det_time,
-            window_size_time=window_time,
             lyapunov=lyap_data,
             save_path=save_path,
             show=show,
@@ -235,8 +230,6 @@ class _OrbitPlottingMixin:
             chaos_report.gali_check, chaos_report.gali_time
         )
 
-        window_time = self.gali_window_size * self._get_dt(orbit_idx)
-
         gali_data = np.squeeze(self.gali_array[orbit_idx])
         lyap_data = (
             self.lyapunov_exponents[orbit_idx]
@@ -256,10 +249,8 @@ class _OrbitPlottingMixin:
             t=t_orbit,
             gali=gali_data,
             k_orders=k_orders,
-            threshold=self.gali_threshold,
             is_chaotic=is_chaotic,
             detection_time=det_time if np.isfinite(det_time) else None,
-            window_size_time=window_time,
             lyapunov=lyap_data,
             save_path=save_path,
             show=show,
@@ -525,7 +516,7 @@ class _OrbitPlottingMixin:
         gali_is_chaotic, gali_det_time = self._detection_info(
             chaos_report.gali_check, chaos_report.gali_time
         )
-        dt = self._get_dt(orbit_idx)
+        self._get_dt(orbit_idx)
 
         sali = np.squeeze(self.get_sali(orbit_idx))
         if sali.ndim > 1:
@@ -551,10 +542,8 @@ class _OrbitPlottingMixin:
             "lyapunov": lyap_data,
             "sali_is_chaotic": sali_is_chaotic,
             "sali_det_time": sali_det_time if np.isfinite(sali_det_time) else None,
-            "sali_window_time": self.sali_window_size * dt,
             "gali_is_chaotic": gali_is_chaotic,
             "gali_det_time": gali_det_time if np.isfinite(gali_det_time) else None,
-            "gali_window_time": self.gali_window_size * dt,
         }
 
         return self._dispatch_plot(
@@ -562,8 +551,6 @@ class _OrbitPlottingMixin:
             plot_dashboard_plotly,
             backend,
             data,
-            sali_threshold=self.sali_threshold,
-            gali_threshold=self.gali_threshold,
             save_path=save_path,
             show=show,
             **kwargs,
@@ -620,8 +607,6 @@ class _OrbitPlottingMixin:
             sali_checks=chaos_report.sali_check,
             sali_times=chaos_report.sali_time,
             lyapunov_array=self.lyapunov_exponents,
-            threshold=self.sali_threshold,
-            window_size_time=self.sali_window_size * dt,
             max_per_page=max_per_page,
             save_path=save_path,
             show=show,
@@ -677,8 +662,6 @@ class _OrbitPlottingMixin:
             gali_checks=chaos_report.gali_check,
             gali_times=chaos_report.gali_time,
             lyapunov_array=self.lyapunov_exponents,
-            threshold=self.gali_threshold,
-            window_size_time=self.gali_window_size * dt,
             k_orders=k_orders,
             max_per_page=max_per_page,
             save_path=save_path,
@@ -725,7 +708,7 @@ class _OrbitPlottingMixin:
         >>> fig = detector.plot_sali_gali_batch(orbit_indices=[0], show=False)
         """
         chaos_report = self.detect_chaos()
-        dt = self._get_dt(0)
+        self._get_dt(0)
         sali_arr = (
             np.transpose(self.sali_array, (1, 0, 2))
             if (self.sali_array.ndim == 3 and self.sali_array.shape[0] == 15)
@@ -742,10 +725,6 @@ class _OrbitPlottingMixin:
             gali_checks=chaos_report.gali_check,
             gali_times=chaos_report.gali_time,
             lyapunov_array=self.lyapunov_exponents,
-            sali_threshold=self.sali_threshold,
-            gali_threshold=self.gali_threshold,
-            sali_window_time=self.sali_window_size * dt,
-            gali_window_time=self.gali_window_size * dt,
             k_orders=k_orders,
             max_orbits_per_page=max_orbits_per_page,
             save_path=save_path,

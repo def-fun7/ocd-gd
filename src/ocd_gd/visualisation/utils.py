@@ -9,7 +9,6 @@ from typing import Any
 
 import matplotlib.pyplot as plt
 
-
 _OUTPUT_DIRS = {
     "root": Path("./plots"),
     "matplotlib": Path("./plots/matplotlib"),
@@ -64,21 +63,17 @@ def resolve_save_path(save_path: str | None, backend: str) -> str | None:
 
 
 MPL_STYLE_DEFAULTS: dict[str, Any] = {
-
     "figure.facecolor": "white",
     "figure.dpi": 150,
     "figure.figsize": (8, 6),
     "savefig.dpi": 600,
-
     "axes.facecolor": "white",
     "axes.linewidth": 0.8,
     "axes.labelsize": 12,
     "axes.titlesize": 13,
     "axes.grid": True,
-
     "font.family": "sans-serif",
     "font.size": 10,
-
     "xtick.labelsize": 12,
     "ytick.labelsize": 12,
     "xtick.direction": "in",
@@ -91,13 +86,10 @@ MPL_STYLE_DEFAULTS: dict[str, Any] = {
     "ytick.minor.size": 3,
     "xtick.minor.width": 0.6,
     "ytick.minor.width": 0.6,
-
     "grid.linestyle": "--",
     "grid.alpha": 0.25,
-
     "legend.fontsize": 10,
     "legend.title_fontsize": 10,
-
     "lines.linewidth": 1.0,
     "lines.markersize": 6,
     "errorbar.capsize": 5,
@@ -111,6 +103,7 @@ def set_publication_style() -> None:
     for publication-quality figures.
     """
     plt.rcParams.update(MPL_STYLE_DEFAULTS)
+
 
 PALETTES = {
     "sali": "crimson",

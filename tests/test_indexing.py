@@ -1,7 +1,7 @@
 """Tests for index validation and sliced retrieval methods in OrbitChaosDetector."""
 
-from unittest.mock import MagicMock, patch
 from contextlib import nullcontext
+from unittest.mock import MagicMock, patch
 
 import numpy as np
 import pytest
@@ -40,8 +40,6 @@ def multi_orbit_detector():
 # =========================================================================
 # INDEX VALIDATION TESTS
 # =========================================================================
-
-from contextlib import nullcontext
 
 
 @pytest.mark.parametrize(
