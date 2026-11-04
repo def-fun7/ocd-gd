@@ -38,7 +38,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- metadata*row() no longer records the unused \*\_threshold /\_\_window_size columns and now records traj_size, also*\_threshold / \_\_window_size related parameters from the `OrbitChaosDetector` and respectively all subsequent places have also been removed.
+- `LYAPUNOV_CHAOS_THRESHOLD` (new shared constant, used in place of the repeated 0.1) defined in `_typings.py`.
+- detect_chaos(orbit_idx=k) reusing the cached default run as well as added its tests.
+- Plot changes: the detection window is replaced by an onset line, and the default threshold lines are removed.
+- README and quickstart updates (including the README fixes).
+- metadata*row() no longer records the unused *\_threshold / \_\_window_size columns and now records traj_size; the threshold/window parameters are removed from OrbitChaosDetector, GridChaosDetector, IntegrationCriteria and the plots.
 - Replaced binary thresholding in `OrbitChaosDetector.detect_chaos()` with `classify_decay()` returning `DecayClassification`.
 - Transposed `OrbitChaosDetector.sali_array` from `(num_orbits, 15, t)` to `(15, num_orbits, t)` to align multi-orbit traces consistently with GALI.
 - Updated `OrbitChaosDetector.chaos_summary()` to derive classification statistics and indicator agreement from `is_chaotic()` and `is_regular()` decay labels.

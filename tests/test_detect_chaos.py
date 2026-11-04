@@ -5,6 +5,7 @@ from unittest.mock import MagicMock, patch
 import numpy as np
 import pytest
 
+from ocd_gd._decay_classifier import classify_decay
 from ocd_gd._types import DecayClassification
 from ocd_gd.orbit_detector import OrbitChaosDetector
 
@@ -75,3 +76,25 @@ class TestChaosDetection:
     def test_unknown_preset_raises(self, chaos_detector, kwarg):
         with pytest.raises(ValueError, match="Unknown preset"):
             chaos_detector.detect_chaos(**{kwarg: "conservative"})
+
+    def test_single_orbit_default_run_reuses_the_cache(self, chaos_detector):
+        with patch("ocd_gd.orbit_detector.classify_decay", wraps=classify_decay) as spy:
+            full = chaos_detector.detect_chaos()
+            calls = spy.call_count
+            one = chaos_detector.detect_chaos(orbit_idx=1)
+        assert spy.call_count == calls
+        for key, value in full.gali.items():
+            np.testing.assert_array_equal(one.gali[key], value[1])
+        np.testing.assert_array_equal(one.sali["label"], full.sali["label"][1])
+
+    def test_single_orbit_view_matches_a_fresh_non_default_slice(self, chaos_detector):
+        cached = chaos_detector.detect_chaos(orbit_idx=0)
+        fresh = chaos_detector.detect_chaos(orbit_idx=0, sali_kwargs={})
+        for key in cached.gali:
+            np.testing.assert_array_equal(cached.gali[key], fresh.gali[key])
+            np.testing.assert_array_equal(cached.sali[key], fresh.sali[key])
+
+    def test_single_orbit_slice_with_separate_sali_pairs(self, chaos_detector):
+        full = chaos_detector.detect_chaos(separate_sali=True)
+        one = chaos_detector.detect_chaos(orbit_idx=1, separate_sali=True)
+        np.testing.assert_array_equal(one.sali["label"], full.sali["label"][:, 1])

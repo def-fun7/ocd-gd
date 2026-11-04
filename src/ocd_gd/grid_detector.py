@@ -148,7 +148,7 @@ class GridChaosDetector(_GridChaosPlottingMixin, OrbitChaosDetector):
             Range to scan when locating the physical x turning points at E_0.
         search_resolution : int, default 1000
             Number of scan points used to locate the turning points.
-                omega : float, default 0.0
+        omega : float, default 0.0
             Pattern speed of the rotating frame (also used for the resonance overlays).
         n_periods : float or None, optional
             Number of orbital periods to integrate each orbit; the duration is

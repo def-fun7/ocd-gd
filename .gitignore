@@ -47,3 +47,4 @@ docs/reference/generated/
 .venv/
 
 .DS_Store
+/*.png
