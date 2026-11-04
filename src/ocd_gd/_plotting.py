@@ -593,7 +593,7 @@ class _OrbitPlottingMixin:
         >>> fig = detector.plot_sali_batch(orbit_indices=[0, 1, 2], show=False)
         """
         chaos_report = self.detect_chaos()
-        dt = self._get_dt(0)
+        self._get_dt(0)
         sali_arr = (
             np.transpose(self.sali_array, (1, 0, 2))
             if (self.sali_array.ndim == 3 and self.sali_array.shape[0] == 15)
@@ -653,7 +653,7 @@ class _OrbitPlottingMixin:
         >>> fig = detector.plot_gali_batch(orbit_indices=[0, 1], show=False)
         """
         chaos_report = self.detect_chaos()
-        dt = self._get_dt(0)
+        self._get_dt(0)
 
         return plot_gali_batch_mpl(
             t=self.timestamps,
